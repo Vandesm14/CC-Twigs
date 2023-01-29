@@ -14,5 +14,5 @@
     // "luaBundle": "main.lua",
     // "luaBundleEntry": "main.ts"
   },
-  "include": ["./*.ts", "scripts/main.ts"]
+  "include": ["./**/**.ts", "scripts/main.ts", "types/event.ts"]
 }

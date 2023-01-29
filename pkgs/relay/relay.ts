@@ -1,4 +1,4 @@
-import { getModems, pluralize } from './lib';
+import { getModems, pluralize } from '../lib/lib';
 
 const args = [...$vararg];
 
