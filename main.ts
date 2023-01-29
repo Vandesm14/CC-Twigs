@@ -1,21 +1,6 @@
+import { getModems, pluralize } from './lib';
+
 const args = [...$vararg];
-
-const pluralize = (n: number, singular: string, plural?: string): string =>
-  n === 1 ? `${n} ${singular}` : `${n} ${plural || singular + 's'}`;
-
-function getModems(): string[] {
-  const modems = peripheral
-    .getNames()
-    .filter((name) => peripheral.getType(name)[0] === 'modem');
-  if (modems.length === 0) {
-    print('No modems found.');
-    shell.exit();
-  } else {
-    print(`${pluralize(modems.length, 'modem')} found.`);
-  }
-
-  return modems;
-}
 
 function open(modems: string[], channel: number) {
   for (const modem of modems) {
@@ -101,6 +86,9 @@ function listen(modems: string[]) {
 
 function run() {
   const modems = getModems();
+  if (modems.length === 0) {
+    return;
+  }
 
   // Setup channels
   setup(modems);

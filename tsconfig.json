@@ -10,9 +10,9 @@
   },
   "tstl": {
     "luaTarget": "CC",
-    "luaLibImport": "inline",
-    "luaBundle": "main.lua",
-    "luaBundleEntry": "main.ts"
+    "luaLibImport": "inline"
+    // "luaBundle": "main.lua",
+    // "luaBundleEntry": "main.ts"
   },
   "include": ["./*.ts", "scripts/main.ts"]
 }

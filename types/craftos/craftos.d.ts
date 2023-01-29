@@ -473,6 +473,9 @@ declare class ModemPeripheral implements IPeripheral {
   closeAll(): void;
   transmit(channel: number, replyChannel: number, payload: any): void;
   isWireless(): boolean;
+  callRemote(id: string, method: string): any;
+  getNamesRemote(): string[];
+  getNameLocal(): string;
 }
 
 /** @noSelf */
@@ -642,7 +645,7 @@ declare namespace rednet {
   ): LuaMultiReturn<[number, any, string | null] | [null]>;
   function host(protocol: string, hostname: string): void;
   function unhost(protocol: string): void;
-  function lookup(protocol: string, hostname?: string): void;
+  function lookup(protocol: string, hostname?: string): number[] | null;
   function run(): void;
 }
 /** @noSelf **/
