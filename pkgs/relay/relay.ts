@@ -1,7 +1,5 @@
 import { getModems, pluralize } from '../lib/lib';
 
-const args = [...$vararg];
-
 function open(modems: string[], channel: number) {
   for (const modem of modems) {
     peripheral.call(modem, 'open', channel);
