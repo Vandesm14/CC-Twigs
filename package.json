@@ -1,7 +1,8 @@
 {
   "main": "main.ts",
   "scripts": {
-    "build": "tstl"
+    "build": "tstl && yarn post-build",
+    "post-build": "deno run --allow-all server/postBuild.ts"
   },
   "devDependencies": {
     "typescript": "^4.8.0",
