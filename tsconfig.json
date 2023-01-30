@@ -14,5 +14,6 @@
     // "luaBundle": "main.lua",
     // "luaBundleEntry": "main.ts"
   },
-  "include": ["./pkgs/**/**.ts", "types/event.ts"]
+  "include": ["./pkgs/**/**.ts", "types/event.ts"],
+  "exclude": ["server"]
 }
