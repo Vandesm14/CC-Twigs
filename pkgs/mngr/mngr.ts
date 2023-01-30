@@ -1,4 +1,6 @@
 const args = [...$vararg];
+const cmd = args[0];
+const pkg = args[1];
 
 function getServerList() {
   // read from ".mngr/serverlist.txt", a list of servers separated by newline
@@ -28,5 +30,65 @@ function getServerList() {
   return servers;
 }
 
+function getDepsForPackage(pkg: string) {
+  // TODO: Implement scanning from multiple servers ("mirrors")
+  const server = getServerList()[0];
+
+  const url = `${server}/${pkg}/needs.txt`;
+  const [res] = http.get(url);
+  if (typeof res === 'boolean') {
+    print(`Failed to get deps for ${pkg} from ${server}`);
+    return;
+  }
+
+  const text = res.readAll();
+  res.close();
+
+  return text.split('\n');
+}
+
+function downloadPackage(pkg: string) {
+  const server = getServerList()[0];
+
+  const url = `${server}/${pkg}/${pkg}.lua`;
+  const [res] = http.get(url);
+  if (typeof res === 'boolean') {
+    print(`Failed to download ${pkg} from ${server}`);
+    return;
+  }
+
+  const [file] = fs.open(`pkgs/${pkg}.lua`, 'w');
+  if (!file) {
+    print(`Failed to create file for ${pkg}`);
+    return;
+  }
+
+  file.write(res.readAll());
+  file.close();
+  res.close();
+}
+
+function installPackage(pkg: string) {
+  const deps = getDepsForPackage(pkg);
+
+  for (const dep of deps) {
+    downloadPackage(dep);
+  }
+
+  downloadPackage(pkg);
+}
+
+function removePackage(pkg: string) {
+  fs.delete(`pkgs/${pkg}.lua`);
+}
+
 print('Mngr - Package Manager');
 print(getServerList().join());
+
+if (cmd === 'install' || cmd === 'update') {
+  installPackage(pkg);
+}
+
+if (cmd === 'remove') {
+  removePackage(pkg);
+}
