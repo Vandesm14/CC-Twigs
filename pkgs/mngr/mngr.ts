@@ -1,3 +1,4 @@
+// @ts-expect-error: FIXME: We're in module scope, args isn't redeclared
 const args = [...$vararg];
 const cmd = args[0];
 const pkg = args[1];
@@ -59,6 +60,12 @@ function downloadPackage(pkg: string) {
   const [file] = fs.open(`pkgs/${pkg}.lua`, 'w');
   if (!file) {
     print(`Failed to create file for ${pkg}`);
+    return;
+  }
+
+  if (!res) {
+    print(`Failed to download ${pkg} from ${server}`);
+    print(`URL: ${url}`);
     return;
   }
 
