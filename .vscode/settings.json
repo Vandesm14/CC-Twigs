@@ -1,0 +1,7 @@
+{
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.patterns": {
+    "*.ts": "${capture}.lua, ${capture}.graphql"
+  },
+  "explorer.fileNesting.expand": false
+}
