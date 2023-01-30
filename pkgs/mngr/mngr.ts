@@ -36,9 +36,8 @@ function getDepsForPackage(pkg: string) {
 
   const url = `${server}/${pkg}/needs.txt`;
   const [res] = http.get(url);
-  if (typeof res === 'boolean') {
-    print(`Failed to get deps for ${pkg} from ${server}`);
-    return;
+  if (typeof res === 'boolean' || !res) {
+    return [];
   }
 
   const text = res.readAll();
@@ -76,19 +75,28 @@ function installPackage(pkg: string) {
   }
 
   downloadPackage(pkg);
+
+  return deps.length;
 }
 
 function removePackage(pkg: string) {
   fs.delete(`pkgs/${pkg}.lua`);
 }
 
-print('Mngr - Package Manager');
-print(getServerList().join());
-
 if (cmd === 'install' || cmd === 'update') {
-  installPackage(pkg);
+  const total = installPackage(pkg);
+  print(`Installed ${pkg} and ${total} deps.`);
+
+  // @ts-expect-error: Lua allows this
+  return;
 }
 
 if (cmd === 'remove') {
   removePackage(pkg);
+  print(`Removed ${pkg}.`);
+
+  // @ts-expect-error: Lua allows this
+  return;
 }
+
+print('Usage: mngr <install|update|remove> <package>');
