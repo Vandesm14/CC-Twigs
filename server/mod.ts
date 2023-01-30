@@ -62,8 +62,12 @@ const debouncer = await debounce(async () => {
   entries = await getEntries();
 }, 1000);
 
-for await (const event of watcher) {
-  debouncer();
-}
+await Promise.all([
+  async () => {
+    for await (const event of watcher) {
+      debouncer();
+    }
+  },
 
-await server.listenAndServe();
+  server.listenAndServe(),
+]);
