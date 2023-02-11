@@ -18,10 +18,12 @@ function getLocalNeighbors() {
   const computerIDs: Map<string, number[]> = new Map(
     modems.map((modem, i) => [
       modemSides[i],
-      modem
-        .getNamesRemote()
-        .filter((name) => name.startsWith('computer_'))
-        .map((name) => modem.callRemote(name, 'getID') as number),
+      modem.getNamesRemote
+        ? modem
+            .getNamesRemote()
+            .filter((name) => name.startsWith('computer_'))
+            .map((name) => modem.callRemote(name, 'getID') as number)
+        : [],
     ])
   );
 
@@ -41,9 +43,6 @@ interface BGPMessage {
   // The ID of the computer that sent the message
   from: number;
 
-  // The ID of the computer to receive the message
-  to?: number;
-
   // The ID of the computer that originally sent the message (the first computer)
   origin: number;
 }
@@ -61,7 +60,7 @@ function sendBGPMessage(message: BGPMessage, modemSide: string) {
 
 const neighbors = getLocalNeighbors();
 
-print(`Found ${neighbors.ids.length} computers on the network.`);
+print(`Found ${neighbors.ids.length} nodes on local network.`);
 
 const modemSides = getModems();
 const modems = modemSides.map(
@@ -78,19 +77,17 @@ function closePorts() {
 
 function broadcastBGP(previous?: BGPMessage) {
   modemSides.forEach((modemSide) => {
-    // Send a BGP message to all of the neighbors
-    neighbors.ids.forEach((id) => {
-      const message: BGPMessage = {
-        type: 'seek',
-        trace: previous?.trace
-          ? [...Object.values(previous.trace), computerID]
-          : [computerID],
-        from: computerID,
-        origin: previous?.origin ?? computerID,
-      };
+    // Send a BGP message
+    const message: BGPMessage = {
+      type: 'seek',
+      trace: previous?.trace
+        ? [...Object.values(previous.trace), computerID]
+        : [computerID],
+      from: computerID,
+      origin: previous?.origin ?? computerID,
+    };
 
-      sendBGPMessage(message, modemSide);
-    });
+    sendBGPMessage(message, modemSide);
   });
 }
 
