@@ -33,12 +33,14 @@ function getLocalNeighbors() {
   };
 }
 
+type LuaArray<T> = Record<number, T>;
+
 interface BGPMessage {
   // The type of message
-  type: 'seek';
+  type: string;
 
   // The historical path of the message
-  trace: Record<number, number>;
+  trace: LuaArray<number>;
 
   // The ID of the computer that sent the message
   from: number;
@@ -47,14 +49,31 @@ interface BGPMessage {
   origin: number;
 }
 
+interface BGPSeekMessage extends BGPMessage {
+  type: 'seek';
+
+  // The computers in the origin's LAN
+  neighbors: LuaArray<number>;
+}
+
 function tryParseNumber(value: string) {
   const num = Number(value);
   if (isNaN(num)) return value;
   return num;
 }
 
-function sendBGPMessage(message: BGPMessage, modemSide: string) {
+function sendBGPMessage(
+  message: BGPMessage,
+  modemSide: string,
+  printMsg = true
+) {
   const modem = peripheral.wrap(modemSide) as ModemPeripheral;
+
+  if (printMsg) {
+    print('out:');
+    pretty_print(message);
+  }
+
   modem.transmit(BGP_PORT, BGP_PORT, message);
 }
 
@@ -76,19 +95,23 @@ function closePorts() {
 }
 
 function broadcastBGP(previous?: BGPMessage) {
+  const message: BGPSeekMessage = {
+    type: 'seek',
+    trace: previous?.trace
+      ? [...Object.values(previous.trace), computerID]
+      : [computerID],
+    from: computerID,
+    origin: previous?.origin ?? computerID,
+    neighbors: neighbors.ids,
+  };
+
   modemSides.forEach((modemSide) => {
     // Send a BGP message
-    const message: BGPMessage = {
-      type: 'seek',
-      trace: previous?.trace
-        ? [...Object.values(previous.trace), computerID]
-        : [computerID],
-      from: computerID,
-      origin: previous?.origin ?? computerID,
-    };
-
-    sendBGPMessage(message, modemSide);
+    sendBGPMessage(message, modemSide, false);
   });
+
+  print('out:');
+  pretty_print(message);
 }
 
 function waitForMessage(this: void) {
@@ -97,6 +120,7 @@ function waitForMessage(this: void) {
 
   const message = rawMessage as BGPMessage;
 
+  print('in:');
   pretty_print(message);
 
   if (message.type === 'seek') {
