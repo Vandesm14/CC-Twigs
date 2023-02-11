@@ -1,4 +1,4 @@
-// @ts-expect-error: FIXME: We're in module scope, args isn't redeclared
+//// @ts-expect-error: FIXME: We're in modle scope, args isn't redeclared
 const args = [...$vararg];
 const cmd = args[0];
 const pkg = args[1];
@@ -90,6 +90,13 @@ function removePackage(pkg: string) {
   fs.delete(`pkgs/${pkg}.lua`);
 }
 
+function updateAndRunPackage(pkg: string) {
+  const total = installPackage(pkg);
+  print(`Installed ${pkg} and ${total} deps.`);
+
+  shell.run(`pkgs/${pkg}.lua`);
+}
+
 if (cmd === 'install' || cmd === 'update') {
   const total = installPackage(pkg);
   print(`Installed ${pkg} and ${total} deps.`);
@@ -101,6 +108,13 @@ if (cmd === 'install' || cmd === 'update') {
 if (cmd === 'remove') {
   removePackage(pkg);
   print(`Removed ${pkg}.`);
+
+  // @ts-expect-error: Lua allows this
+  return;
+}
+
+if (cmd === 'run') {
+  updateAndRunPackage(pkg);
 
   // @ts-expect-error: Lua allows this
   return;
