@@ -1,7 +1,7 @@
 // @ts-expect-error: FIXME: We're in modle scope, args isn't redeclared
 const args = [...$vararg];
 const cmd = args[0];
-const pkg = args[1];
+const scope = args[1];
 
 function getServerList() {
   // read from ".mngr/serverlist.txt", a list of servers separated by newline
@@ -134,33 +134,42 @@ function doInstallPackage(pkg: string) {
   );
 }
 
-function updateAndRunPackage(pkg: string) {
+function updateAndRunPackage(scope: string) {
+  const parts = scope.split('/');
+
+  const pkg = parts[0];
+  const lib = parts.length > 1 ? parts[1] : pkg;
+
   doInstallPackage(pkg);
 
   // Runs the main package file
-  shell.run(`pkgs/${pkg}/${pkg}.lua`);
+  shell.run(`pkgs/${pkg}/${lib}.lua`);
 }
 
 if (cmd === 'install' || cmd === 'update') {
-  doInstallPackage(pkg);
+  doInstallPackage(scope);
 
   // @ts-expect-error: Lua allows this
   return;
 }
 
 if (cmd === 'remove') {
-  removePackage(pkg);
-  print(`Removed ${pkg}.`);
+  removePackage(scope);
+  print(`Removed ${scope}.`);
 
   // @ts-expect-error: Lua allows this
   return;
 }
 
 if (cmd === 'run') {
-  updateAndRunPackage(pkg);
+  updateAndRunPackage(scope);
 
   // @ts-expect-error: Lua allows this
   return;
 }
 
 print('Usage: mngr <install|update|remove|run> <package>');
+print('Example: mngr install bgp');
+print('Example: mngr run bgp');
+print('Example: mngr run bgp/start');
+print('Example: mngr remove bgp');
