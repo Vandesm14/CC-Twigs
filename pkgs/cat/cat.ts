@@ -10,9 +10,17 @@ if (!exists) {
   return;
 }
 
-const [f] = fs.open(file, 'r');
+const [f, err] = fs.open(file, 'r');
+
+if (err) {
+  print(`Failed to open file ${file}: ${err}`);
+
+  // @ts-expect-error: Lua allows this
+  return;
+}
+
 const text = f.readAll();
 f.close();
 
 const lines = text.split('\n');
-lines.forEach(print);
+lines.forEach((str) => print(str));
