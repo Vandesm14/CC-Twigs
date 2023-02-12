@@ -24,7 +24,7 @@ function getLocalNeighbors() {
     // Get all of the modems
     .map((modem) => peripheral.wrap(modem) as ModemPeripheral);
   // Get all computers on the network (of the modem)
-  const computerIDs: Map<string, number[]> = new Map(
+  const sidesToIds: Map<string, number[]> = new Map(
     modems.map((modem, i) => [
       modemSides[i],
       modem.getNamesRemote
@@ -36,9 +36,18 @@ function getLocalNeighbors() {
     ])
   );
 
+  const idsToSides = new Map<number, string[]>([]);
+  sidesToIds.forEach((ids, side) => {
+    ids.forEach((id) => {
+      if (!idsToSides.has(id)) idsToSides.set(id, []);
+      idsToSides.get(id).push(side);
+    });
+  });
+
   return {
-    ids: Array.from(computerIDs.values()).reduce((a, b) => a.concat(b), []),
-    mapOfSides: computerIDs,
+    ids: Array.from(sidesToIds.values()).reduce((a, b) => a.concat(b), []),
+    sidesToIds,
+    idsToSides,
   };
 }
 
@@ -50,14 +59,16 @@ const modemSides = getModems();
 const modems = modemSides.map(
   (modem) => peripheral.wrap(modem) as ModemPeripheral
 );
+const sidesToModems = new Map<string, ModemPeripheral>(
+  modemSides.map((side, i) => [side, modems[i]])
+);
+const wirelessModemSides = modemSides.filter((side) =>
+  sidesToModems.get(side).isWireless()
+);
 
 const history: string[] = [];
 
-function sendBGPMessage(
-  message: BGPMessage,
-  modemSide: string,
-  printMsg = true
-) {
+function sendBGPMessage(message: BGPMessage, modemSide: string) {
   const modem = peripheral.wrap(modemSide) as ModemPeripheral;
 
   modem.transmit(BGP_PORT, BGP_PORT, message);
@@ -98,6 +109,15 @@ function updateDBEntry(destination: number, from: number) {
   fileWrite.write(textutils.serialize(db));
   fileWrite.close();
 
+  log.viaHTTP({
+    comment: 'db_update',
+    id: computerID,
+    ts: os.epoch('utc'),
+    destination,
+    from,
+    data: db[destinationKey],
+  });
+
   term.clear();
   term.setCursorPos(1, 1);
 
@@ -122,6 +142,7 @@ function getDB(originId: number) {
 
 function broadcastBGPUpdateListing(previous?: BGPUpdateListingMessage) {
   const message: BGPUpdateListingMessage = {
+    // Generate a new ID if this is a new message
     id: previous?.id ?? generateRandomHash(),
     type: BGPMessageType.UPDATE_LISTING,
     trace: previous?.trace
@@ -129,6 +150,7 @@ function broadcastBGPUpdateListing(previous?: BGPUpdateListingMessage) {
       : [computerID],
     from: computerID,
     origin: previous?.origin ?? computerID,
+
     neighbors: previous?.neighbors
       ? Array.from(
           new Set([
@@ -145,23 +167,52 @@ function broadcastBGPUpdateListing(previous?: BGPUpdateListingMessage) {
       : Array.from(new Set([...neighbors.ids, computerID])),
   };
 
+  // Filter out the sides that we've already sent the message to or seen the message from
+  const idsToSides = Array.from(neighbors.idsToSides);
+  const sidesToSendTo = [
+    ...idsToSides
+      .filter(([id]) => !Object.values(message.trace).includes(id))
+      .flatMap(([_, sides]) => sides),
+
+    // We are using a trick to get neighbors for LAN modems,
+    // we can't use that trick for wireless modems, so we
+    // always have to relay to wireless modems
+    ...wirelessModemSides,
+  ];
+
   print(`${previous ? 'Relaying' : 'Broadcasting'} BGP message: ${message.id}`);
 
   log.viaHTTP({
-    comment: 'Sending BGP message',
+    comment: previous ? 'relay' : 'send',
     id: computerID,
     ts: os.epoch('utc'),
-    type: previous ? 'Relaying' : 'Broadcasting',
     message,
+  });
+
+  // sidesToSendTo.forEach((modemSide) => {
+  modemSides.forEach((modemSide) => {
+    // Send a BGP message
+    sendBGPMessage(message, modemSide);
+  });
+
+  if (previous) {
+    // Run through each neighbor and update the destination to the previous.from (where the message came from)
+    // so we know where to send the message to for each destination
+    Object.values(previous.neighbors).forEach((neighbor) => {
+      // Only update the DB if the neighbor is not us
+      if (neighbor !== computerID) updateDBEntry(neighbor, previous.from);
+    });
+  }
+
+  // Run through our own neighbors and update the destination to the message.from
+  // so we know where to send the message to for each destination
+  neighbors.ids.forEach((neighbor) => {
+    // Only update the DB if the neighbor is not us
+    if (neighbor !== computerID) updateDBEntry(neighbor, neighbor);
   });
 
   // Add the message to the history
   history.push(message.id);
-
-  modemSides.forEach((modemSide) => {
-    // Send a BGP message
-    sendBGPMessage(message, modemSide, false);
-  });
 }
 
 /** Waits for a `modem_message` OS event, then prints the message and relays the BGP message */
@@ -174,29 +225,24 @@ function waitForMessage(this: void) {
   print(`Received BGP message: ${message.id}`);
 
   log.viaHTTP({
-    comment: 'Received BGP message',
+    comment: 'receive',
     ts: os.epoch('utc'),
     id: computerID,
     message,
+    isInHistory: history.includes(message.id),
   });
 
   if (message.type === BGPMessageType.UPDATE_LISTING) {
     const updateListingMessage = message as BGPUpdateListingMessage;
+    const isInHistory = history.includes(updateListingMessage.id);
 
-    // updateDBEntry(updateListingMessage.from, updateListingMessage.neighbors);
-    Object.values(updateListingMessage.neighbors).forEach((neighbor) => {
-      // Only update the DB if the neighbor is not us
-      if (neighbor !== computerID)
-        updateDBEntry(neighbor, updateListingMessage.from);
-    });
+    history.push(updateListingMessage.id);
 
-    if (!history.includes(updateListingMessage.id)) {
+    if (!isInHistory) {
       // If we haven't seen this message before,
       // broadcast it to all of the neighbors
       broadcastBGPUpdateListing(updateListingMessage);
     }
-
-    history.push(updateListingMessage.id);
   }
 }
 
@@ -221,7 +267,6 @@ function main() {
 
         // If we haven't received a message in `TIMEOUT` seconds,
         // clear the DB and broadcast a new BGP message
-        clearDB();
         broadcastBGPUpdateListing();
       }
     );
@@ -229,4 +274,5 @@ function main() {
 }
 
 createDBIfNotExists();
+clearDB();
 main();
