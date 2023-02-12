@@ -109,15 +109,6 @@ function updateDBEntry(destination: number, from: number) {
   fileWrite.write(textutils.serialize(db));
   fileWrite.close();
 
-  log.viaHTTP({
-    comment: 'db_update',
-    id: computerID,
-    ts: os.epoch('utc'),
-    destination,
-    from,
-    data: db[destinationKey],
-  });
-
   term.clear();
   term.setCursorPos(1, 1);
 
@@ -182,15 +173,7 @@ function broadcastBGPUpdateListing(previous?: BGPUpdateListingMessage) {
 
   print(`${previous ? 'Relaying' : 'Broadcasting'} BGP message: ${message.id}`);
 
-  log.viaHTTP({
-    comment: previous ? 'relay' : 'send',
-    id: computerID,
-    ts: os.epoch('utc'),
-    message,
-  });
-
-  // sidesToSendTo.forEach((modemSide) => {
-  modemSides.forEach((modemSide) => {
+  sidesToSendTo.forEach((modemSide) => {
     // Send a BGP message
     sendBGPMessage(message, modemSide);
   });
@@ -223,14 +206,6 @@ function waitForMessage(this: void) {
   const message = rawMessage as BGPMessage;
 
   print(`Received BGP message: ${message.id}`);
-
-  log.viaHTTP({
-    comment: 'receive',
-    ts: os.epoch('utc'),
-    id: computerID,
-    message,
-    isInHistory: history.includes(message.id),
-  });
 
   if (message.type === BGPMessageType.UPDATE_LISTING) {
     const updateListingMessage = message as BGPUpdateListingMessage;
