@@ -1,7 +1,25 @@
 # BGP
 
-1. [ ] Get a list of IDs of the connected nodes
-2. [ ] Broadcast the list to all the nodes
-3. [ ] If a node receives a list, it should update the list of connected nodes for the origin
-4. [ ] It will then relay the list to all the nodes it is connected to
-5. [ ] If a node receives a message where the `origin` is the same as the node's `id`, it will ignore the message
+## Database
+
+```ts
+//                     c_<id>, dest
+type Database = Record<string, number>;
+
+// Note: we are using c_<id> because Lua indexes the tables strangely, so using just numbers will result in weird behavior
+```
+
+## Propagation
+
+1. [ ] Broadcast a BGP `propagation` message to all peers.
+   1. [ ] The message contains the `id` of the original node as `origin`, the `from` of the recent handler, and a `neighbors` list containing the `id` of all neighbors of the origin.
+2. [ ] When the message is received by a peer, it propagates the message and handles it
+3. [ ] Process the message
+   1. [ ] Update the destinations of the `from` neighbor to include the `neighbors` as destinations (append to the list)
+
+## Sending & Routing
+
+1. [ ] Prepare a BGP message with the `to`, `from`, and `origin` fields
+2. [ ] Look up the destination of the `to` neighbor in the database
+3. [ ] Find the next hop to the destination
+4. [ ] Send the message to the next hop
