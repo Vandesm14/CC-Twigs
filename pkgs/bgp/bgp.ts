@@ -46,17 +46,29 @@ function getLocalNeighbors() {
   };
 }
 
-const neighbors = getLocalNeighbors();
+let neighbors: ReturnType<typeof getLocalNeighbors>;
+let modemSides: string[];
+let sidesToModems: Map<string, ModemPeripheral>;
+let wirelessModemSides: string[];
 
-print(`Found ${neighbors.ids.length} nodes on local network.`);
+function updatePeripherals() {
+  neighbors = getLocalNeighbors();
 
-const modemSides = getModems();
-const sidesToModems = new Map<string, ModemPeripheral>(
-  modemSides.map((side, i) => [side, peripheral.wrap(side) as ModemPeripheral])
-);
-const wirelessModemSides = modemSides.filter((side) =>
-  sidesToModems.get(side).isWireless()
-);
+  print(`Found ${neighbors.ids.length} nodes on local network.`);
+
+  modemSides = getModems();
+  sidesToModems = new Map<string, ModemPeripheral>(
+    modemSides.map((side, i) => [
+      side,
+      peripheral.wrap(side) as ModemPeripheral,
+    ])
+  );
+  wirelessModemSides = modemSides.filter((side) =>
+    sidesToModems.get(side).isWireless()
+  );
+
+  openPorts();
+}
 
 const history: string[] = [];
 
@@ -69,6 +81,7 @@ function sendBGPMessage(message: BGPMessage, modemSide: string) {
 
 function openPorts() {
   sidesToModems.forEach((modem) => modem.open(BGP_PORT));
+  print('Ports open');
 }
 
 function createDBIfNotExists() {
@@ -203,6 +216,14 @@ function waitForMessage(this: void) {
   return message;
 }
 
+function waitForPeripheralAdd(this: void) {
+  os.pullEvent('peripheral');
+}
+
+function waitForPeripheralRemove(this: void) {
+  os.pullEvent('peripheral_detach');
+}
+
 /** Handles a BGP message depending on the type */
 function handleBGPMessage(message: BGPMessage) {
   if (message.type === BGPMessageType.PROPAGATE) {
@@ -222,10 +243,6 @@ function handleBGPMessage(message: BGPMessage) {
 }
 
 function main() {
-  // Open the ports
-  openPorts();
-  print('Ports open');
-
   // Timeout to wait for a message (real-world BGP uses 30 seconds)
   const TIMEOUT = 5;
 
@@ -241,6 +258,20 @@ function main() {
       () => {
         // Wait for `TIMEOUT` seconds
         sleep(TIMEOUT);
+      },
+      () => {
+        // Wait for a peripheral to be added
+        waitForPeripheralAdd();
+        print('Peripheral added, refreshing...');
+        updatePeripherals();
+        clearDB();
+      },
+      () => {
+        // Wait for a peripheral to be removed
+        waitForPeripheralRemove();
+        print('Peripheral removed, refreshing...');
+        updatePeripherals();
+        clearDB();
       }
     );
 
@@ -258,4 +289,5 @@ function main() {
 
 createDBIfNotExists();
 clearDB();
+updatePeripherals();
 main();
