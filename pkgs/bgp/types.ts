@@ -4,7 +4,7 @@ export type LuaArray<T> = {
 };
 
 export enum BGPMessageType {
-  UPDATE_LISTING = 'update_listing',
+  PROPAGATE = 'propagate',
   CARRIER = 'carrier',
 }
 export interface BGPMessage {
@@ -23,8 +23,8 @@ export interface BGPMessage {
   origin: number;
 }
 
-export interface BGPUpdateListingMessage extends BGPMessage {
-  type: BGPMessageType.UPDATE_LISTING;
+export interface BGPPropagateMessage extends BGPMessage {
+  type: BGPMessageType.PROPAGATE;
 
   // The computers in the origin's LAN
   neighbors: LuaArray<number>;

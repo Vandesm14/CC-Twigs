@@ -3,7 +3,7 @@ import { generateRandomHash } from './lib';
 import {
   BGPMessage,
   BGPMessageType,
-  BGPUpdateListingMessage,
+  BGPPropagateMessage,
   LuaArray,
 } from './types';
 
@@ -127,11 +127,11 @@ function getDB(originId: number) {
 }
 
 /** Broadcasts or forwards a BGP propagation message */
-function broadcastBGPUpdateListing(previous?: BGPUpdateListingMessage) {
-  const message: BGPUpdateListingMessage = {
+function broadcastBGPPropagate(previous?: BGPPropagateMessage) {
+  const message: BGPPropagateMessage = {
     // Generate a new ID if this is a new message
     id: previous?.id ?? generateRandomHash(),
-    type: BGPMessageType.UPDATE_LISTING,
+    type: BGPMessageType.PROPAGATE,
     trace: previous?.trace
       ? [...Object.values(previous.trace), computerID]
       : [computerID],
@@ -194,7 +194,7 @@ function broadcastBGPUpdateListing(previous?: BGPUpdateListingMessage) {
   history.push(message.id);
 }
 
-/** Waits for a `modem_message` OS event, then prints the message */
+/** Waits for a `modem_message` OS event, then returns the message */
 function waitForMessage(this: void) {
   const [event, side, channel, replyChannel, rawMessage] =
     os.pullEvent('modem_message');
@@ -205,18 +205,18 @@ function waitForMessage(this: void) {
 
 /** Handles a BGP message depending on the type */
 function handleBGPMessage(message: BGPMessage) {
-  if (message.type === BGPMessageType.UPDATE_LISTING) {
-    const updateListingMessage = message as BGPUpdateListingMessage;
-    const isInHistory = history.includes(updateListingMessage.id);
+  if (message.type === BGPMessageType.PROPAGATE) {
+    const propagateMessage = message as BGPPropagateMessage;
+    const isInHistory = history.includes(propagateMessage.id);
 
-    history.push(updateListingMessage.id);
+    history.push(propagateMessage.id);
 
     if (!isInHistory) {
       print(`Received BGP message: ${message.id}`);
 
       // If we haven't seen this message before,
       // broadcast it to all of the neighbors
-      broadcastBGPUpdateListing(updateListingMessage);
+      broadcastBGPPropagate(propagateMessage);
     } else print(`Received BGP message: ${message.id} (already seen)`);
   }
 }
@@ -251,7 +251,7 @@ function main() {
     } else {
       // If we didn't get a message, then we timed out
       // broadcast our own BGP message
-      broadcastBGPUpdateListing();
+      broadcastBGPPropagate();
     }
   }
 }
