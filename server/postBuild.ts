@@ -44,7 +44,7 @@ names.forEach((name) => {
     // Change package path to include the pkgs folder
     newLuaFile = `package.path = "/pkgs/?.lua;" .. package.path\n${newLuaFile}`;
 
-    // Deno.writeTextFileSync(luaName, newLuaFile);
+    Deno.writeTextFileSync(luaName, newLuaFile);
   });
 
   if (luaNames.length > 1) {
