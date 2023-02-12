@@ -153,15 +153,13 @@ function findPath(
       if (!shortestPath || path.length < shortestPath.length) {
         shortestPath = path;
       }
-      continue;
-    }
-
-    for (const neighbor of graph[node] || []) {
-      if (visited.has(neighbor)) {
-        continue;
+    } else {
+      for (const neighbor of graph[node] || []) {
+        if (!visited.has(neighbor)) {
+          visited.add(neighbor);
+          queue.push([...path, neighbor]);
+        }
       }
-      visited.add(neighbor);
-      queue.push([...path, neighbor]);
     }
   }
 
