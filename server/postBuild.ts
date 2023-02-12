@@ -6,7 +6,7 @@ const names = [...packages].map((pkg) => pkg.name);
 console.log(`${names.length} Packages:`, names.join(', '));
 
 names.forEach((name) => {
-  // 1. Get all the .lua files in the package
+  // Get all the .lua files in the package
   const lua = fs.walkSync(`./pkgs/${name}`, {
     includeDirs: false,
     exts: ['.lua'],
@@ -17,10 +17,12 @@ names.forEach((name) => {
 
   luaNames.forEach((luaName) => {
     const luaFile = Deno.readTextFileSync(luaName);
-    // Match: require("pkgs.<word>.") and remove the pkgs.<word>.
-    const requireRegex = `(?<=require\\(")pkgs\\.\\w+\\.`;
+    // Match: `require("pkgs.")` and remove the `pkgs.`
+    let newLuaFile = luaFile.replace(/(?<=require\(")pkgs\./g, '');
 
-    const newLuaFile = luaFile.replace(new RegExp(requireRegex, 'g'), '');
+    // Change package path to include the pkgs folder
+    newLuaFile = `package.path = "/pkgs/?.lua;" .. package.path\n${newLuaFile}`;
+
     Deno.writeTextFileSync(luaName, newLuaFile);
   });
 });
