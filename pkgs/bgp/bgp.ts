@@ -136,36 +136,6 @@ function getDB(originId: number) {
   return db;
 }
 
-function findPath(
-  graph: Record<number, number[]>,
-  start: number,
-  end: number
-): number[] | null {
-  const queue = [[start]];
-  const visited = new Set<number>();
-  let shortestPath: number[] | null = null;
-
-  while (queue.length) {
-    const path = queue.shift()!;
-    const node = path[path.length - 1];
-
-    if (node === end) {
-      if (!shortestPath || path.length < shortestPath.length) {
-        shortestPath = path;
-      }
-    } else {
-      for (const neighbor of graph[node] || []) {
-        if (!visited.has(neighbor)) {
-          visited.add(neighbor);
-          queue.push([...path, neighbor]);
-        }
-      }
-    }
-  }
-
-  return shortestPath;
-}
-
 function broadcastBGPUpdateListing(previous?: BGPUpdateListingMessage) {
   const message: BGPUpdateListingMessage = {
     type: BGPMessageType.UPDATE_LISTING,
