@@ -33,7 +33,10 @@ function getLocalNeighbors() {
   };
 }
 
-type LuaArray<T> = Record<number, T>;
+type LuaArray<T> = {
+  [key: number]: T;
+  [Symbol.iterator](): IterableIterator<T>;
+};
 
 enum BGPMessageType {
   UPDATE_LISTING = 'update_listing',
@@ -120,7 +123,7 @@ function updateDBEntry(originId: number, neighbors: LuaArray<number>) {
   );
 }
 
-function getDBEntry(originId: number) {
+function getDB(originId: number) {
   createDBIfNotExists();
 
   const [fileRead] = fs.open('bgp.db', 'r');
@@ -130,7 +133,39 @@ function getDBEntry(originId: number) {
   >;
   fileRead.close();
 
-  return db[originId];
+  return db;
+}
+
+function findPath(
+  graph: Record<number, number[]>,
+  start: number,
+  end: number
+): number[] | null {
+  const queue = [[start]];
+  const visited = new Set<number>();
+  let shortestPath: number[] | null = null;
+
+  while (queue.length) {
+    const path = queue.shift()!;
+    const node = path[path.length - 1];
+
+    if (node === end) {
+      if (!shortestPath || path.length < shortestPath.length) {
+        shortestPath = path;
+      }
+      continue;
+    }
+
+    for (const neighbor of graph[node] || []) {
+      if (visited.has(neighbor)) {
+        continue;
+      }
+      visited.add(neighbor);
+      queue.push([...path, neighbor]);
+    }
+  }
+
+  return shortestPath;
 }
 
 function broadcastBGPUpdateListing(previous?: BGPUpdateListingMessage) {
