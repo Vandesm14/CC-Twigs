@@ -47,17 +47,20 @@ names.forEach((name) => {
     Deno.writeTextFileSync(luaName, newLuaFile);
   });
 
-  if (luaNames.length > 1) {
+  // If the package has other lua files besindes the <pkg>.lua file, create a has.txt file
+  if (
+    luaNames
+      .map((n) => n.replace('.lua', '').split('/').slice(-1)[0])
+      .some((n) => n !== name)
+  ) {
     // Create a has.txt file with all the lua files for the package
     Deno.writeTextFileSync(
       `./pkgs/${name}/has.txt`,
       luaNames
         .map((name) => name.split('/').slice(-1)[0].replace('.lua', ''))
-        .filter((luaName) => luaName !== name)
         .join('\n')
     );
   } else if (existsSync(`./pkgs/${name}/has.txt`)) {
-    // If there is only one lua file, remove the has.txt file
     Deno.removeSync(`./pkgs/${name}/has.txt`);
   }
 

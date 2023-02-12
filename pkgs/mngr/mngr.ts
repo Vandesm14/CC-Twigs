@@ -178,8 +178,6 @@ function installPackage(pkg: string, dry = false) {
     downloadPackage(pkg, lib);
   }
 
-  downloadPackage(pkg);
-
   // Copy a top-level package file to the root of `pkgs/` so that it can be run
   if (fs.exists(`pkgs/${pkg}.lua`)) fs.delete(`pkgs/${pkg}.lua`);
   fs.copy(`pkgs/${pkg}/${pkg}.lua`, `pkgs/${pkg}.lua`);
