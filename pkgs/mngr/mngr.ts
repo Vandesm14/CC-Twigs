@@ -210,30 +210,59 @@ function updateAndRunPackage(scope: string) {
   shell.run(`pkgs/${pkg}/${lib}.lua`);
 }
 
-if (cmd === 'install' || cmd === 'update') {
-  doInstallPackage(scope);
-
-  // @ts-expect-error: Lua allows this
-  return;
-}
-
-if (cmd === 'remove') {
-  removePackage(scope);
-  print(`Removed ${scope}.`);
-
-  // @ts-expect-error: Lua allows this
-  return;
+function printUsage() {
+  print('Usage: mngr <install|update|remove|run> <package>');
+  print('Example: mngr install bgp');
+  print('Example: mngr run bgp');
+  print('Example: mngr run bgp/start');
+  print('Example: mngr remove bgp');
 }
 
 if (cmd === 'run') {
+  if (!scope) {
+    printUsage();
+    shell.exit();
+  }
+
   updateAndRunPackage(scope);
 
   // @ts-expect-error: Lua allows this
   return;
 }
 
-print('Usage: mngr <install|update|remove|run> <package>');
-print('Example: mngr install bgp');
-print('Example: mngr run bgp');
-print('Example: mngr run bgp/start');
-print('Example: mngr remove bgp');
+if (cmd === 'install') {
+  if (!scope) {
+    printUsage();
+    shell.exit();
+  }
+
+  doInstallPackage(scope);
+
+  // @ts-expect-error: Lua allows this
+  return;
+}
+
+if (cmd === 'update') {
+  const pkgs = scope
+    ? [scope]
+    : fs.list('pkgs').filter((pkg) => !pkg.endsWith('.lua'));
+
+  print(`Updating ${pkgs.length} packages...`);
+  pkgs.forEach(doInstallPackage);
+
+  // @ts-expect-error: Lua allows this
+  return;
+}
+
+if (cmd === 'remove') {
+  if (!scope) {
+    printUsage();
+    shell.exit();
+  }
+
+  removePackage(scope);
+  print(`Removed ${scope}.`);
+
+  // @ts-expect-error: Lua allows this
+  return;
+}
