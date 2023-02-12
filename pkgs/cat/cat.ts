@@ -1,4 +1,4 @@
-// @ts-expect-error: FIXME: We're in modle scope, args isn't redeclared
+// @ts-expect-error: FIXME: We're in module scope, args isn't redeclared
 const args = [...$vararg];
 const file = args[0];
 
