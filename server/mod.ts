@@ -1,9 +1,9 @@
-import * as fs from 'https://deno.land/std@0.175.0/fs/walk.ts';
+import { walk } from 'https://deno.land/std@0.175.0/fs/walk.ts';
 import { Server } from 'https://deno.land/std@0.175.0/http/server.ts';
 
 const PATH = Deno.args[0] || '.';
 
-async function debounce(fn: () => any, time: number) {
+function debounce(fn: () => any, time: number) {
   let timeout: number;
   return function () {
     clearTimeout(timeout);
@@ -13,7 +13,7 @@ async function debounce(fn: () => any, time: number) {
 
 async function getEntries() {
   const entries = [];
-  for await (const entry of fs.walk(PATH, {
+  for await (const entry of walk(PATH, {
     exts: ['.lua', '.txt'],
     maxDepth: 2,
   })) {
@@ -24,10 +24,32 @@ async function getEntries() {
 
 let entries: string[] = await getEntries();
 
+function clearDB() {
+  Deno.writeTextFileSync('logs.json', '[]');
+}
+
+function addLogToDB(log: Record<string, any>) {
+  const db = Deno.readTextFileSync('logs.json');
+  const json = JSON.parse(db);
+  json.push(log);
+
+  Deno.writeTextFileSync('logs.json', JSON.stringify(json, null, 2));
+}
+
 const port = 3000;
-const handler = (req: Request) => {
+const handler = async (req: Request) => {
   const url = new URL(req.url);
   const path = url.pathname.slice(1);
+
+  if (path === 'log') {
+    const json = await req.json();
+
+    if (!json) return new Response('No body', { status: 400 });
+
+    addLogToDB(json);
+    return new Response('OK', { status: 200 });
+  }
+
   if (path === '') return new Response(entries.join('\n'), { status: 200 });
   if (!path || entries.every((entry) => !entry.startsWith(path)))
     return new Response('Not found', { status: 404 });
@@ -64,10 +86,11 @@ const debouncer = await debounce(async () => {
 
 // Async IIFE so we can do other stuff outside of the loop
 (async () => {
-  for await (const event of watcher) {
+  for await (const _ of watcher) {
     debouncer();
   }
 })();
 
 console.log(`Server running on port: ${port} (serving ${PATH})`);
+clearDB();
 server.listenAndServe();
