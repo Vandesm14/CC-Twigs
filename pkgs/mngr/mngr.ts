@@ -114,7 +114,7 @@ function getLibsForPackage(pkg: string) {
   const url = `${server}/${pkg}/has.txt`;
   const [res] = http.get(url);
   if (typeof res === 'boolean' || !res) {
-    return [];
+    return [pkg];
   }
 
   const text = res.readAll();
@@ -163,7 +163,7 @@ function installPackage(pkg: string, dry = false) {
 
   const totals = {
     deps: deps.length,
-    files: 1 + libs.length,
+    files: libs.length,
   };
 
   for (const dep of deps) {
