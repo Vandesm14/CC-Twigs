@@ -157,28 +157,28 @@ function downloadPackage(pkg: string, lib?: string) {
   res.close();
 }
 
-function installPackage(pkg: string) {
+function installPackage(pkg: string, dry = false) {
   const deps = getDepsForPackage(pkg);
   const libs = getLibsForPackage(pkg);
 
   const totals = {
     deps: deps.length,
-    files: 0,
+    files: 1 + libs.length,
   };
 
   for (const dep of deps) {
-    const total = installPackage(dep);
+    const total = installPackage(dep, dry);
     totals.files += total.files;
     totals.deps += total.deps;
   }
 
+  if (dry) return totals;
+
   for (const lib of libs) {
     downloadPackage(pkg, lib);
-    totals.files++;
   }
 
   downloadPackage(pkg);
-  totals.files++;
 
   // Copy a top-level package file to the root of `pkgs/` so that it can be run
   if (fs.exists(`pkgs/${pkg}.lua`)) fs.delete(`pkgs/${pkg}.lua`);
@@ -190,6 +190,10 @@ function installPackage(pkg: string) {
 function removePackage(pkg: string) {
   fs.delete(`pkgs/${pkg}`);
   fs.delete(`pkgs/${pkg}.lua`);
+}
+
+function doesPackageExist(pkg: string) {
+  return fs.exists(`pkgs/${pkg}`);
 }
 
 function doInstallPackage(pkg: string) {
@@ -220,19 +224,13 @@ function printUsage() {
 }
 
 if (cmd === 'run') {
-  if (!scope) {
-    printUsage();
-    shell.exit();
-  }
+  if (!scope) printUsage();
 
   updateAndRunPackage(scope);
 }
 
 if (cmd === 'install') {
-  if (!scope) {
-    printUsage();
-    shell.exit();
-  }
+  if (!scope) printUsage();
 
   doInstallPackage(scope);
 }
@@ -247,10 +245,7 @@ if (cmd === 'update') {
 }
 
 if (cmd === 'remove') {
-  if (!scope) {
-    printUsage();
-    shell.exit();
-  }
+  if (!scope) printUsage();
 
   removePackage(scope);
   print(`Removed ${scope}.`);
@@ -261,7 +256,28 @@ if (cmd === 'list') {
   print(`Installed packages: ${pkgs.join(', ')}`);
 }
 
-if (cmd === 'help' || !cmd) {
-  printUsage();
-  shell.exit();
+if (cmd === 'info') {
+  if (!scope) printUsage();
+
+  // TODO: Implement info for installed packages
+  if (doesPackageExist(scope)) {
+    print(
+      `Package ${scope} is already installed. (installed info not yet implemented)`
+    );
+
+    // @ts-expect-error: Lua allows this
+    return;
+  }
+
+  const total = installPackage(scope, true);
+  print(
+    `Package ${scope} is not installed. Has ${total.deps} deps (${total.files} total files)`
+  );
 }
+
+if (cmd === 'check') {
+  // TODO: Implement checking for updates
+  print('NOPE, not yet implemented');
+}
+
+if (cmd === 'help' || !cmd) printUsage();
