@@ -44,6 +44,8 @@ const handler = (req: Request) => {
 
   const file = Deno.readFileSync(path);
 
+  console.log(`Serving ${path}`);
+
   return new Response(file, {
     status: 200,
     headers: {
