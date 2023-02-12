@@ -189,6 +189,7 @@ function installPackage(pkg: string) {
 
 function removePackage(pkg: string) {
   fs.delete(`pkgs/${pkg}`);
+  fs.delete(`pkgs/${pkg}.lua`);
 }
 
 function doInstallPackage(pkg: string) {
@@ -225,9 +226,6 @@ if (cmd === 'run') {
   }
 
   updateAndRunPackage(scope);
-
-  // @ts-expect-error: Lua allows this
-  return;
 }
 
 if (cmd === 'install') {
@@ -237,9 +235,6 @@ if (cmd === 'install') {
   }
 
   doInstallPackage(scope);
-
-  // @ts-expect-error: Lua allows this
-  return;
 }
 
 if (cmd === 'update') {
@@ -249,9 +244,6 @@ if (cmd === 'update') {
 
   print(`Updating ${pkgs.length} packages...`);
   pkgs.forEach(doInstallPackage);
-
-  // @ts-expect-error: Lua allows this
-  return;
 }
 
 if (cmd === 'remove') {
@@ -262,7 +254,14 @@ if (cmd === 'remove') {
 
   removePackage(scope);
   print(`Removed ${scope}.`);
+}
 
-  // @ts-expect-error: Lua allows this
-  return;
+if (cmd === 'list') {
+  const pkgs = fs.list('pkgs').filter((pkg) => !pkg.endsWith('.lua'));
+  print(`Installed packages: ${pkgs.join(', ')}`);
+}
+
+if (cmd === 'help' || !cmd) {
+  printUsage();
+  shell.exit();
 }
