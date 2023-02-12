@@ -1,24 +1,10 @@
-// @ts-expect-error: FIXME: We're in modle scope, args isn't redeclared
+// @ts-expect-error: FIXME: We're in module scope, args isn't redeclared
 const args = [...$vararg];
 const cmd = args[0];
 const scope = args[1];
 
 function getServerList() {
   // read from ".mngr/serverlist.txt", a list of servers separated by newline
-  const dirExists = fs.exists('.mngr/serverlist.txt');
-  if (!dirExists) {
-    const [file] = fs.open('.mngr/serverlist.txt', 'w');
-    if (!file) {
-      print('Failed to create serverlist.txt');
-      shell.exit();
-    }
-
-    file.write('http://mr.thedevbird.com:3000/pkgs');
-    file.close();
-
-    print('Added default server to serverlist.txt');
-  }
-
   const [file] = fs.open('.mngr/serverlist.txt', 'r');
   if (!file) {
     print('Failed to open serverlist.txt');
@@ -30,6 +16,80 @@ function getServerList() {
 
   return servers;
 }
+
+function ensureMngrDir() {
+  if (fs.exists('.mngr')) return true;
+
+  fs.makeDir('.mngr');
+}
+
+function ensureServerList() {
+  if (fs.exists('.mngr/serverlist.txt')) return true;
+
+  const [file] = fs.open('.mngr/serverlist.txt', 'w');
+  if (!file) {
+    print('Failed to create serverlist.txt');
+    shell.exit();
+  }
+
+  file.write('http://mr.thedevbird.com:3000/pkgs');
+  file.close();
+
+  print('Added default server to serverlist.txt');
+}
+
+function ensureAutorun() {
+  if (fs.exists('startup.lua')) return true;
+
+  const [file] = fs.open('startup.lua', 'w');
+  if (!file) {
+    print('Failed to create startup.lua');
+    shell.exit();
+  }
+
+  file.write(`shell.setPath(shell.path() .. ":/pkgs/")`);
+  file.close();
+
+  if (!shell.path().includes(':/pkgs/'))
+    shell.setPath(shell.path() + ':/pkgs/');
+}
+
+function ensurePkgsDir() {
+  if (fs.exists('pkgs')) return true;
+
+  fs.makeDir('pkgs');
+}
+
+function ensureMngrInPkgs() {
+  if (fs.exists('pkgs/mngr/mngr.lua') && fs.exists('pkgs/mngr.lua'))
+    return true;
+
+  installPackage('mngr');
+  fs.delete('mngr.lua');
+}
+
+function ensureMngrSetup() {
+  const success = [];
+
+  // Ensure that the .mngr directory exists (for storing serverlist.txt and other stuff)
+  success.push(ensureMngrDir());
+
+  // Ensure that the serverlist.txt exists (for storing servers/mirrors)
+  success.push(ensureServerList());
+
+  // Ensure that the pkgs directory exists (for storing packages)
+  success.push(ensurePkgsDir());
+
+  // Ensure that the autorun.lua exists (for setting shell path to pkgs)
+  success.push(ensureAutorun());
+
+  // Ensure that mngr is in pkgs/mngr (for updating mngr; bootstrapping ftw!)
+  success.push(ensureMngrInPkgs());
+
+  if (success.includes(false)) print('Mngr setup complete!');
+}
+
+ensureMngrSetup();
 
 function getDepsForPackage(pkg: string) {
   // TODO: Implement scanning from multiple servers ("mirrors")
@@ -119,6 +179,10 @@ function installPackage(pkg: string) {
 
   downloadPackage(pkg);
   totals.files++;
+
+  // Copy a top-level package file to the root of `pkgs/` so that it can be run
+  if (fs.exists(`pkgs/${pkg}.lua`)) fs.delete(`pkgs/${pkg}.lua`);
+  fs.copy(`pkgs/${pkg}/${pkg}.lua`, `pkgs/${pkg}.lua`);
 
   return totals;
 }
