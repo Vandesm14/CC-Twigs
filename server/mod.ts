@@ -58,7 +58,7 @@ const server = new Server({ port, handler });
 
 console.log(`Server running on port: ${port}`);
 
-const watcher = Deno.watchFs(PATH);
+const watcher = Deno.watchFs(PATH, { recursive: true });
 const debouncer = await debounce(async () => {
   console.log('Change detected, updating entries...');
   entries = await getEntries();
