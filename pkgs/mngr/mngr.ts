@@ -1,4 +1,4 @@
-//// @ts-expect-error: FIXME: We're in modle scope, args isn't redeclared
+// @ts-expect-error: FIXME: We're in modle scope, args isn't redeclared
 const args = [...$vararg];
 const cmd = args[0];
 const pkg = args[1];
