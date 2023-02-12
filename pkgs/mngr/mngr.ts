@@ -47,24 +47,47 @@ function getDepsForPackage(pkg: string) {
   return text.split('\n');
 }
 
-function downloadPackage(pkg: string) {
+function getLibsForPackage(pkg: string) {
+  // TODO: Implement scanning from multiple servers ("mirrors")
   const server = getServerList()[0];
 
-  const url = `${server}/${pkg}/${pkg}.lua`;
+  const url = `${server}/${pkg}/has.txt`;
+  const [res] = http.get(url);
+  if (typeof res === 'boolean' || !res) {
+    return [];
+  }
+
+  const text = res.readAll();
+  res.close();
+
+  return text.split('\n');
+}
+
+function downloadPackage(pkg: string, lib?: string) {
+  const server = getServerList()[0];
+  lib = lib ?? pkg;
+
+  const url = `${server}/${pkg}/${lib}.lua`;
   const [res] = http.get(url);
   if (typeof res === 'boolean') {
-    print(`Failed to download ${pkg} from ${server}`);
+    print(`Failed to download ${pkg}/${lib} from ${server}`);
     return;
   }
 
-  const [file] = fs.open(`pkgs/${pkg}.lua`, 'w');
+  // check if the folder pkgs/<pkg> exists
+  const dirExists = fs.exists(`pkgs/${pkg}`);
+  if (!dirExists) {
+    fs.makeDir(`pkgs/${pkg}`);
+  }
+
+  const [file] = fs.open(`pkgs/${pkg}/${lib}.lua`, 'w');
   if (!file) {
-    print(`Failed to create file for ${pkg}`);
+    print(`Failed to create file for ${pkg}/${lib}`);
     return;
   }
 
   if (!res) {
-    print(`Failed to download ${pkg} from ${server}`);
+    print(`Failed to download ${pkg}/${lib} from ${server}`);
     print(`URL: ${url}`);
     return;
   }
@@ -76,30 +99,50 @@ function downloadPackage(pkg: string) {
 
 function installPackage(pkg: string) {
   const deps = getDepsForPackage(pkg);
+  const libs = getLibsForPackage(pkg);
+
+  const totals = {
+    deps: deps.length,
+    files: 0,
+  };
 
   for (const dep of deps) {
-    downloadPackage(dep);
+    const total = installPackage(dep);
+    totals.files += total.files;
+    totals.deps += total.deps;
+  }
+
+  for (const lib of libs) {
+    downloadPackage(pkg, lib);
+    totals.files++;
   }
 
   downloadPackage(pkg);
+  totals.files++;
 
-  return deps.length;
+  return totals;
 }
 
 function removePackage(pkg: string) {
-  fs.delete(`pkgs/${pkg}.lua`);
+  fs.delete(`pkgs/${pkg}`);
+}
+
+function doInstallPackage(pkg: string) {
+  const total = installPackage(pkg);
+  print(
+    `Installed ${pkg} along with ${total.deps} deps (${total.files} total files)`
+  );
 }
 
 function updateAndRunPackage(pkg: string) {
-  const total = installPackage(pkg);
-  print(`Installed ${pkg} and ${total} deps.`);
+  doInstallPackage(pkg);
 
-  shell.run(`pkgs/${pkg}.lua`);
+  // Runs the main package file
+  shell.run(`pkgs/${pkg}/${pkg}.lua`);
 }
 
 if (cmd === 'install' || cmd === 'update') {
-  const total = installPackage(pkg);
-  print(`Installed ${pkg} and ${total} deps.`);
+  doInstallPackage(pkg);
 
   // @ts-expect-error: Lua allows this
   return;
@@ -120,4 +163,4 @@ if (cmd === 'run') {
   return;
 }
 
-print('Usage: mngr <install|update|remove> <package>');
+print('Usage: mngr <install|update|remove|run> <package>');
