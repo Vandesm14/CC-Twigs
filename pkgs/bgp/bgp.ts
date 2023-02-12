@@ -1,5 +1,13 @@
-import { pretty_print } from 'cc.pretty';
+// import { pretty_print } from 'cc.pretty';
 import { getModems } from '../lib/lib';
+import { generateRandomHash } from './lib';
+import {
+  BGPMessage,
+  BGPMessageType,
+  BGPUpdateListingMessage,
+  LuaArray,
+} from './types';
+import * as log from 'debug/log';
 
 const BGP_PORT = 179;
 
@@ -45,69 +53,12 @@ const modems = modemSides.map(
 
 const history: string[] = [];
 
-/** Generates a random SHA hash: "8a19e136" */
-function generateRandomHash() {
-  return Math.random().toString(16).substring(2, 10);
-}
-
-type LuaArray<T> = {
-  [key: number]: T;
-  [Symbol.iterator](): IterableIterator<T>;
-};
-
-enum BGPMessageType {
-  UPDATE_LISTING = 'update_listing',
-  CARRIER = 'carrier',
-}
-interface BGPMessage {
-  // A random SHA hash of the message
-  id: string;
-
-  type: BGPMessageType;
-
-  // The historical path of the message
-  trace: LuaArray<number>;
-
-  // The ID of the computer that sent the message
-  from: number;
-
-  // The ID of the computer that originally sent the message (the first computer)
-  origin: number;
-}
-
-interface BGPUpdateListingMessage extends BGPMessage {
-  type: BGPMessageType.UPDATE_LISTING;
-
-  // The computers in the origin's LAN
-  neighbors: LuaArray<number>;
-}
-
-interface BGPCarrierMessage extends BGPMessage {
-  type: BGPMessageType.CARRIER;
-
-  payload: {
-    // The ID of the computer that the message is destined for
-    to: number;
-
-    // The ID of the computer that the message is originating from
-    from: number;
-
-    // The data of the message
-    data: any;
-  };
-}
-
 function sendBGPMessage(
   message: BGPMessage,
   modemSide: string,
   printMsg = true
 ) {
   const modem = peripheral.wrap(modemSide) as ModemPeripheral;
-
-  if (printMsg) {
-    print('out:');
-    pretty_print(message);
-  }
 
   modem.transmit(BGP_PORT, BGP_PORT, message);
 }
@@ -118,11 +69,13 @@ function openPorts() {
 
 function createDBIfNotExists() {
   const exists = fs.exists('bgp.db');
-  if (!exists) {
-    const [file] = fs.open('bgp.db', 'w');
-    file.writeLine('{}');
-    file.close();
-  }
+  if (!exists) clearDB();
+}
+
+function clearDB() {
+  const [fileWrite] = fs.open('bgp.db', 'w');
+  fileWrite.write('{}');
+  fileWrite.close();
 }
 
 function updateDBEntry(destination: number, from: number) {
@@ -134,8 +87,6 @@ function updateDBEntry(destination: number, from: number) {
   fileRead.close();
   db = db ?? {};
 
-  if (Object.keys(db).length === 0) print(`DB is empty!`);
-
   const destinationKey = `c_${destination}`;
   if (db[destinationKey]) {
     db[destinationKey] = Array.from(new Set([...db[destinationKey], from]));
@@ -146,11 +97,16 @@ function updateDBEntry(destination: number, from: number) {
   const [fileWrite] = fs.open('bgp.db', 'w');
   fileWrite.write(textutils.serialize(db));
   fileWrite.close();
-  print(
-    `Updated DB for ${destination} with ${
-      Object.values(db[destinationKey]).length
-    } routes.`
-  );
+
+  term.clear();
+  term.setCursorPos(1, 1);
+
+  if (Object.keys(db).length === 0) print(`DB was empty!`);
+
+  print(`DB has ${Object.keys(db).length} entries.`);
+  Object.entries(db).forEach(([key, value]) => {
+    print(`${key}: ${Object.values(value).join(', ')}`);
+  });
 }
 
 function getDB(originId: number) {
@@ -175,10 +131,29 @@ function broadcastBGPUpdateListing(previous?: BGPUpdateListingMessage) {
     origin: previous?.origin ?? computerID,
     neighbors: previous?.neighbors
       ? Array.from(
-          new Set([...previous.neighbors, ...neighbors.ids, computerID])
+          new Set([
+            // Add the previous neighbors to the list
+            ...previous.neighbors,
+            // Add our neighbors to the list
+            ...neighbors.ids,
+            // Add the previous computer ID to the list
+            previous.from,
+            // Add our computer ID to the list
+            computerID,
+          ])
         )
       : Array.from(new Set([...neighbors.ids, computerID])),
   };
+
+  print(`${previous ? 'Relaying' : 'Broadcasting'} BGP message: ${message.id}`);
+
+  log.viaHTTP({
+    comment: 'Sending BGP message',
+    id: computerID,
+    ts: os.epoch('utc'),
+    type: previous ? 'Relaying' : 'Broadcasting',
+    message,
+  });
 
   // Add the message to the history
   history.push(message.id);
@@ -187,16 +162,6 @@ function broadcastBGPUpdateListing(previous?: BGPUpdateListingMessage) {
     // Send a BGP message
     sendBGPMessage(message, modemSide, false);
   });
-
-  // If this is our message, update the DB for ourselves
-  // if (!previous)
-  //   Object.values(message.neighbors).forEach((neighbor) =>
-  //     updateDBEntry(neighbor, neighbor)
-  //   );
-
-  print(
-    `${previous ? 'Propagating' : 'Broadcasting'} BGP message ${message.id}...`
-  );
 }
 
 /** Waits for a `modem_message` OS event, then prints the message and relays the BGP message */
@@ -206,18 +171,17 @@ function waitForMessage(this: void) {
 
   const message = rawMessage as BGPMessage;
 
-  // print('in:');
-  // pretty_print(message);
+  print(`Received BGP message: ${message.id}`);
+
+  log.viaHTTP({
+    comment: 'Received BGP message',
+    ts: os.epoch('utc'),
+    id: computerID,
+    message,
+  });
 
   if (message.type === BGPMessageType.UPDATE_LISTING) {
     const updateListingMessage = message as BGPUpdateListingMessage;
-
-    // If the message has already been seen, ignore it
-    if (history.includes(updateListingMessage.id)) {
-      print('Message already seen, ignoring...');
-      return;
-    }
-    history.push(updateListingMessage.id);
 
     // updateDBEntry(updateListingMessage.from, updateListingMessage.neighbors);
     Object.values(updateListingMessage.neighbors).forEach((neighbor) => {
@@ -226,12 +190,13 @@ function waitForMessage(this: void) {
         updateDBEntry(neighbor, updateListingMessage.from);
     });
 
-    print(
-      `Received BGP message from ${updateListingMessage.from}, forwarding...`
-    );
+    if (!history.includes(updateListingMessage.id)) {
+      // If we haven't seen this message before,
+      // broadcast it to all of the neighbors
+      broadcastBGPUpdateListing(updateListingMessage);
+    }
 
-    // Else, broadcast it to all of the neighbors
-    broadcastBGPUpdateListing(updateListingMessage);
+    history.push(updateListingMessage.id);
   }
 }
 
@@ -241,26 +206,27 @@ function main() {
   print('Ports open');
 
   while (true) {
-    let didReceiveMessage = false;
-
-    // Wait for a message, or timeout after `TIMEOUT` seconds
+    // Timeout to wait for a message (real-world BGP uses 30 seconds)
     const TIMEOUT = 5;
+
+    // If either of the functions return, the other one will be cancelled
     parallel.waitForAny(
-      () => sleep(TIMEOUT),
       () => {
+        // Wait for a BPG message
         waitForMessage();
-        didReceiveMessage = true;
+      },
+      () => {
+        // Wait for `TIMEOUT` seconds
+        sleep(TIMEOUT);
+
+        // If we haven't received a message in `TIMEOUT` seconds,
+        // clear the DB and broadcast a new BGP message
+        clearDB();
+        broadcastBGPUpdateListing();
       }
     );
-
-    if (!didReceiveMessage) {
-      // If we haven't received a message, broadcast our own
-      broadcastBGPUpdateListing();
-      print('BGP message broadcasted');
-    }
   }
 }
 
-createDBIfNotExists();
 createDBIfNotExists();
 main();
