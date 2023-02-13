@@ -5,6 +5,7 @@ import {
   createDBIfNotExists,
   getDBEntry,
   printDB,
+  pruneTTLs,
   updateDBEntry,
 } from './db';
 import { generateRandomHash, sleepUntil } from './lib';
@@ -234,6 +235,8 @@ function main() {
       handleBGPMessage(state, message.message, message.side);
       message = null;
     } else {
+      pruneTTLs();
+
       // If we didn't get a message, then we timed out
       // broadcast our own BGP message
       broadcastBGPPropagate(state);

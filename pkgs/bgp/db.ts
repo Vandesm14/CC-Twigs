@@ -3,13 +3,15 @@ import { BGPDatabase, BGPDestinationEntry } from './types';
 
 let localDB: BGPDatabase = {};
 
+const DB_PATH = 'pkgs/bgp/bgp.db';
+
 export function createDBIfNotExists() {
-  const exists = fs.exists('bgp.db');
+  const exists = fs.exists(DB_PATH);
   if (!exists) clearDB();
 }
 
 export function clearDB() {
-  const [fileWrite] = fs.open('bgp.db', 'w');
+  const [fileWrite] = fs.open(DB_PATH, 'w');
   // TODO: Find a better way to initialize with self
   // Currently, we need a side and a TTL, which we don't have
   const initWith = {};
@@ -20,6 +22,14 @@ export function clearDB() {
   fileWrite.close();
 
   localDB = initWith;
+}
+
+export function saveDB(db: BGPDatabase) {
+  const [fileWrite] = fs.open(DB_PATH, 'w');
+  fileWrite.write(textutils.serializeJSON(db));
+  fileWrite.close();
+
+  localDB = db;
 }
 
 /** Updates the DB for which node to go via to reach a destination  */
@@ -45,14 +55,12 @@ export function updateDBEntry({
     },
   };
 
-  const [fileWrite] = fs.open('bgp.db', 'w');
-  fileWrite.write(textutils.serializeJSON(db));
-  fileWrite.close();
+  saveDB(db);
 }
 
 export function getDB() {
   if (Object.keys(localDB).length > 0) return localDB;
-  const [fileRead] = fs.open('bgp.db', 'r');
+  const [fileRead] = fs.open(DB_PATH, 'r');
   const text = fileRead.readAll();
   const db = textutils.unserializeJSON(text) as BGPDatabase;
   fileRead.close();
@@ -92,4 +100,26 @@ export function getDBEntry(destination: number): BGPDestinationEntry | null {
 
   const entry = db[destination.toString()];
   return entry;
+}
+
+export function pruneTTLs() {
+  const db = getDB();
+  const now = os.epoch('utc');
+
+  const pruned = Object.entries(db).reduce((acc, [key, value]) => {
+    const prunedValues = Object.entries(value).reduce((acc, [key, value]) => {
+      if (value.ttl > now) {
+        acc[key] = value;
+      }
+      return acc;
+    }, {} as BGPDestinationEntry);
+
+    if (Object.keys(prunedValues).length > 0) {
+      acc[key] = prunedValues;
+    }
+
+    return acc;
+  }, {} as BGPDatabase);
+
+  saveDB(pruned);
 }
