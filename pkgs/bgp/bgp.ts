@@ -1,73 +1,55 @@
+import { pretty_print } from 'cc.pretty';
 import { getModems } from '../lib/lib';
+import { getLocalNeighbors } from './api';
+import {
+  clearDB,
+  createDBIfNotExists,
+  getDBEntry,
+  printDB,
+  updateDBEntry,
+} from './db';
 import { generateRandomHash } from './lib';
 import {
+  BGPCarrierMessage,
   BGPMessage,
   BGPMessageType,
   BGPPropagateMessage,
-  LuaArray,
 } from './types';
+import * as log from '../debug/log';
 
 const BGP_PORT = 179;
 const computerID = os.getComputerID();
 
 print('BGP Router ID: ' + computerID);
 
-/** Gets a list of the local neighbors for a wired LAN */
-function getLocalNeighbors() {
-  const modemSides = getModems();
-  const modems = modemSides
-    // Get all of the modems
-    .map((modem) => peripheral.wrap(modem) as ModemPeripheral);
-  // Get all computers on the network (of the modem)
-  const sidesToIds: Map<string, number[]> = new Map(
-    modems.map((modem, i) => [
-      modemSides[i],
-      modem.getNamesRemote
-        ? modem
-            .getNamesRemote()
-            .filter((name) => name.startsWith('computer_'))
-            .map((name) => modem.callRemote(name, 'getID') as number)
-        : [],
-    ])
-  );
-
-  const idsToSides = new Map<number, string[]>([]);
-  sidesToIds.forEach((ids, side) => {
-    ids.forEach((id) => {
-      if (!idsToSides.has(id)) idsToSides.set(id, []);
-      idsToSides.get(id).push(side);
-    });
-  });
-
-  return {
-    ids: Array.from(sidesToIds.values()).reduce((a, b) => a.concat(b), []),
-    sidesToIds,
-    idsToSides,
-  };
+interface State {
+  neighbors: ReturnType<typeof getLocalNeighbors>;
+  modemSides: string[];
+  sidesToModems: Map<string, ModemPeripheral>;
+  wirelessModemSides: string[];
 }
 
-let neighbors: ReturnType<typeof getLocalNeighbors>;
-let modemSides: string[];
-let sidesToModems: Map<string, ModemPeripheral>;
-let wirelessModemSides: string[];
-
-function updatePeripherals() {
-  neighbors = getLocalNeighbors();
+function updatePeripherals(): State {
+  const neighbors = getLocalNeighbors();
 
   print(`Found ${neighbors.ids.length} nodes on local network.`);
 
-  modemSides = getModems();
-  sidesToModems = new Map<string, ModemPeripheral>(
-    modemSides.map((side, i) => [
-      side,
-      peripheral.wrap(side) as ModemPeripheral,
-    ])
+  const modemSides = getModems();
+  const sidesToModems = new Map<string, ModemPeripheral>(
+    modemSides.map((side) => [side, peripheral.wrap(side) as ModemPeripheral])
   );
-  wirelessModemSides = modemSides.filter((side) =>
+  const wirelessModemSides = modemSides.filter((side) =>
     sidesToModems.get(side).isWireless()
   );
 
-  openPorts();
+  openPorts({ sidesToModems });
+
+  return {
+    neighbors,
+    modemSides,
+    sidesToModems,
+    wirelessModemSides,
+  };
 }
 
 const history: string[] = [];
@@ -79,68 +61,19 @@ function sendBGPMessage(message: BGPMessage, modemSide: string) {
   modem.transmit(BGP_PORT, BGP_PORT, message);
 }
 
-function openPorts() {
+function openPorts({ sidesToModems }: Pick<State, 'sidesToModems'>) {
   sidesToModems.forEach((modem) => modem.open(BGP_PORT));
   print('Ports open');
 }
 
-function createDBIfNotExists() {
-  const exists = fs.exists('bgp.db');
-  if (!exists) clearDB();
-}
-
-function clearDB() {
-  const [fileWrite] = fs.open('bgp.db', 'w');
-  fileWrite.write('{}');
-  fileWrite.close();
-}
-
-/** Updates the DB for which node to go via to reach a destination  */
-function updateDBEntry(destination: number, via: number) {
-  const [fileRead] = fs.open('bgp.db', 'r');
-  let db = textutils.unserialize(fileRead.readAll()) as Record<
-    string,
-    LuaArray<number>
-  >;
-  fileRead.close();
-  db = db ?? {};
-
-  const destinationKey = `c_${destination}`;
-  if (db[destinationKey]) {
-    db[destinationKey] = Array.from(new Set([...db[destinationKey], via]));
-  } else {
-    db[destinationKey] = [via];
-  }
-
-  const [fileWrite] = fs.open('bgp.db', 'w');
-  fileWrite.write(textutils.serialize(db));
-  fileWrite.close();
-
-  term.clear();
-  term.setCursorPos(1, 1);
-
-  if (Object.keys(db).length === 0) print(`DB was empty!`);
-
-  print('BGP Router ID: ' + computerID);
-  print(`DB has ${Object.keys(db).length} entries.`);
-  Object.entries(db).forEach(([key, value]) => {
-    print(`${key}: ${Object.values(value).join(', ')}`);
-  });
-}
-
-function getDB(originId: number) {
-  const [fileRead] = fs.open('bgp.db', 'r');
-  const db = textutils.unserialize(fileRead.readAll()) as Record<
-    number,
-    LuaArray<number>
-  >;
-  fileRead.close();
-
-  return db;
-}
-
 /** Broadcasts or forwards a BGP propagation message */
-function broadcastBGPPropagate(previous?: BGPPropagateMessage) {
+function broadcastBGPPropagate(
+  {
+    neighbors,
+    wirelessModemSides,
+  }: Pick<State, 'neighbors' | 'wirelessModemSides'>,
+  previous?: BGPPropagateMessage
+) {
   const message: BGPPropagateMessage = {
     // Generate a new ID if this is a new message
     id: previous?.id ?? generateRandomHash(),
@@ -168,10 +101,11 @@ function broadcastBGPPropagate(previous?: BGPPropagateMessage) {
   };
 
   // Filter out the sides that we've already sent the message to or seen the message from
-  const idsToSides = Array.from(neighbors.idsToSides);
+  const idsToSides = Object.entries(neighbors.idsToSides);
   const sidesToSendTo = [
     ...idsToSides
-      .filter(([id]) => !Object.values(message.trace).includes(id))
+      // parsingInt bc TS thinks it's a string
+      .filter(([id]) => !Object.values(message.trace).includes(parseInt(id)))
       .flatMap(([_, sides]) => sides),
 
     // We are using a trick to get neighbors for LAN modems,
@@ -225,7 +159,15 @@ function waitForPeripheralRemove(this: void) {
 }
 
 /** Handles a BGP message depending on the type */
-function handleBGPMessage(message: BGPMessage) {
+function handleBGPMessage(state: State, message: BGPMessage) {
+  const { neighbors } = state;
+
+  log.viaHTTP({
+    id: computerID,
+    ts: os.epoch(),
+    message,
+  });
+
   if (message.type === BGPMessageType.PROPAGATE) {
     const propagateMessage = message as BGPPropagateMessage;
     const isInHistory = history.includes(propagateMessage.id);
@@ -237,17 +179,68 @@ function handleBGPMessage(message: BGPMessage) {
 
       // If we haven't seen this message before,
       // broadcast it to all of the neighbors
-      broadcastBGPPropagate(propagateMessage);
+      broadcastBGPPropagate(state, propagateMessage);
     } else print(`Received BGP message: ${message.id} (already seen)`);
+  } else if (message.type === BGPMessageType.CARRIER) {
+    const carrierMessage = message as BGPCarrierMessage;
+    const entry = getDBEntry(carrierMessage.payload.to);
+
+    const goto =
+      entry && Object.values(entry).length > 0 ? Object.values(entry)[0] : null;
+
+    if (carrierMessage.payload.to === computerID) {
+      print(`Received BGP carrier message:`);
+      pretty_print(carrierMessage.payload);
+
+      const [file] = fs.open('bgp.log', 'w');
+      file.writeLine(textutils.serializeJSON(carrierMessage.payload));
+      file.close();
+    } else if (goto) {
+      print(`Received BGP carrier message: ${message.id} (sending to ${goto})`);
+      const side = neighbors.idsToSides[goto][0];
+
+      const newMessage: BGPCarrierMessage = {
+        ...carrierMessage,
+        from: computerID,
+        trace: [...Object.values(carrierMessage.trace), computerID],
+      };
+
+      sendBGPMessage(newMessage, side);
+    } else {
+      // TODO: Back to sender
+      print(`Received BGP carrier message: ${message.id} (no route)`);
+      const sides = neighbors.idsToSides[carrierMessage.from];
+
+      if (!sides || sides.length === 0) {
+        print('No route to sender');
+        return;
+      }
+
+      const side = sides[0];
+      const newMessage: BGPCarrierMessage = {
+        ...carrierMessage,
+        from: computerID,
+        payload: {
+          ...carrierMessage.payload,
+          to: carrierMessage.payload.from,
+        },
+      };
+
+      sendBGPMessage(newMessage, side);
+    }
   }
 }
 
 function main() {
+  createDBIfNotExists();
+  clearDB();
+
   // Timeout to wait for a message (real-world BGP uses 30 seconds)
   const TIMEOUT = 5;
+  let state: State = updatePeripherals();
 
   while (true) {
-    let message: BGPMessage;
+    let message: BGPMessage | null;
 
     // If either of the functions return, the other one will be cancelled
     parallel.waitForAny(
@@ -263,14 +256,14 @@ function main() {
         // Wait for a peripheral to be added
         waitForPeripheralAdd();
         print('Peripheral added, refreshing...');
-        updatePeripherals();
+        state = updatePeripherals();
         clearDB();
       },
       () => {
         // Wait for a peripheral to be removed
         waitForPeripheralRemove();
         print('Peripheral removed, refreshing...');
-        updatePeripherals();
+        state = updatePeripherals();
         clearDB();
       }
     );
@@ -278,16 +271,16 @@ function main() {
     // If we got a message, handle it
     if (message) {
       // Handle the message
-      handleBGPMessage(message);
+      handleBGPMessage(state, message);
+      message = null;
     } else {
       // If we didn't get a message, then we timed out
       // broadcast our own BGP message
-      broadcastBGPPropagate();
+      broadcastBGPPropagate(state);
     }
+
+    printDB(true);
   }
 }
 
-createDBIfNotExists();
-clearDB();
-updatePeripherals();
 main();
