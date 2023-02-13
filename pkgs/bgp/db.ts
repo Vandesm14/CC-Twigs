@@ -91,7 +91,10 @@ export function printDB(short = false) {
       .map(([key, values]) => {
         const ids = Object.keys(values);
         const keyAsNum = parseInt(key);
-        const value = ids.map((id) => parseInt(id)).join(' or ');
+        const value = ids
+          .map((id) => parseInt(id))
+          .sort()
+          .join(' or ');
         const isSame = ids.length > 1 ? false : parseInt(ids[0]) === keyAsNum;
 
         return isSame ? `${value}` : `${keyAsNum} via ${value}`;
