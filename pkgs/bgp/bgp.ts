@@ -1,4 +1,5 @@
 import { displayBGPMessage, getPeripheralState, openPorts, State } from './api';
+import { TIMEOUT } from './constants';
 import {
   clearDB,
   createDBIfNotExists,
@@ -32,7 +33,8 @@ function broadcastBGPPropagate(
     neighbors,
     wirelessModemSides,
   }: Pick<State, 'neighbors' | 'wirelessModemSides'>,
-  previous?: BGPPropagateMessage
+  previous?: BGPPropagateMessage,
+  side?: string
 ) {
   const message: BGPPropagateMessage = {
     // Generate a new ID if this is a new message
@@ -82,7 +84,13 @@ function broadcastBGPPropagate(
     // so we know where to send the message to for each destination
     Object.values(previous.neighbors).forEach((neighbor) => {
       // Only update the DB if the neighbor is not us
-      if (neighbor !== computerID) updateDBEntry(neighbor, previous.from);
+      // if (neighbor !== computerID) updateDBEntry(neighbor, previous.from);
+      if (neighbor !== computerID)
+        updateDBEntry({
+          destination: neighbor,
+          via: previous.from,
+          side,
+        });
     });
   }
 
@@ -126,14 +134,14 @@ function handleBGPMessage(
 
       // If we haven't seen this message before,
       // broadcast it to all of the neighbors
-      broadcastBGPPropagate(state, propagateMessage);
+      broadcastBGPPropagate(state, propagateMessage, side);
     } else print(`Received BGP message: ${message.id} (already seen)`);
   } else if (message.type === BGPMessageType.CARRIER) {
     const carrierMessage = message as BGPCarrierMessage;
     const entry = getDBEntry(carrierMessage.payload.to);
 
     const goto =
-      entry && Object.values(entry).length > 0 ? Object.values(entry)[0] : null;
+      entry && Object.keys(entry).length > 0 ? Object.keys(entry)[0] : null;
 
     let newMessage: BGPCarrierMessage = {
       ...carrierMessage,
@@ -179,7 +187,6 @@ function main() {
 
   // Timeout to wait for a message (real-world BGP uses 30 seconds)
   let state: State = getPeripheralState();
-  const TIMEOUT = 5 * 1000;
   let epochTimeout = os.epoch('utc') + TIMEOUT;
 
   const handlePeripheralChange = () => {

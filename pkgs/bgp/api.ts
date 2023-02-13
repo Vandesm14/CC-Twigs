@@ -1,10 +1,11 @@
 import { pretty_print } from 'cc.pretty';
 import { getModems } from 'lib/lib';
+import { BGP_PORT } from './constants';
 import { getDBEntry } from './db';
 import { generateRandomHash } from './lib';
 import { BGPCarrierMessage, BGPMessageType } from './types';
 
-const BGP_PORT = 179;
+/** The ID of the computer */
 const computerID = os.getComputerID();
 
 export interface State {
@@ -92,11 +93,11 @@ export function sendBGPCarrierMessage(payload: BGPCarrierMessage['payload']) {
   const entry = getDBEntry(to);
   const neighbors = getLocalNeighbors();
 
-  if (!entry || Object.values(entry).length === 0) {
+  if (!entry || Object.keys(entry).length === 0) {
     throw new Error(`Could not find a route to: ${to}`);
   }
 
-  const via = Object.values(entry)[0];
+  const via = Object.keys(entry)[0];
   const side = neighbors.idsToSides[via]?.[0];
 
   const message: BGPCarrierMessage = {

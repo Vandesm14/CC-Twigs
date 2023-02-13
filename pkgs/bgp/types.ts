@@ -3,7 +3,32 @@ export type LuaArray<T> = {
   [Symbol.iterator](): IterableIterator<T>;
 };
 
-export type BGPDatabase = Record<string, LuaArray<number>>;
+export interface BGPDatabase {
+  // key: the destination computer ID
+  [key: string]: BGPDestinationEntry;
+}
+
+export interface BGPDestinationEntry {
+  // key: the ID of the node that can reach the destination
+  [key: string]: {
+    /** The side of the node */
+    side: string;
+
+    /** The TTL of the entry (as expiry time in epoch) */
+    ttl: number;
+  };
+}
+
+export interface BGPDestinationEntryInt {
+  // key: the ID of the node that can reach the destination
+  [key: number]: {
+    /** The side of the node */
+    side: string;
+
+    /** The TTL of the entry (as expiry time in epoch) */
+    ttl: number;
+  };
+}
 
 export enum BGPMessageType {
   PROPAGATE = 'propagate',
