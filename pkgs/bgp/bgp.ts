@@ -135,41 +135,38 @@ function handleBGPMessage(
     const goto =
       entry && Object.values(entry).length > 0 ? Object.values(entry)[0] : null;
 
+    let newMessage: BGPCarrierMessage = {
+      ...carrierMessage,
+      from: computerID,
+      trace: [...Object.values(carrierMessage.trace), computerID],
+    };
+    const sides = neighbors.idsToSides[goto];
+    let side: string;
+
     if (carrierMessage.payload.to === computerID) {
       displayBGPMessage(carrierMessage);
-    } else if (goto) {
+      return;
+    } else if (goto && sides && sides.length > 0) {
       print(`Received BGP carrier message: ${message.id} (sending to ${goto})`);
-      const side = neighbors.idsToSides[goto][0];
-
-      const newMessage: BGPCarrierMessage = {
-        ...carrierMessage,
-        from: computerID,
-        trace: [...Object.values(carrierMessage.trace), computerID],
-      };
-
-      sendBGPMessage(newMessage, side);
+      side = neighbors.idsToSides[goto][0];
     } else {
       // TODO: Back to sender
       print(`Received BGP carrier message: ${message.id} (no route)`);
       const sides = neighbors.idsToSides[carrierMessage.from];
 
       if (!sides || sides.length === 0) {
-        print('No route to sender');
+        print('No route back to sender');
         return;
       }
 
-      const side = sides[0];
-      const newMessage: BGPCarrierMessage = {
-        ...carrierMessage,
-        from: computerID,
-        payload: {
-          ...carrierMessage.payload,
-          to: carrierMessage.payload.from,
-        },
+      side = sides[0];
+      newMessage.payload = {
+        ...carrierMessage.payload,
+        to: carrierMessage.payload.from,
       };
-
-      sendBGPMessage(newMessage, side);
     }
+
+    sendBGPMessage(newMessage, side);
   }
 }
 
