@@ -48,16 +48,19 @@ export function displayBGPMessage(message: BGPCarrierMessage) {
 }
 
 /** Sends a carrier message to the destination accordingly */
-export function sendBGPCarrierMessage(payload: BGPCarrierMessage['payload']) {
+export function sendBGPCarrierMessage(
+  payload: BGPCarrierMessage['payload'],
+  opts?: { onAllModems?: boolean }
+) {
   const { to } = payload;
-  const entry = getDBEntry(to);
+  const entry = opts?.onAllModems ? 'any' : getDBEntry(to);
 
-  if (!entry || Object.keys(entry).length === 0) {
+  if (!opts.onAllModems && (!entry || Object.keys(entry).length === 0)) {
     throw new Error(`Could not find a route to: ${to}`);
   }
 
-  const via = Object.keys(entry)[0];
-  const side = entry[via].side;
+  const via = opts?.onAllModems ? 'any' : Object.keys(entry)[0];
+  const sides = opts?.onAllModems ? getModems() : [entry[via].side];
 
   const message: BGPCarrierMessage = {
     id: generateRandomHash(),
@@ -73,12 +76,14 @@ export function sendBGPCarrierMessage(payload: BGPCarrierMessage['payload']) {
     return;
   }
 
-  if (!side) {
+  if (sides.length === 0) {
     throw new Error(`Could not find a modem that sends to: ${to} via ${entry}`);
   }
 
-  const modem = peripheral.wrap(side) as ModemPeripheral;
-  modem.transmit(BGP_PORT, BGP_PORT, message);
+  sides.forEach((side) => {
+    const modem = peripheral.wrap(side) as ModemPeripheral;
+    modem.transmit(BGP_PORT, BGP_PORT, message);
+  });
 
   print(`Sent message to ${to} via ${via}`);
 }
