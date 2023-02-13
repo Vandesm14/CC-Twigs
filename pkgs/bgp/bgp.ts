@@ -4,6 +4,7 @@ import {
   clearDB,
   createDBIfNotExists,
   getDBEntry,
+  getDBEntrySide,
   printDB,
   pruneTTLs,
   updateDBEntry,
@@ -31,9 +32,9 @@ function sendBGPMessage(message: BGPMessage, modemSide: string) {
 /** Broadcasts or forwards a BGP propagation message */
 function broadcastBGPPropagate(
   {
-    neighbors,
+    modemSides,
     wirelessModemSides,
-  }: Pick<State, 'neighbors' | 'wirelessModemSides'>,
+  }: Pick<State, 'modemSides' | 'wirelessModemSides'>,
   previous?: BGPPropagateMessage,
   side?: string
 ) {
@@ -41,12 +42,13 @@ function broadcastBGPPropagate(
     // Generate a new ID if this is a new message
     id: previous?.id ?? generateRandomHash(),
     type: BGPMessageType.PROPAGATE,
+
     trace: previous?.trace
-      ? [...Object.values(previous.trace), computerID]
+      ? [...Object.values(previous.trace ?? {}), computerID]
       : [computerID],
+
     from: computerID,
     origin: previous?.origin ?? computerID,
-
     neighbors: previous?.neighbors
       ? Array.from(
           new Set([
@@ -60,27 +62,23 @@ function broadcastBGPPropagate(
   };
 
   // Filter out the sides that we've already sent the message to or seen the message from
-  const idsToSides = Object.entries(neighbors.idsToSides);
-  const sidesToSendTo = [
-    ...idsToSides
-      // parsingInt bc TS thinks it's a string
-      .filter(([id]) => !Object.values(message.trace).includes(parseInt(id)))
-      .flatMap(([_, sides]) => sides),
+  const sidesToSendTo = Array.from(
+    new Set([
+      ...modemSides.filter((modemSide) => modemSide !== side),
 
-    // We are using a trick to get neighbors for LAN modems,
-    // we can't use that trick for wireless modems, so we
-    // always have to relay to wireless modems
-    ...wirelessModemSides,
-  ];
-
-  if (!previous) print(`Broadcasting BGP message: ${message.id}`);
+      // We are using a trick to get neighbors for LAN modems,
+      // we can't use that trick for wireless modems, so we
+      // always have to relay to wireless modems
+      ...wirelessModemSides,
+    ])
+  );
 
   sidesToSendTo.forEach((modemSide) => {
     // Send a BGP message
     sendBGPMessage(message, modemSide);
   });
 
-  if (previous) {
+  if (previous?.neighbors) {
     // Run through each neighbor and update the destination to the previous.from (where the message came from)
     // so we know where to send the message to for each destination
     Object.values(previous.neighbors).forEach((neighbor) => {
@@ -118,12 +116,10 @@ function waitForPeripheralRemove(this: void) {
 
 /** Handles a BGP message depending on the type */
 function handleBGPMessage(
-  state: Pick<State, 'neighbors' | 'wirelessModemSides'>,
+  state: Pick<State, 'modemSides' | 'wirelessModemSides'>,
   message: BGPMessage,
   side: string
 ) {
-  const { neighbors } = state;
-
   if (message.type === BGPMessageType.PROPAGATE) {
     const propagateMessage = message as BGPPropagateMessage;
     const isInHistory = history.includes(propagateMessage.id);
@@ -131,47 +127,42 @@ function handleBGPMessage(
     history.push(propagateMessage.id);
 
     if (!isInHistory) {
-      print(`Received BGP message: ${message.id}`);
-
       // If we haven't seen this message before,
       // broadcast it to all of the neighbors
       broadcastBGPPropagate(state, propagateMessage, side);
-    } else print(`Received BGP message: ${message.id} (already seen)`);
+    }
   } else if (message.type === BGPMessageType.CARRIER) {
     const carrierMessage = message as BGPCarrierMessage;
     const entry = getDBEntry(carrierMessage.payload.to);
 
-    const goto =
+    const via =
       entry && Object.keys(entry).length > 0 ? Object.keys(entry)[0] : null;
 
+    let side = getDBEntrySide(carrierMessage.payload.to);
     let newMessage: BGPCarrierMessage = {
       ...carrierMessage,
       from: computerID,
-      trace: [...Object.values(carrierMessage.trace), computerID],
+      trace: [...Object.values(carrierMessage.trace ?? {}), computerID],
       payload: {
         ...carrierMessage.payload,
       },
     };
-    const sides = neighbors.idsToSides[goto];
-    let side: string;
 
     if (carrierMessage.payload.to === computerID) {
       displayBGPMessage(carrierMessage);
       return;
-    } else if (goto && sides && sides.length > 0) {
-      print(`Received BGP carrier message: ${message.id} (sending to ${goto})`);
-      side = neighbors.idsToSides[goto][0];
+    } else if (via && side) {
+      print(`Received BGP carrier message: ${message.id} (sending to ${via})`);
     } else {
       // TODO: Back to sender
       print(`Received BGP carrier message: ${message.id} (no route)`);
-      const sides = neighbors.idsToSides[carrierMessage.from];
+      side = getDBEntrySide(carrierMessage.from);
 
-      if (!sides || sides.length === 0) {
+      if (!side) {
         print('No route back to sender');
         return;
       }
 
-      side = sides[0];
       newMessage.payload = {
         ...carrierMessage.payload,
         to: carrierMessage.payload.from,
@@ -199,6 +190,8 @@ function main() {
     // because the data is no longer valid
     clearDB();
   };
+
+  print('Starting BGP loop...');
 
   while (true) {
     let message: { message: BGPMessage; side: string } | null;

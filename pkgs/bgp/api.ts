@@ -9,9 +9,6 @@ import { BGPCarrierMessage, BGPMessageType } from './types';
 const computerID = os.getComputerID();
 
 export interface State {
-  /** Composition around computers connected to the LAN and their relation with modem sides */
-  neighbors: ReturnType<typeof getLocalNeighbors>;
-
   /** List of modem sides */
   modemSides: string[];
 
@@ -24,8 +21,6 @@ export interface State {
 
 /** Creates useful compositions around modems such as getting all sides occupied by modems */
 export function getPeripheralState(): State {
-  const neighbors = getLocalNeighbors();
-
   const modemSides = getModems();
   const sidesToModems = new Map<string, ModemPeripheral>(
     modemSides.map((side) => [side, peripheral.wrap(side) as ModemPeripheral])
@@ -35,7 +30,6 @@ export function getPeripheralState(): State {
   );
 
   return {
-    neighbors,
     modemSides,
     sidesToModems,
     wirelessModemSides,
@@ -45,40 +39,6 @@ export function getPeripheralState(): State {
 /** Opens the BGP port on all modems */
 export function openPorts({ sidesToModems }: Pick<State, 'sidesToModems'>) {
   sidesToModems.forEach((modem) => modem.open(BGP_PORT));
-}
-
-/** Gets a list of the local neighbors for a wired LAN */
-export function getLocalNeighbors() {
-  const modemSides = getModems();
-  const modems = modemSides
-    // Get all of the modems
-    .map((modem) => peripheral.wrap(modem) as ModemPeripheral);
-
-  const sidesToIds: Record<string, number[]> = {};
-  modems.forEach((modem, i) => {
-    if (modem.getNamesRemote) {
-      sidesToIds[modemSides[i]] = modem
-        .getNamesRemote()
-        .filter((name) => name.startsWith('computer_'))
-        .map((name) => modem.callRemote(name, 'getID') as number);
-    } else {
-      sidesToIds[modemSides[i]] = [];
-    }
-  });
-
-  const idsToSides: Record<number, string[]> = {};
-  Object.entries(sidesToIds).forEach(([side, ids]) => {
-    ids.forEach((id) => {
-      if (!idsToSides[id]) idsToSides[id] = [];
-      idsToSides[id].push(side);
-    });
-  });
-
-  return {
-    ids: Object.values(sidesToIds).reduce((a, b) => a.concat(b), []),
-    sidesToIds,
-    idsToSides,
-  };
 }
 
 /** Displays a BGP message */
@@ -91,14 +51,13 @@ export function displayBGPMessage(message: BGPCarrierMessage) {
 export function sendBGPCarrierMessage(payload: BGPCarrierMessage['payload']) {
   const { to } = payload;
   const entry = getDBEntry(to);
-  const neighbors = getLocalNeighbors();
 
   if (!entry || Object.keys(entry).length === 0) {
     throw new Error(`Could not find a route to: ${to}`);
   }
 
   const via = Object.keys(entry)[0];
-  const side = neighbors.idsToSides[via]?.[0];
+  const side = entry[via].side;
 
   const message: BGPCarrierMessage = {
     id: generateRandomHash(),

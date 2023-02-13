@@ -68,6 +68,7 @@ export function getDB() {
   return db;
 }
 
+let lastPrint = '';
 export function printDB(short = false) {
   const db = getDB();
 
@@ -75,21 +76,32 @@ export function printDB(short = false) {
 
   if (!short) {
     print(`DB has ${Object.keys(db).length} entries.`);
-    Object.entries(db).forEach(([key, value]) => {
-      print(`${key}: ${Object.values(value).join(', ')}`);
-    });
+    let toPrint = Object.entries(db)
+      .sort(([a], [b]) => (a < b ? -1 : 1))
+      .map(([key, values]) => `${key}: ${Object.values(values).join(', ')}`)
+      .join('\n');
+
+    if (toPrint === lastPrint) return;
+    lastPrint = toPrint;
+
+    print(toPrint);
   } else {
-    print(
-      `${Object.entries(db)
-        .map(([key, values]) => {
-          const ids = Object.keys(values);
-          const keyAsNum = parseInt(key);
-          const value = parseInt(ids[0]);
-          const isSame = value === keyAsNum;
-          return isSame ? `${value}` : `${keyAsNum}->${value}`;
-        })
-        .join(', ')}`
-    );
+    let toPrint = `${Object.entries(db)
+      .sort(([a], [b]) => (a < b ? -1 : 1))
+      .map(([key, values]) => {
+        const ids = Object.keys(values);
+        const keyAsNum = parseInt(key);
+        const value = ids.map((id) => parseInt(id)).join(' or ');
+        const isSame = ids.length > 1 ? false : parseInt(ids[0]) === keyAsNum;
+
+        return isSame ? `${value}` : `${keyAsNum} via ${value}`;
+      })
+      .join(', ')}`;
+
+    if (toPrint === lastPrint) return;
+    lastPrint = toPrint;
+
+    print(toPrint);
   }
 }
 
@@ -100,6 +112,14 @@ export function getDBEntry(destination: number): BGPDestinationEntry | null {
 
   const entry = db[destination.toString()];
   return entry;
+}
+
+export function getDBEntrySide(destination: number): string | null {
+  const entry = getDBEntry(destination);
+  if (!entry) return null;
+
+  const via = Object.values(entry)[0];
+  return via.side;
 }
 
 export function pruneTTLs() {
