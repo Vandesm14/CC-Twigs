@@ -46,7 +46,6 @@ export function getPeripheralState(): State {
 /** Opens the BGP port on all modems */
 export function openPorts({ sidesToModems }: Pick<State, 'sidesToModems'>) {
   sidesToModems.forEach((modem) => modem.open(BGP_PORT));
-  print('Ports open');
 }
 
 /** Gets a list of the local neighbors for a wired LAN */

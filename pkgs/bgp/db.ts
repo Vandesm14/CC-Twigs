@@ -55,15 +55,22 @@ export function printDB(short = false) {
 
   if (Object.keys(db).length === 0) print(`DB is empty!`);
 
-  print('BGP Router ID: ' + computerID);
-
   if (!short) {
     print(`DB has ${Object.keys(db).length} entries.`);
     Object.entries(db).forEach(([key, value]) => {
       print(`${key}: ${Object.values(value).join(', ')}`);
     });
   } else {
-    print(`${Object.keys(db).join()}`);
+    print(
+      `${Object.entries(db)
+        .map(([key, values]) => {
+          const keyAsN = parseInt(key.replace('c_', ''));
+          const value = Object.values(values)[0];
+          const isSame = value === keyAsN;
+          return isSame ? `${value}` : `${keyAsN}->${value}`;
+        })
+        .join(', ')}`
+    );
   }
 }
 

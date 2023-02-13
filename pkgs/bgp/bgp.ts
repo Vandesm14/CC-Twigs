@@ -1,4 +1,3 @@
-import { pretty_print } from 'cc.pretty';
 import { displayBGPMessage, getPeripheralState, openPorts, State } from './api';
 import {
   clearDB,
@@ -7,7 +6,7 @@ import {
   printDB,
   updateDBEntry,
 } from './db';
-import { generateRandomHash } from './lib';
+import { generateRandomHash, sleepUntil } from './lib';
 import {
   BGPCarrierMessage,
   BGPMessage,
@@ -18,8 +17,6 @@ import * as log from '../debug/log';
 
 const BGP_PORT = 179;
 const computerID = os.getComputerID();
-
-print('BGP Router ID: ' + computerID);
 
 const history: string[] = [];
 
@@ -54,14 +51,12 @@ function broadcastBGPPropagate(
             // Add the previous neighbors to the list
             ...previous.neighbors,
             // Add our neighbors to the list
-            ...neighbors.ids,
-            // Add the previous computer ID to the list
-            previous.from,
+            // ...neighbors.ids,
             // Add our computer ID to the list
             computerID,
           ])
         )
-      : Array.from(new Set([...neighbors.ids, computerID])),
+      : [computerID],
   };
 
   // Filter out the sides that we've already sent the message to or seen the message from
@@ -96,10 +91,10 @@ function broadcastBGPPropagate(
 
   // Run through our own neighbors and update the destination to the message.from
   // so we know where to send the message to for each destination
-  neighbors.ids.forEach((neighbor) => {
-    // Only update the DB if the neighbor is not us
-    if (neighbor !== computerID) updateDBEntry(neighbor, neighbor);
-  });
+  // neighbors.ids.forEach((neighbor) => {
+  //   // Only update the DB if the neighbor is not us
+  //   if (neighbor !== computerID) updateDBEntry(neighbor, neighbor);
+  // });
 
   // Add the message to the history
   history.push(message.id);
@@ -111,7 +106,7 @@ function waitForMessage(this: void) {
     os.pullEvent('modem_message');
 
   const message = rawMessage as BGPMessage;
-  return message;
+  return { message, side };
 }
 
 function waitForPeripheralAdd(this: void) {
@@ -125,15 +120,10 @@ function waitForPeripheralRemove(this: void) {
 /** Handles a BGP message depending on the type */
 function handleBGPMessage(
   state: Pick<State, 'neighbors' | 'wirelessModemSides'>,
-  message: BGPMessage
+  message: BGPMessage,
+  side: string
 ) {
   const { neighbors } = state;
-
-  log.viaHTTP({
-    id: computerID,
-    ts: os.epoch(),
-    message,
-  });
 
   if (message.type === BGPMessageType.PROPAGATE) {
     const propagateMessage = message as BGPPropagateMessage;
@@ -198,8 +188,9 @@ function main() {
   clearDB();
 
   // Timeout to wait for a message (real-world BGP uses 30 seconds)
-  const TIMEOUT = 5;
   let state: State = getPeripheralState();
+  const TIMEOUT = 5 * 1000;
+  let epochTimeout = os.epoch('utc') + TIMEOUT;
 
   const handlePeripheralChange = () => {
     print('Peripherals changed, refreshing...');
@@ -212,7 +203,7 @@ function main() {
   };
 
   while (true) {
-    let message: BGPMessage | null;
+    let message: { message: BGPMessage; side: string } | null;
 
     // Ensure that all of the ports are open
     openPorts(state);
@@ -225,7 +216,8 @@ function main() {
       },
       () => {
         // Wait for `TIMEOUT` seconds
-        sleep(TIMEOUT);
+        sleepUntil(epochTimeout);
+        epochTimeout = os.epoch('utc') + TIMEOUT;
       },
       () => {
         // Wait for a peripheral to be added
@@ -242,7 +234,7 @@ function main() {
     // If we got a message, handle it
     if (message) {
       // Handle the message
-      handleBGPMessage(state, message);
+      handleBGPMessage(state, message.message, message.side);
       message = null;
     } else {
       // If we didn't get a message, then we timed out
