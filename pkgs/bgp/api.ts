@@ -6,6 +6,48 @@ import { BGPCarrierMessage, BGPMessageType } from './types';
 const BGP_PORT = 179;
 const computerID = os.getComputerID();
 
+export interface State {
+  /** Composition around computers connected to the LAN and their relation with modem sides */
+  neighbors: ReturnType<typeof getLocalNeighbors>;
+
+  /** List of modem sides */
+  modemSides: string[];
+
+  /** Map of modem sides to modem peripherals */
+  sidesToModems: Map<string, ModemPeripheral>;
+
+  /** List of modem sides that are wireless */
+  wirelessModemSides: string[];
+}
+
+/** Creates useful compositions around modems such as getting all sides occupied by modems */
+export function getPeripheralState(): State {
+  const neighbors = getLocalNeighbors();
+
+  print(`Found ${neighbors.ids.length} nodes on local network.`);
+
+  const modemSides = getModems();
+  const sidesToModems = new Map<string, ModemPeripheral>(
+    modemSides.map((side) => [side, peripheral.wrap(side) as ModemPeripheral])
+  );
+  const wirelessModemSides = modemSides.filter((side) =>
+    sidesToModems.get(side).isWireless()
+  );
+
+  return {
+    neighbors,
+    modemSides,
+    sidesToModems,
+    wirelessModemSides,
+  };
+}
+
+/** Opens the BGP port on all modems */
+export function openPorts({ sidesToModems }: Pick<State, 'sidesToModems'>) {
+  sidesToModems.forEach((modem) => modem.open(BGP_PORT));
+  print('Ports open');
+}
+
 /** Gets a list of the local neighbors for a wired LAN */
 export function getLocalNeighbors() {
   const modemSides = getModems();

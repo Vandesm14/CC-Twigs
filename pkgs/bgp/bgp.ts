@@ -1,6 +1,5 @@
 import { pretty_print } from 'cc.pretty';
-import { getModems } from '../lib/lib';
-import { getLocalNeighbors } from './api';
+import { getPeripheralState, openPorts, State } from './api';
 import {
   clearDB,
   createDBIfNotExists,
@@ -22,36 +21,6 @@ const computerID = os.getComputerID();
 
 print('BGP Router ID: ' + computerID);
 
-interface State {
-  neighbors: ReturnType<typeof getLocalNeighbors>;
-  modemSides: string[];
-  sidesToModems: Map<string, ModemPeripheral>;
-  wirelessModemSides: string[];
-}
-
-function updatePeripherals(): State {
-  const neighbors = getLocalNeighbors();
-
-  print(`Found ${neighbors.ids.length} nodes on local network.`);
-
-  const modemSides = getModems();
-  const sidesToModems = new Map<string, ModemPeripheral>(
-    modemSides.map((side) => [side, peripheral.wrap(side) as ModemPeripheral])
-  );
-  const wirelessModemSides = modemSides.filter((side) =>
-    sidesToModems.get(side).isWireless()
-  );
-
-  openPorts({ sidesToModems });
-
-  return {
-    neighbors,
-    modemSides,
-    sidesToModems,
-    wirelessModemSides,
-  };
-}
-
 const history: string[] = [];
 
 /** A small wrapper to ensure type-safety of sending a BGP message */
@@ -59,11 +28,6 @@ function sendBGPMessage(message: BGPMessage, modemSide: string) {
   const modem = peripheral.wrap(modemSide) as ModemPeripheral;
 
   modem.transmit(BGP_PORT, BGP_PORT, message);
-}
-
-function openPorts({ sidesToModems }: Pick<State, 'sidesToModems'>) {
-  sidesToModems.forEach((modem) => modem.open(BGP_PORT));
-  print('Ports open');
 }
 
 /** Broadcasts or forwards a BGP propagation message */
@@ -159,7 +123,10 @@ function waitForPeripheralRemove(this: void) {
 }
 
 /** Handles a BGP message depending on the type */
-function handleBGPMessage(state: State, message: BGPMessage) {
+function handleBGPMessage(
+  state: Pick<State, 'neighbors' | 'wirelessModemSides'>,
+  message: BGPMessage
+) {
   const { neighbors } = state;
 
   log.viaHTTP({
@@ -237,10 +204,23 @@ function main() {
 
   // Timeout to wait for a message (real-world BGP uses 30 seconds)
   const TIMEOUT = 5;
-  let state: State = updatePeripherals();
+  let state: State = getPeripheralState();
+
+  const handlePeripheralChange = () => {
+    print('Peripherals changed, refreshing...');
+    state = getPeripheralState();
+    openPorts(state);
+
+    // If a port is removed, we need to clear the DB
+    // because the data is no longer valid
+    clearDB();
+  };
 
   while (true) {
     let message: BGPMessage | null;
+
+    // Ensure that all of the ports are open
+    openPorts(state);
 
     // If either of the functions return, the other one will be cancelled
     parallel.waitForAny(
@@ -255,16 +235,12 @@ function main() {
       () => {
         // Wait for a peripheral to be added
         waitForPeripheralAdd();
-        print('Peripheral added, refreshing...');
-        state = updatePeripherals();
-        clearDB();
+        handlePeripheralChange();
       },
       () => {
         // Wait for a peripheral to be removed
         waitForPeripheralRemove();
-        print('Peripheral removed, refreshing...');
-        state = updatePeripherals();
-        clearDB();
+        handlePeripheralChange();
       }
     );
 
