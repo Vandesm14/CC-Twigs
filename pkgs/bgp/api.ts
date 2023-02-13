@@ -1,3 +1,4 @@
+import { pretty_print } from 'cc.pretty';
 import { getModems } from 'lib/lib';
 import { getDBEntry } from './db';
 import { generateRandomHash } from './lib';
@@ -82,6 +83,12 @@ export function getLocalNeighbors() {
   };
 }
 
+/** Displays a BGP message */
+export function displayBGPMessage(message: BGPCarrierMessage) {
+  print(`Received BGP carrier message:`);
+  pretty_print(message.payload);
+}
+
 /** Sends a carrier message to the destination accordingly */
 export function sendBGPCarrierMessage(payload: BGPCarrierMessage['payload']) {
   const { to } = payload;
@@ -105,10 +112,7 @@ export function sendBGPCarrierMessage(payload: BGPCarrierMessage['payload']) {
   };
 
   if (to === computerID) {
-    // TODO: Support sending messages to localhost
-    // Can't use handleBGPMessage because it's tied to the main file
-    // handleBGPMessage(message);
-    print('Cannot send messages to localhost');
+    displayBGPMessage(message);
     return;
   }
 

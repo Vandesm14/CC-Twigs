@@ -1,5 +1,5 @@
 import { pretty_print } from 'cc.pretty';
-import { getPeripheralState, openPorts, State } from './api';
+import { displayBGPMessage, getPeripheralState, openPorts, State } from './api';
 import {
   clearDB,
   createDBIfNotExists,
@@ -156,12 +156,7 @@ function handleBGPMessage(
       entry && Object.values(entry).length > 0 ? Object.values(entry)[0] : null;
 
     if (carrierMessage.payload.to === computerID) {
-      print(`Received BGP carrier message:`);
-      pretty_print(carrierMessage.payload);
-
-      const [file] = fs.open('bgp.log', 'w');
-      file.writeLine(textutils.serializeJSON(carrierMessage.payload));
-      file.close();
+      displayBGPMessage(carrierMessage);
     } else if (goto) {
       print(`Received BGP carrier message: ${message.id} (sending to ${goto})`);
       const side = neighbors.idsToSides[goto][0];
