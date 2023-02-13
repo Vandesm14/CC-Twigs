@@ -1,0 +1,18 @@
+{
+  // The name of the package
+  "name": "test",
+
+  // The epoch time since the package was last updated
+  "lastUpdated": 1234567890,
+
+  // The main file (hoisted to the root of the shell)
+  "main": "test.lua",
+
+  // The dependencies of the package
+  "deps": ["bgp/api"],
+
+  // Mappings between files and hoisted commands
+  "commands": {
+    "test.lua": "test"
+  }
+}
