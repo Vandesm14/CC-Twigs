@@ -25,8 +25,6 @@ export interface State {
 export function getPeripheralState(): State {
   const neighbors = getLocalNeighbors();
 
-  print(`Found ${neighbors.ids.length} nodes on local network.`);
-
   const modemSides = getModems();
   const sidesToModems = new Map<string, ModemPeripheral>(
     modemSides.map((side) => [side, peripheral.wrap(side) as ModemPeripheral])

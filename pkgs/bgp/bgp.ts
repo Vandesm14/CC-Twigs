@@ -13,7 +13,6 @@ import {
   BGPMessageType,
   BGPPropagateMessage,
 } from './types';
-import * as log from '../debug/log';
 
 const BGP_PORT = 179;
 const computerID = os.getComputerID();
@@ -50,8 +49,6 @@ function broadcastBGPPropagate(
           new Set([
             // Add the previous neighbors to the list
             ...previous.neighbors,
-            // Add our neighbors to the list
-            // ...neighbors.ids,
             // Add our computer ID to the list
             computerID,
           ])
@@ -88,13 +85,6 @@ function broadcastBGPPropagate(
       if (neighbor !== computerID) updateDBEntry(neighbor, previous.from);
     });
   }
-
-  // Run through our own neighbors and update the destination to the message.from
-  // so we know where to send the message to for each destination
-  // neighbors.ids.forEach((neighbor) => {
-  //   // Only update the DB if the neighbor is not us
-  //   if (neighbor !== computerID) updateDBEntry(neighbor, neighbor);
-  // });
 
   // Add the message to the history
   history.push(message.id);
