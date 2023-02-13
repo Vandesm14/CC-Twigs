@@ -70,7 +70,7 @@ function broadcastBGPPropagate(
     ...wirelessModemSides,
   ];
 
-  print(`${previous ? 'Relaying' : 'Broadcasting'} BGP message: ${message.id}`);
+  if (!previous) print(`Broadcasting BGP message: ${message.id}`);
 
   sidesToSendTo.forEach((modemSide) => {
     // Send a BGP message
@@ -139,6 +139,9 @@ function handleBGPMessage(
       ...carrierMessage,
       from: computerID,
       trace: [...Object.values(carrierMessage.trace), computerID],
+      payload: {
+        ...carrierMessage.payload,
+      },
     };
     const sides = neighbors.idsToSides[goto];
     let side: string;
