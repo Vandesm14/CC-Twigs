@@ -3,6 +3,8 @@ const args = [...$vararg];
 const cmd = args[0];
 const scope = args[1];
 
+const address = settings.get('mngr.address') ?? 'http://mr.thedevbird.com:3000/pkgs';
+
 function getServerList() {
   // read from ".mngr/serverlist.txt", a list of servers separated by newline
   const [file] = fs.open('.mngr/serverlist.txt', 'r');
@@ -32,7 +34,7 @@ function ensureServerList() {
     shell.exit();
   }
 
-  file.write('http://mr.thedevbird.com:3000/pkgs');
+  file.write(address);
   file.close();
 
   print('Added default server to serverlist.txt');

@@ -2,3 +2,5 @@ node_modules
 **/**.lua
 .DS_Store
 logs.json
+
+pnpm-lock.yaml
