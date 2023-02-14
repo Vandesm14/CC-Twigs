@@ -102,7 +102,7 @@ export function printDB() {
     (dest) => [dest, findShortestRoute(dest)]
   );
 
-  let toPrint = `DB:\n${chunkArray(
+  let toPrint = `DB: ${pairs.length} dests\ndest: via (hops)\n${chunkArray(
     pairs
       .sort(([a], [b]) => a - b)
       .map(([dest, record]) => {
