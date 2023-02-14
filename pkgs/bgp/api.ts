@@ -52,6 +52,7 @@ export function displayIPMessage(message: IPMessage) {
 /** A small wrapper to ensure type-safety of sending a BGP message */
 export function sendRawBGP(message: BGPMessage, modemSide: string) {
   const modem = peripheral.wrap(modemSide) as ModemPeripheral;
+  if (!modem) return;
 
   modem.transmit(BGP_PORT, BGP_PORT, message);
 }
@@ -63,6 +64,7 @@ export function sendRawIP(
   modemSide: string
 ) {
   const modem = peripheral.wrap(modemSide) as ModemPeripheral;
+  if (!modem) return;
 
   modem.transmit(channel, channel, message);
 }
