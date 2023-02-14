@@ -67,6 +67,7 @@ export function findShortestRoute(
   destination: number
 ): BGPDatabaseRecord | null {
   const records = getRoutesForDest(destination);
+  if (!records || records.length === 0) return null;
 
   const smallest = records.reduce<BGPDatabaseRecord>((acc, value) => {
     if (!acc) return value;
