@@ -1,4 +1,11 @@
-import { displayBGPMessage, getPeripheralState, openPorts, State } from './api';
+import {
+  displayIPMessage,
+  getPeripheralState,
+  openPorts,
+  sendRawBGP,
+  sendRawIP,
+  State,
+} from './api';
 import { TIMEOUT } from './constants';
 import {
   clearDB,
@@ -10,24 +17,12 @@ import {
   updateDBEntry,
 } from './db';
 import { generateRandomHash, sleepUntil } from './lib';
-import {
-  BGPCarrierMessage,
-  BGPMessage,
-  BGPMessageType,
-  BGPPropagateMessage,
-} from './types';
+import { BGPMessageType, BGPPropagateMessage, ModemMessage } from './types';
 
 const BGP_PORT = 179;
 const computerID = os.getComputerID();
 
 const history: string[] = [];
-
-/** A small wrapper to ensure type-safety of sending a BGP message */
-function sendBGPMessage(message: BGPMessage, modemSide: string) {
-  const modem = peripheral.wrap(modemSide) as ModemPeripheral;
-
-  modem.transmit(BGP_PORT, BGP_PORT, message);
-}
 
 /** Broadcasts or forwards a BGP propagation message */
 function broadcastBGPPropagate(
@@ -42,11 +37,6 @@ function broadcastBGPPropagate(
     // Generate a new ID if this is a new message
     id: previous?.id ?? generateRandomHash(),
     type: BGPMessageType.PROPAGATE,
-
-    trace: previous?.trace
-      ? [...Object.values(previous.trace ?? {}), computerID]
-      : [computerID],
-
     from: computerID,
     origin: previous?.origin ?? computerID,
     neighbors: previous?.neighbors
@@ -75,7 +65,7 @@ function broadcastBGPPropagate(
 
   sidesToSendTo.forEach((modemSide) => {
     // Send a BGP message
-    sendBGPMessage(message, modemSide);
+    sendRawBGP(message, modemSide);
   });
 
   if (previous?.neighbors) {
@@ -98,12 +88,18 @@ function broadcastBGPPropagate(
 }
 
 /** Waits for a `modem_message` OS event, then returns the message */
-function waitForMessage(this: void) {
+function waitForMessage(this: void): ModemMessage {
   const [event, side, channel, replyChannel, rawMessage] =
     os.pullEvent('modem_message');
 
-  const message = rawMessage as BGPMessage;
-  return { message, side };
+  const message = rawMessage;
+  return {
+    event,
+    side,
+    channel,
+    replyChannel,
+    message,
+  };
 }
 
 function waitForPeripheralAdd(this: void) {
@@ -114,62 +110,68 @@ function waitForPeripheralRemove(this: void) {
   os.pullEvent('peripheral_detach');
 }
 
-/** Handles a BGP message depending on the type */
 function handleBGPMessage(
   state: Pick<State, 'modemSides' | 'wirelessModemSides'>,
-  message: BGPMessage,
-  side: string
+  event: ModemMessage
 ) {
-  if (message.type === BGPMessageType.PROPAGATE) {
-    const propagateMessage = message as BGPPropagateMessage;
-    const isInHistory = history.includes(propagateMessage.id);
+  const { message, side } = event;
 
-    history.push(propagateMessage.id);
+  const propagateMessage = message as BGPPropagateMessage;
+  const isInHistory = history.includes(propagateMessage.id);
 
-    if (!isInHistory) {
-      // If we haven't seen this message before,
-      // broadcast it to all of the neighbors
-      broadcastBGPPropagate(state, propagateMessage, side);
-    }
-  } else if (message.type === BGPMessageType.CARRIER) {
-    const carrierMessage = message as BGPCarrierMessage;
-    const entry = getDBEntry(carrierMessage.payload.to);
+  history.push(propagateMessage.id);
 
-    const via =
-      entry && Object.keys(entry).length > 0 ? Object.keys(entry)[0] : null;
+  if (!isInHistory) {
+    // If we haven't seen this message before,
+    // broadcast it to all of the neighbors
+    broadcastBGPPropagate(state, propagateMessage, side);
+  }
+}
 
-    let side = getDBEntrySide(carrierMessage.payload.to);
-    let newMessage: BGPCarrierMessage = {
-      ...carrierMessage,
-      from: computerID,
-      trace: [...Object.values(carrierMessage.trace ?? {}), computerID],
-      payload: {
-        ...carrierMessage.payload,
-      },
-    };
+function handleIPMessage(
+  state: Pick<State, 'modemSides' | 'wirelessModemSides'>,
+  event: ModemMessage
+) {
+  const { message, channel } = event;
 
-    if (carrierMessage.payload.to === computerID) {
-      displayBGPMessage(carrierMessage);
-      return;
-    } else if (via && side) {
-      print(`Received BGP carrier message: ${message.id} (sending to ${via})`);
-    } else {
-      // TODO: Back to sender
-      print(`Received BGP carrier message: ${message.id} (no route)`);
-      side = getDBEntrySide(carrierMessage.from);
+  const entry = getDBEntry(message.to);
+  const via =
+    entry && Object.keys(entry).length > 0 ? Object.keys(entry)[0] : null;
+  let side = getDBEntrySide(message.to);
 
-      if (!side) {
-        print('No route back to sender');
-        return;
-      }
+  if (message.to === computerID) {
+    // TODO: when we have custom events, we should emit an event here
+    // this is when we receive a message for us
+    displayIPMessage(message);
+    return;
+  } else if (via && side) {
+    print(`Received IP Message: ${message.id} (sending to ${via})`);
 
-      newMessage.payload = {
-        ...carrierMessage.payload,
-        to: carrierMessage.payload.from,
-      };
-    }
+    const sides = Array.from(
+      new Set([
+        ...state.modemSides.filter((side) => side !== event.side),
+        ...state.wirelessModemSides,
+      ])
+    );
 
-    sendBGPMessage(newMessage, side);
+    sides.forEach((modemSide) => {
+      sendRawIP(message, channel, modemSide);
+    });
+  } else {
+    // TODO: Back to sender
+    print(`Received IP Message: ${message.id} (no route)`);
+  }
+}
+
+/** Handles a BGP message depending on the type */
+function handleMessageEvent(
+  state: Pick<State, 'modemSides' | 'wirelessModemSides'>,
+  event: ModemMessage
+) {
+  if (event.channel === BGP_PORT) {
+    handleBGPMessage(state, event);
+  } else {
+    handleIPMessage(state, event);
   }
 }
 
@@ -194,7 +196,7 @@ function main() {
   print('Starting BGP loop...');
 
   while (true) {
-    let message: { message: BGPMessage; side: string } | null;
+    let event: ModemMessage | null;
 
     // Ensure that all of the ports are open
     openPorts(state);
@@ -202,8 +204,8 @@ function main() {
     // If either of the functions return, the other one will be cancelled
     parallel.waitForAny(
       () => {
-        // Wait for a BPG message
-        message = waitForMessage();
+        // Wait for a modem message
+        event = waitForMessage();
       },
       () => {
         // Wait for `TIMEOUT` seconds
@@ -223,10 +225,10 @@ function main() {
     );
 
     // If we got a message, handle it
-    if (message) {
+    if (event) {
       // Handle the message
-      handleBGPMessage(state, message.message, message.side);
-      message = null;
+      handleMessageEvent(state, event);
+      event = null;
     } else {
       pruneTTLs();
 

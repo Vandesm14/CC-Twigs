@@ -1,9 +1,9 @@
 import { pretty_print } from 'cc.pretty';
 import { getModems } from 'lib/lib';
-import { BGP_PORT } from './constants';
+import { BGP_PORT, IP_PORT } from './constants';
 import { getDBEntry } from './db';
 import { generateRandomHash } from './lib';
-import { BGPCarrierMessage, BGPMessageType } from './types';
+import { BGPMessage, IPMessage } from './types';
 
 /** The ID of the computer */
 const computerID = os.getComputerID();
@@ -38,41 +38,70 @@ export function getPeripheralState(): State {
 
 /** Opens the BGP port on all modems */
 export function openPorts({ sidesToModems }: Pick<State, 'sidesToModems'>) {
-  sidesToModems.forEach((modem) => modem.open(BGP_PORT));
+  sidesToModems.forEach((modem) => {
+    modem.open(BGP_PORT);
+    modem.open(IP_PORT);
+  });
 }
 
 /** Displays a BGP message */
-export function displayBGPMessage(message: BGPCarrierMessage) {
-  print(`Received BGP carrier message:`);
-  pretty_print(message.payload);
+export function displayIPMessage(message: IPMessage) {
+  print(`Received IP message:`);
+  pretty_print(message);
+}
+
+/** A small wrapper to ensure type-safety of sending a BGP message */
+export function sendRawBGP(message: BGPMessage, modemSide: string) {
+  const modem = peripheral.wrap(modemSide) as ModemPeripheral;
+
+  modem.transmit(BGP_PORT, BGP_PORT, message);
+}
+
+/** A small wrapper to ensure type-safety of sending an IP message */
+export function sendRawIP(
+  message: IPMessage,
+  channel: number,
+  modemSide: string
+) {
+  const modem = peripheral.wrap(modemSide) as ModemPeripheral;
+
+  modem.transmit(channel, channel, message);
+}
+
+export interface sendIPProps {
+  /** If `true`, ignores BGP logic and broacasts message via all modems */
+  broadcast?: boolean;
+
+  /**
+   * The channel to send the message on
+   * @default IP_PORT
+   */
+  channel?: number;
 }
 
 /** Sends a carrier message to the destination accordingly */
-export function sendBGPCarrierMessage(
-  payload: BGPCarrierMessage['payload'],
-  opts?: { onAllModems?: boolean }
+export function sendIP(
+  message: Omit<IPMessage, 'id'>,
+  opts?: { broadcast?: boolean; channel?: number }
 ) {
-  const { to } = payload;
-  const entry = opts?.onAllModems ? 'any' : getDBEntry(to);
+  const { to } = message;
+  const entry = opts?.broadcast ? 'any' : getDBEntry(to);
 
-  if (!opts.onAllModems && (!entry || Object.keys(entry).length === 0)) {
+  const ipMessage = {
+    id: generateRandomHash(),
+    ...message,
+  };
+
+  if (!opts?.broadcast && (!entry || Object.keys(entry).length === 0)) {
     throw new Error(`Could not find a route to: ${to}`);
   }
 
-  const via = opts?.onAllModems ? 'any' : Object.keys(entry)[0];
-  const sides = opts?.onAllModems ? getModems() : [entry[via].side];
-
-  const message: BGPCarrierMessage = {
-    id: generateRandomHash(),
-    type: BGPMessageType.CARRIER,
-    payload,
-    from: computerID,
-    origin: computerID,
-    trace: [computerID],
-  };
+  const via = opts?.broadcast ? 'any' : Object.keys(entry)[0];
+  const sides = opts?.broadcast ? getModems() : [entry[via].side];
 
   if (to === computerID) {
-    displayBGPMessage(message);
+    // TODO: actually handle sending to "localhost"
+    displayIPMessage(ipMessage);
     return;
   }
 
@@ -81,8 +110,7 @@ export function sendBGPCarrierMessage(
   }
 
   sides.forEach((side) => {
-    const modem = peripheral.wrap(side) as ModemPeripheral;
-    modem.transmit(BGP_PORT, BGP_PORT, message);
+    sendRawIP(ipMessage, opts?.channel ?? IP_PORT, side);
   });
 
   print(`Sent message to ${to} via ${via}`);

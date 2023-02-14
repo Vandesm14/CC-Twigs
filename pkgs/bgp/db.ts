@@ -86,7 +86,7 @@ export function printDB(short = false) {
 
     print(toPrint);
   } else {
-    let toPrint = `${Object.entries(db)
+    let toPrint = `> ${Object.entries(db)
       .sort(([a], [b]) => (a < b ? -1 : 1))
       .map(([key, values]) => {
         const ids = Object.keys(values);

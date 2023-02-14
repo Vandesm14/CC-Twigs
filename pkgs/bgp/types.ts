@@ -30,18 +30,23 @@ export interface BGPDestinationEntryInt {
   };
 }
 
+export interface ModemMessage {
+  event: string;
+  side: string;
+  channel: number;
+  replyChannel: number;
+  message: any;
+}
+
 export enum BGPMessageType {
   PROPAGATE = 'propagate',
   CARRIER = 'carrier',
 }
 export interface BGPMessage {
-  /** A random SHA hash of the message */
+  /** A random string to differentiate messages */
   id: string;
 
   type: BGPMessageType;
-
-  /** The historical path of the message */
-  trace: LuaArray<number>;
 
   /** The ID of the computer that sent the message */
   from: number;
@@ -57,18 +62,16 @@ export interface BGPPropagateMessage extends BGPMessage {
   neighbors: LuaArray<number>;
 }
 
-export interface BGPCarrierMessage extends BGPMessage {
-  type: BGPMessageType.CARRIER;
+export interface IPMessage {
+  /** A random string to differentiate messages */
+  id: string;
 
-  /** The underlying payload (to, from, data) */
-  payload: {
-    /** The ID of the computer that the message is destined for */
-    to: number;
+  /** The ID of the computer that the message is destined for */
+  to: number;
 
-    /** The ID of the computer that the message is originating from */
-    from: number;
+  /** The ID of the computer that the message is originating from */
+  from: number;
 
-    /** The data of the message */
-    data: any;
-  };
+  /** The data that is being sent */
+  data: any;
 }
