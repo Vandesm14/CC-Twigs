@@ -33,16 +33,6 @@ function broadcastBGPPropagate(
 ) {
   const message: BGPMessage = {
     trace: trace(luaArray(previous?.trace)).addSelf(),
-    neighbors: previous?.neighbors
-      ? Array.from(
-          new Set([
-            // Add the previous neighbors to the list
-            ...previous.neighbors,
-            // Add our computer ID to the list
-            computerID,
-          ])
-        )
-      : [computerID],
     hardwired: modemSides.length > wirelessModemSides.length,
   };
 

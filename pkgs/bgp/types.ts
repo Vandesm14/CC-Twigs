@@ -42,9 +42,6 @@ export interface BGPMessage {
   /** The trace of nodes that handled the message (origin, ...first -> last) */
   trace: LuaArray<number>;
 
-  /** The computers in the origin's LAN */
-  neighbors: LuaArray<number>;
-
   /** If the last node was hardwired. If we get a message from a hardwired node, we drop latter wireless entries (no need for extra hops) */
   hardwired: boolean;
 }
