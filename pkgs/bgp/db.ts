@@ -47,6 +47,15 @@ export function updateDBEntry({
 
   const destinationKey = destination.toString();
   const viaKey = via.toString();
+
+  const hasSelf = db[destinationKey]?.[destinationKey];
+  if (hasSelf) {
+    // If we already have an entry direct to destination, we just need to update the TTL
+    db[destinationKey][destinationKey].ttl = os.epoch('utc') + TTL;
+
+    return;
+  }
+
   db[destinationKey] = {
     ...(db[destinationKey] ?? {}),
     [viaKey]: {
@@ -129,16 +138,16 @@ export function pruneTTLs() {
   const db = getDB();
   const now = os.epoch('utc');
 
-  const pruned = Object.entries(db).reduce((acc, [key, value]) => {
-    const prunedValues = Object.entries(value).reduce((acc, [key, value]) => {
+  const pruned = Object.entries(db).reduce((acc, [destination, value]) => {
+    const prunedValues = Object.entries(value).reduce((acc, [via, value]) => {
       if (value.ttl > now) {
-        acc[key] = value;
-      }
+        acc[via] = value;
+      } else print(`Pruned ${destination} via ${via}`);
       return acc;
     }, {} as BGPDestinationEntry);
 
     if (Object.keys(prunedValues).length > 0) {
-      acc[key] = prunedValues;
+      acc[destination] = prunedValues;
     }
 
     return acc;

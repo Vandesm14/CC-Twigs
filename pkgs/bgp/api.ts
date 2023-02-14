@@ -2,7 +2,6 @@ import { pretty_print } from 'cc.pretty';
 import { getModems } from 'lib/lib';
 import { BGP_PORT, IP_PORT } from './constants';
 import { getDBEntry } from './db';
-import { generateRandomHash } from './lib';
 import { BGPMessage, IPMessage } from './types';
 
 /** The ID of the computer */
@@ -81,15 +80,15 @@ export interface sendIPProps {
 
 /** Sends a carrier message to the destination accordingly */
 export function sendIP(
-  message: Omit<IPMessage, 'id'>,
+  message: Omit<IPMessage, 'id' | 'trace'>,
   opts?: { broadcast?: boolean; channel?: number }
 ) {
   const { to } = message;
   const entry = opts?.broadcast ? 'any' : getDBEntry(to);
 
   const ipMessage = {
-    id: generateRandomHash(),
     ...message,
+    trace: [computerID],
   };
 
   if (!opts?.broadcast && (!entry || Object.keys(entry).length === 0)) {

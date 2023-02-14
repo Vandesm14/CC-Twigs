@@ -16,13 +16,11 @@ import {
   pruneTTLs,
   updateDBEntry,
 } from './db';
-import { generateRandomHash, sleepUntil } from './lib';
-import { BGPMessageType, BGPPropagateMessage, ModemMessage } from './types';
+import { luaArray, sleepUntil } from './lib';
+import { BGPMessage, IPMessage, ModemMessage } from './types';
 
 const BGP_PORT = 179;
 const computerID = os.getComputerID();
-
-const history: string[] = [];
 
 /** Broadcasts or forwards a BGP propagation message */
 function broadcastBGPPropagate(
@@ -30,15 +28,13 @@ function broadcastBGPPropagate(
     modemSides,
     wirelessModemSides,
   }: Pick<State, 'modemSides' | 'wirelessModemSides'>,
-  previous?: BGPPropagateMessage,
+  previous?: BGPMessage,
   side?: string
 ) {
-  const message: BGPPropagateMessage = {
-    // Generate a new ID if this is a new message
-    id: previous?.id ?? generateRandomHash(),
-    type: BGPMessageType.PROPAGATE,
-    from: computerID,
-    origin: previous?.origin ?? computerID,
+  const message: BGPMessage = {
+    trace: previous?.trace
+      ? [...luaArray(previous.trace), computerID]
+      : [computerID],
     neighbors: previous?.neighbors
       ? Array.from(
           new Set([
@@ -67,24 +63,6 @@ function broadcastBGPPropagate(
     // Send a BGP message
     sendRawBGP(message, modemSide);
   });
-
-  if (previous?.neighbors) {
-    // Run through each neighbor and update the destination to the previous.from (where the message came from)
-    // so we know where to send the message to for each destination
-    Object.values(previous.neighbors).forEach((neighbor) => {
-      // Only update the DB if the neighbor is not us
-      // if (neighbor !== computerID) updateDBEntry(neighbor, previous.from);
-      if (neighbor !== computerID)
-        updateDBEntry({
-          destination: neighbor,
-          via: previous.from,
-          side,
-        });
-    });
-  }
-
-  // Add the message to the history
-  history.push(message.id);
 }
 
 /** Waits for a `modem_message` OS event, then returns the message */
@@ -116,15 +94,29 @@ function handleBGPMessage(
 ) {
   const { message, side } = event;
 
-  const propagateMessage = message as BGPPropagateMessage;
-  const isInHistory = history.includes(propagateMessage.id);
+  const propagateMessage = message as BGPMessage;
+  const hasSeen = luaArray(propagateMessage.trace)?.includes(computerID);
 
-  history.push(propagateMessage.id);
-
-  if (!isInHistory) {
+  if (!hasSeen) {
     // If we haven't seen this message before,
     // broadcast it to all of the neighbors
     broadcastBGPPropagate(state, propagateMessage, side);
+  }
+
+  if (propagateMessage?.neighbors) {
+    luaArray(propagateMessage.neighbors).forEach((neighbor) => {
+      // Only update the DB if the neighbor is not us
+      if (
+        neighbor !== computerID &&
+        luaArray(propagateMessage?.trace).length > 0
+      ) {
+        updateDBEntry({
+          destination: neighbor,
+          via: luaArray(propagateMessage.trace).slice(-1)[0],
+          side,
+        });
+      }
+    });
   }
 }
 
@@ -133,19 +125,33 @@ function handleIPMessage(
   event: ModemMessage
 ) {
   const { message, channel } = event;
+  const ipMessage = message as IPMessage;
+
+  const hasSeen = luaArray(ipMessage.trace)?.includes(computerID);
+  if (hasSeen) {
+    // If we've seen this message before, ignore it
+    return;
+  }
 
   const entry = getDBEntry(message.to);
   const via =
     entry && Object.keys(entry).length > 0 ? Object.keys(entry)[0] : null;
   let side = getDBEntrySide(message.to);
 
-  if (message.to === computerID) {
+  if (ipMessage.to === computerID) {
     // TODO: when we have custom events, we should emit an event here
     // this is when we receive a message for us
-    displayIPMessage(message);
+    displayIPMessage(ipMessage);
     return;
   } else if (via && side) {
-    print(`Received IP Message: ${message.id} (sending to ${via})`);
+    print(
+      `Received IP Message from ${message.from} -> ${message.to} via ${via}`
+    );
+
+    let newMessage = {
+      ...ipMessage,
+      trace: [...luaArray(message.trace), computerID],
+    };
 
     const sides = Array.from(
       new Set([
@@ -155,11 +161,13 @@ function handleIPMessage(
     );
 
     sides.forEach((modemSide) => {
-      sendRawIP(message, channel, modemSide);
+      sendRawIP(newMessage, channel, modemSide);
     });
   } else {
     // TODO: Back to sender
-    print(`Received IP Message: ${message.id} (no route)`);
+    print(
+      `Received IP Message from ${message.from} -> ${message.to} (no route)`
+    );
   }
 }
 
@@ -194,6 +202,7 @@ function main() {
   };
 
   print('Starting BGP loop...');
+  broadcastBGPPropagate(state);
 
   while (true) {
     let event: ModemMessage | null;

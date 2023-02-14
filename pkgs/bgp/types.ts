@@ -38,39 +38,23 @@ export interface ModemMessage {
   message: any;
 }
 
-export enum BGPMessageType {
-  PROPAGATE = 'propagate',
-  CARRIER = 'carrier',
-}
 export interface BGPMessage {
-  /** A random string to differentiate messages */
-  id: string;
-
-  type: BGPMessageType;
-
-  /** The ID of the computer that sent the message */
-  from: number;
-
-  /** The ID of the computer that originally sent the message (the first computer) */
-  origin: number;
-}
-
-export interface BGPPropagateMessage extends BGPMessage {
-  type: BGPMessageType.PROPAGATE;
+  /** The trace of nodes that handled the message (origin, ...first -> last) */
+  trace: LuaArray<number>;
 
   /** The computers in the origin's LAN */
   neighbors: LuaArray<number>;
 }
 
 export interface IPMessage {
-  /** A random string to differentiate messages */
-  id: string;
-
   /** The ID of the computer that the message is destined for */
   to: number;
 
   /** The ID of the computer that the message is originating from */
   from: number;
+
+  /** The trace of nodes that handled the message (origin, ...first -> last) */
+  trace: LuaArray<number>;
 
   /** The data that is being sent */
   data: any;
