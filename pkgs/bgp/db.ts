@@ -89,7 +89,7 @@ export function getDB() {
 }
 
 let lastPrint = '';
-export function printDB() {
+export function printDB(text?: { above?: string; below?: string }) {
   const db = getDB();
   if (db.length === 0) {
     print(`DB: empty`);
@@ -102,7 +102,9 @@ export function printDB() {
     (dest) => [dest, findShortestRoute(dest)]
   );
 
-  let toPrint = `DB: ${pairs.length} dests\ndest: via (hops)\n${chunkArray(
+  let toPrint = `${text?.above ? text.above + '\n' : ''}DB: ${
+    pairs.length
+  } dests\ndest: via (hops)\n${chunkArray(
     pairs
       .sort(([a], [b]) => a - b)
       .map(([dest, record]) => {
@@ -114,8 +116,11 @@ export function printDB() {
     2
   )
     .map((chunk) => chunk.join(', '))
-    .join('\n')}`;
+    .join('\n')}${text?.below ? '\n' + text.below : ''}`;
   if (toPrint === lastPrint) return;
+
+  term.clear();
+  term.setCursorPos(1, 1);
 
   lastPrint = toPrint;
   print(toPrint);

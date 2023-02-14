@@ -22,6 +22,8 @@ import { BGPMessage, IPMessage, ModemMessage } from './types';
 const BGP_PORT = 179;
 const computerID = os.getComputerID();
 
+let textBelow = '';
+
 /** Broadcasts or forwards a BGP propagation message */
 function broadcastBGPPropagate(
   {
@@ -150,9 +152,10 @@ function handleIPMessage(
     displayIPMessage(ipMessage);
     return;
   } else if (via && side) {
-    print(
-      `Received IP Message from ${message.from} -> ${message.to} via ${via}`
-    );
+    textBelow = `Received IP Message from ${message.from} -> ${message.to} via ${via}`;
+    printDB({
+      below: textBelow,
+    });
 
     let newMessage = {
       ...ipMessage,
@@ -171,9 +174,10 @@ function handleIPMessage(
     });
   } else {
     // TODO: Back to sender
-    print(
-      `Received IP Message from ${message.from} -> ${message.to} (no route)`
-    );
+    textBelow = `Received IP Message from ${message.from} -> ${message.to} (no route)`;
+    printDB({
+      below: textBelow,
+    });
   }
 }
 
@@ -252,7 +256,9 @@ function main() {
       broadcastBGPPropagate(state);
     }
 
-    printDB();
+    printDB({
+      below: textBelow,
+    });
   }
 }
 
