@@ -5,6 +5,7 @@ import {
   sendRawBGP,
   sendRawIP,
   State,
+  trace,
 } from './api';
 import { TIMEOUT } from './constants';
 import {
@@ -14,6 +15,7 @@ import {
   getDBEntrySide,
   printDB,
   pruneTTLs,
+  pruneWirelessIfHardwired,
   updateDBEntry,
 } from './db';
 import { luaArray, sleepUntil } from './lib';
@@ -32,9 +34,7 @@ function broadcastBGPPropagate(
   side?: string
 ) {
   const message: BGPMessage = {
-    trace: previous?.trace
-      ? [...luaArray(previous.trace), computerID]
-      : [computerID],
+    trace: trace(luaArray(previous?.trace)).addSelf(),
     neighbors: previous?.neighbors
       ? Array.from(
           new Set([
@@ -45,6 +45,7 @@ function broadcastBGPPropagate(
           ])
         )
       : [computerID],
+    hardwired: modemSides.length > wirelessModemSides.length,
   };
 
   // Filter out the sides that we've already sent the message to or seen the message from
@@ -93,9 +94,10 @@ function handleBGPMessage(
   event: ModemMessage
 ) {
   const { message, side } = event;
+  const messageTrace = trace(luaArray(message.trace));
 
   const propagateMessage = message as BGPMessage;
-  const hasSeen = luaArray(propagateMessage.trace)?.includes(computerID);
+  const hasSeen = messageTrace.hasSeen();
 
   if (!hasSeen) {
     // If we haven't seen this message before,
@@ -106,14 +108,14 @@ function handleBGPMessage(
   if (propagateMessage?.neighbors) {
     luaArray(propagateMessage.neighbors).forEach((neighbor) => {
       // Only update the DB if the neighbor is not us
-      if (
-        neighbor !== computerID &&
-        luaArray(propagateMessage?.trace).length > 0
-      ) {
+      if (neighbor !== computerID && !messageTrace.isEmpty()) {
         updateDBEntry({
           destination: neighbor,
-          via: luaArray(propagateMessage.trace).slice(-1)[0],
+
+          // We can reach the destination via the node that sent us the message
+          via: messageTrace.from(),
           side,
+          hardwired: propagateMessage.hardwired,
         });
       }
     });
@@ -126,9 +128,19 @@ function handleIPMessage(
 ) {
   const { message, channel } = event;
   const ipMessage = message as IPMessage;
+  const messageTrace = trace(luaArray(ipMessage.trace));
 
-  const hasSeen = luaArray(ipMessage.trace)?.includes(computerID);
-  if (hasSeen) {
+  // When an IP message is sent, it will usually have the immediate
+  // destination as the last entry in the trace.
+  // If the destination is us, then we will handle it.
+  // If the IP message was broadcasted, that is,
+  // without an immediate destination, then we will handle it.
+  const notForUs =
+    messageTrace.size() > 1 ? messageTrace.from() !== computerID : false;
+
+  const hasSeen = messageTrace.hasSeen();
+
+  if (hasSeen || messageTrace.isEmpty() || notForUs) {
     // If we've seen this message before, ignore it
     return;
   }
@@ -150,7 +162,7 @@ function handleIPMessage(
 
     let newMessage = {
       ...ipMessage,
-      trace: [...luaArray(message.trace), computerID],
+      trace: trace(luaArray(ipMessage.trace)).add([parseInt(via)]),
     };
 
     const sides = Array.from(
@@ -240,6 +252,7 @@ function main() {
       event = null;
     } else {
       pruneTTLs();
+      pruneWirelessIfHardwired();
 
       // If we didn't get a message, then we timed out
       // broadcast our own BGP message

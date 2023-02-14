@@ -86,17 +86,21 @@ export function sendIP(
   const { to } = message;
   const entry = opts?.broadcast ? 'any' : getDBEntry(to);
 
-  const ipMessage = {
-    ...message,
-    trace: [computerID],
-  };
-
   if (!opts?.broadcast && (!entry || Object.keys(entry).length === 0)) {
     throw new Error(`Could not find a route to: ${to}`);
   }
 
   const via = opts?.broadcast ? 'any' : Object.keys(entry)[0];
   const sides = opts?.broadcast ? getModems() : [entry[via].side];
+
+  let ipMessage: IPMessage = {
+    ...message,
+
+    // We add the ID of the destination so that they know
+    // that they are the next hop in our journey (but not the destination)
+    // Only do this if we are not broadcasting
+    trace: opts?.broadcast ? [computerID] : [computerID, parseInt(via)],
+  };
 
   if (to === computerID) {
     // TODO: actually handle sending to "localhost"
@@ -113,4 +117,57 @@ export function sendIP(
   });
 
   print(`Sent message to ${to} via ${via}`);
+}
+
+export function trace(trace?: number[]) {
+  trace = [...trace] ?? [];
+
+  const obj = {
+    /** Gets the last item */
+    from() {
+      return trace.slice(-1)[0];
+    },
+
+    /** Gets the first item */
+    origin() {
+      return trace[0];
+    },
+
+    /** Checks if the last item is the computerID */
+    // shouldDrop() {
+    //   return obj.from() === computerID;
+    // },
+
+    /** Checks if the node has seen the message (only if the id is within the array) */
+    hasSeen(id = computerID) {
+      return trace.indexOf(id) !== -1 && trace.indexOf(id) !== obj.size() - 1;
+    },
+
+    /** Checks if the trace is not empty */
+    isEmpty() {
+      return !(trace.length > 0);
+    },
+
+    /** Adds the computerID to the end of the trace */
+    addSelf(ids?: number[]) {
+      return [...trace, computerID, ...(ids ?? [])];
+    },
+
+    /** Adds an array of computerIDs to the end of the trace */
+    add(ids: number[]) {
+      return [...trace, ...ids];
+    },
+
+    /** Gets the size of the trace */
+    size() {
+      return trace.length;
+    },
+
+    /** Creates a Set from the trace */
+    toSet() {
+      return new Set(trace);
+    },
+  };
+
+  return obj;
 }

@@ -10,24 +10,18 @@ export interface BGPDatabase {
 
 export interface BGPDestinationEntry {
   // key: the ID of the node that can reach the destination
-  [key: string]: {
-    /** The side of the node */
-    side: string;
-
-    /** The TTL of the entry (as expiry time in epoch) */
-    ttl: number;
-  };
+  [key: string]: BGPDestinationEntryVia;
 }
 
-export interface BGPDestinationEntryInt {
-  // key: the ID of the node that can reach the destination
-  [key: number]: {
-    /** The side of the node */
-    side: string;
+export interface BGPDestinationEntryVia {
+  /** The side of the node */
+  side: string;
 
-    /** The TTL of the entry (as expiry time in epoch) */
-    ttl: number;
-  };
+  /** The TTL of the entry (as expiry time in epoch) */
+  ttl: number;
+
+  /** If the last node was hardwired. If we get a message from a hardwired node, we drop latter wireless entries (no need for extra hops) */
+  hardwired: boolean;
 }
 
 export interface ModemMessage {
@@ -44,6 +38,9 @@ export interface BGPMessage {
 
   /** The computers in the origin's LAN */
   neighbors: LuaArray<number>;
+
+  /** If the last node was hardwired. If we get a message from a hardwired node, we drop latter wireless entries (no need for extra hops) */
+  hardwired: boolean;
 }
 
 export interface IPMessage {

@@ -37,10 +37,12 @@ export function updateDBEntry({
   destination,
   via,
   side,
+  hardwired,
 }: {
   destination: number;
   via: number;
   side: string;
+  hardwired: boolean;
 }) {
   let db = getDB();
   db = db ?? {};
@@ -56,11 +58,21 @@ export function updateDBEntry({
     return;
   }
 
+  const hasHardwired = Object.values(db[destinationKey] ?? {}).some(
+    (entry) => entry.hardwired
+  );
+  const isWireless = !hardwired;
+  if (hasHardwired && isWireless) {
+    // If we already have a hardwired entry, we don't need to update the DB
+    return;
+  }
+
   db[destinationKey] = {
     ...(db[destinationKey] ?? {}),
     [viaKey]: {
       side,
       ttl: os.epoch('utc') + TTL,
+      hardwired,
     },
   };
 
@@ -142,13 +154,36 @@ export function pruneTTLs() {
     const prunedValues = Object.entries(value).reduce((acc, [via, value]) => {
       if (value.ttl > now) {
         acc[via] = value;
-      } else print(`Pruned ${destination} via ${via}`);
+      } else print(`Pruned ${destination} via ${via} (ttl)`);
       return acc;
     }, {} as BGPDestinationEntry);
 
     if (Object.keys(prunedValues).length > 0) {
       acc[destination] = prunedValues;
     }
+
+    return acc;
+  }, {} as BGPDatabase);
+
+  saveDB(pruned);
+}
+
+/** If a destination has a hardwired node, it will remove any wireless nodes */
+export function pruneWirelessIfHardwired() {
+  const db = getDB();
+
+  const pruned = Object.entries(db).reduce((acc, [destination, value]) => {
+    const hasHardwired = Object.values(value).some((v) => v.hardwired);
+    if (hasHardwired) {
+      const prunedValues = Object.entries(value).reduce((acc, [via, value]) => {
+        if (value.hardwired) {
+          acc[via] = value;
+        } else print(`Pruned ${destination} via ${via} (is wireless)`);
+        return acc;
+      }, {} as BGPDestinationEntry);
+
+      acc[destination] = prunedValues;
+    } else acc[destination] = value;
 
     return acc;
   }, {} as BGPDatabase);
