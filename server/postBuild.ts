@@ -58,6 +58,7 @@ names.forEach((name) => {
       `./pkgs/${name}/has.txt`,
       luaNames
         .map((name) => name.split('/').slice(-1)[0].replace('.lua', ''))
+        .sort()
         .join('\n')
     );
   } else if (existsSync(`./pkgs/${name}/has.txt`)) {
@@ -66,7 +67,7 @@ names.forEach((name) => {
 
   if (needs.length > 0) {
     // Create a needs.txt file with all the packages the package needs
-    Deno.writeTextFileSync(`./pkgs/${name}/needs.txt`, needs.join('\n'));
+    Deno.writeTextFileSync(`./pkgs/${name}/needs.txt`, needs.sort().join('\n'));
   } else if (existsSync(`./pkgs/${name}/needs.txt`)) {
     // If there are no packages the package needs, remove the needs.txt file
     Deno.removeSync(`./pkgs/${name}/needs.txt`);
