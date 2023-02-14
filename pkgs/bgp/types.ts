@@ -3,25 +3,31 @@ export type LuaArray<T> = {
   [Symbol.iterator](): IterableIterator<T>;
 };
 
-export interface BGPDatabase {
-  // key: the destination computer ID
-  [key: string]: BGPDestinationEntry;
-}
+export type BGPDatabase = Array<BGPDatabaseRecord>;
 
-export interface BGPDestinationEntry {
-  // key: the ID of the node that can reach the destination
-  [key: string]: BGPDestinationEntryVia;
-}
+export interface BGPDatabaseRecord {
+  /** The ID of the destination computer */
+  destination: number;
 
-export interface BGPDestinationEntryVia {
-  /** The side of the node */
+  /** The ID of the computer that can reach the destination */
+  via: number;
+
+  /** The side of the modem that connects to `via` */
   side: string;
 
   /** The TTL of the entry (as expiry time in epoch) */
   ttl: number;
 
-  /** If the last node was hardwired. If we get a message from a hardwired node, we drop latter wireless entries (no need for extra hops) */
-  hardwired: boolean;
+  /**
+   * How many hops it will take to get to the destination
+   *
+   * For example: if `A -> B -> C`
+   *
+   * then `A` will take `1` hop to get to `C`
+   *
+   * then `B` will take `0` hops to get to `C` (direct connection)
+   */
+  hops: number;
 }
 
 export interface ModemMessage {

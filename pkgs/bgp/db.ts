@@ -1,9 +1,12 @@
 import { TTL } from './constants';
-import { BGPDatabase, BGPDestinationEntry } from './types';
+import { chunkArray } from './lib';
+import { BGPDatabase, BGPDatabaseRecord } from './types';
 
-let localDB: BGPDatabase = {};
-
+/** The ID of the computer */
+const computerID = os.getComputerID();
 const DB_PATH = 'pkgs/bgp/bgp.db';
+
+let localDB: BGPDatabase = [];
 
 export function createDBIfNotExists() {
   const exists = fs.exists(DB_PATH);
@@ -14,7 +17,7 @@ export function clearDB() {
   const [fileWrite] = fs.open(DB_PATH, 'w');
   // TODO: Find a better way to initialize with self
   // Currently, we need a side and a TTL, which we don't have
-  const initWith = {};
+  const initWith = [];
   fileWrite.write(
     // Initialize with self
     textutils.serializeJSON(initWith)
@@ -33,54 +36,49 @@ export function saveDB(db: BGPDatabase) {
 }
 
 /** Updates the DB for which node to go via to reach a destination  */
-export function updateDBEntry({
-  destination,
-  via,
-  side,
-  hardwired,
-}: {
-  destination: number;
-  via: number;
-  side: string;
-  hardwired: boolean;
-}) {
+export function updateRoute(record: Omit<BGPDatabaseRecord, 'ttl'>) {
+  const { side, hops, destination, via } = record;
+
   let db = getDB();
-  db = db ?? {};
 
-  const destinationKey = destination.toString();
-  const viaKey = via.toString();
-
-  const hasSelf = db[destinationKey]?.[destinationKey];
-  if (hasSelf) {
-    // If we already have an entry direct to destination, we just need to update the TTL
-    db[destinationKey][destinationKey].ttl = os.epoch('utc') + TTL;
-
-    return;
-  }
-
-  const hasHardwired = Object.values(db[destinationKey] ?? {}).some(
-    (entry) => entry.hardwired
+  const existing = db.find(
+    (record) => record.destination === destination && record.via === via
   );
-  const isWireless = !hardwired;
-  if (hasHardwired && isWireless) {
-    // If we already have a hardwired entry, we don't need to update the DB
-    return;
-  }
 
-  db[destinationKey] = {
-    ...(db[destinationKey] ?? {}),
-    [viaKey]: {
+  if (existing) {
+    existing.ttl = os.epoch('utc') + TTL;
+    existing.hops = hops;
+    existing.side = side;
+  } else {
+    db.push({
+      destination,
+      via,
       side,
       ttl: os.epoch('utc') + TTL,
-      hardwired,
-    },
-  };
+      hops,
+    });
+  }
 
   saveDB(db);
 }
 
+/** Finds a route to a destination with the shortest hops */
+export function findShortestRoute(
+  destination: number
+): BGPDatabaseRecord | null {
+  const records = getRoutesForDest(destination);
+
+  const smallest = records.reduce<BGPDatabaseRecord>((acc, value) => {
+    if (!acc) return value;
+    if (value.hops < acc.hops) return value;
+    return acc;
+  }, null);
+
+  return smallest;
+}
+
 export function getDB() {
-  if (Object.keys(localDB).length > 0) return localDB;
+  if (localDB.length > 0) return localDB;
   const [fileRead] = fs.open(DB_PATH, 'r');
   const text = fileRead.readAll();
   const db = textutils.unserializeJSON(text) as BGPDatabase;
@@ -90,103 +88,54 @@ export function getDB() {
 }
 
 let lastPrint = '';
-export function printDB(short = false) {
+export function printDB() {
   const db = getDB();
-
-  if (Object.keys(db).length === 0) print(`DB is empty!`);
-
-  if (!short) {
-    print(`DB has ${Object.keys(db).length} entries.`);
-    let toPrint = Object.entries(db)
-      .sort(([a], [b]) => (a < b ? -1 : 1))
-      .map(([key, values]) => `${key}: ${Object.values(values).join(', ')}`)
-      .join('\n');
-
-    if (toPrint === lastPrint) return;
-    lastPrint = toPrint;
-
-    print(toPrint);
-  } else {
-    let toPrint = `> ${Object.entries(db)
-      .sort(([a], [b]) => (a < b ? -1 : 1))
-      .map(([key, values]) => {
-        const ids = Object.keys(values);
-        const keyAsNum = parseInt(key);
-        const value = ids
-          .map((id) => parseInt(id))
-          .sort()
-          .join(' or ');
-        const isSame = ids.length > 1 ? false : parseInt(ids[0]) === keyAsNum;
-
-        return isSame ? `${value}` : `${keyAsNum} via ${value}`;
-      })
-      .join(', ')}`;
-
-    if (toPrint === lastPrint) return;
-    lastPrint = toPrint;
-
-    print(toPrint);
+  if (db.length === 0) {
+    print(`DB: empty`);
+    return;
   }
+  const destinations = Array.from(
+    new Set(db.map((record) => record.destination))
+  );
+  const pairs: [number, BGPDatabaseRecord | null][] = destinations.map(
+    (dest) => [dest, findShortestRoute(dest)]
+  );
+
+  let toPrint = `DB:\n${chunkArray(
+    pairs
+      .sort(([a], [b]) => a - b)
+      .map(([dest, record]) => {
+        if (!record) return `${dest}: null`;
+        if (computerID === record.destination)
+          return `${dest}: self (${record.hops})`;
+        return `${dest}: ${record.via} (${record.hops})`;
+      }),
+    2
+  )
+    .map((chunk) => chunk.join(', '))
+    .join('\n')}`;
+  if (toPrint === lastPrint) return;
+
+  lastPrint = toPrint;
+  print(toPrint);
 }
 
-export function getDBEntry(destination: number): BGPDestinationEntry | null {
+export function getRoutesForDest(
+  destination: number
+): BGPDatabaseRecord[] | null {
   const db = getDB();
 
-  if (!db) return null;
+  const records = db.filter((entry) => entry.destination === destination);
+  if (records.length === 0) return null;
 
-  const entry = db[destination.toString()];
-  return entry;
-}
-
-export function getDBEntrySide(destination: number): string | null {
-  const entry = getDBEntry(destination);
-  if (!entry) return null;
-
-  const via = Object.values(entry)[0];
-  return via.side;
+  return records;
 }
 
 export function pruneTTLs() {
   const db = getDB();
   const now = os.epoch('utc');
 
-  const pruned = Object.entries(db).reduce((acc, [destination, value]) => {
-    const prunedValues = Object.entries(value).reduce((acc, [via, value]) => {
-      if (value.ttl > now) {
-        acc[via] = value;
-      } else print(`Pruned ${destination} via ${via} (ttl)`);
-      return acc;
-    }, {} as BGPDestinationEntry);
-
-    if (Object.keys(prunedValues).length > 0) {
-      acc[destination] = prunedValues;
-    }
-
-    return acc;
-  }, {} as BGPDatabase);
-
-  saveDB(pruned);
-}
-
-/** If a destination has a hardwired node, it will remove any wireless nodes */
-export function pruneWirelessIfHardwired() {
-  const db = getDB();
-
-  const pruned = Object.entries(db).reduce((acc, [destination, value]) => {
-    const hasHardwired = Object.values(value).some((v) => v.hardwired);
-    if (hasHardwired) {
-      const prunedValues = Object.entries(value).reduce((acc, [via, value]) => {
-        if (value.hardwired) {
-          acc[via] = value;
-        } else print(`Pruned ${destination} via ${via} (is wireless)`);
-        return acc;
-      }, {} as BGPDestinationEntry);
-
-      acc[destination] = prunedValues;
-    } else acc[destination] = value;
-
-    return acc;
-  }, {} as BGPDatabase);
+  const pruned = db.filter((entry) => entry.ttl > now);
 
   saveDB(pruned);
 }

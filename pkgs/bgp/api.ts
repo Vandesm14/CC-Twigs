@@ -1,7 +1,7 @@
 import { pretty_print } from 'cc.pretty';
 import { getModems } from 'lib/lib';
 import { BGP_PORT, IP_PORT } from './constants';
-import { getDBEntry } from './db';
+import { findShortestRoute } from './db';
 import { BGPMessage, IPMessage } from './types';
 
 /** The ID of the computer */
@@ -84,14 +84,13 @@ export function sendIP(
   opts?: { broadcast?: boolean; channel?: number }
 ) {
   const { to } = message;
-  const entry = opts?.broadcast ? 'any' : getDBEntry(to);
+  const route = findShortestRoute(to);
 
-  if (!opts?.broadcast && (!entry || Object.keys(entry).length === 0)) {
+  if (!opts?.broadcast && !route) {
     throw new Error(`Could not find a route to: ${to}`);
   }
 
-  const via = opts?.broadcast ? 'any' : Object.keys(entry)[0];
-  const sides = opts?.broadcast ? getModems() : [entry[via].side];
+  let sides = opts?.broadcast ? getModems() : [route.side];
 
   let ipMessage: IPMessage = {
     ...message,
@@ -99,7 +98,7 @@ export function sendIP(
     // We add the ID of the destination so that they know
     // that they are the next hop in our journey (but not the destination)
     // Only do this if we are not broadcasting
-    trace: opts?.broadcast ? [computerID] : [computerID, parseInt(via)],
+    trace: opts?.broadcast ? [computerID] : [computerID, route.via],
   };
 
   if (to === computerID) {
@@ -109,18 +108,22 @@ export function sendIP(
   }
 
   if (sides.length === 0) {
-    throw new Error(`Could not find a modem that sends to: ${to} via ${entry}`);
+    throw new Error(
+      `Could not find a modem that sends to: ${to} via ${
+        opts?.broadcast ? 'any' : route
+      }`
+    );
   }
 
   sides.forEach((side) => {
     sendRawIP(ipMessage, opts?.channel ?? IP_PORT, side);
   });
 
-  print(`Sent message to ${to} via ${via}`);
+  print(`Sent message to ${to} via ${opts?.broadcast ? 'any' : route.via}`);
 }
 
 export function trace(trace?: number[]) {
-  trace = [...trace] ?? [];
+  trace = trace ? [...trace] : [];
 
   const obj = {
     /** Gets the last item */
@@ -133,10 +136,29 @@ export function trace(trace?: number[]) {
       return trace[0];
     },
 
-    /** Checks if the last item is the computerID */
-    // shouldDrop() {
-    //   return obj.from() === computerID;
-    // },
+    /**
+     * Gets the distance of a node from self
+     * [a, b, c, d, self]
+     * distacne(self) = 0 (self)
+     * distance(d)    = 1
+     * distance(a)    = 4
+     *
+     * If self isn't in the trace, it will compensate (BGP logic)
+     * [a, b, c, d]
+     * distacne(self) = 0 (self)
+     * distance(d)    = 1
+     * distance(a)    = 4
+     */
+    distance(id: number) {
+      if (id === computerID) return 0;
+      const selfIsAtEnd = obj.from() === computerID;
+
+      if (selfIsAtEnd) {
+        return trace.length - trace.indexOf(id) - 2;
+      } else {
+        return trace.length - trace.indexOf(id) - 1;
+      }
+    },
 
     /** Checks if the node has seen the message (only if the id is within the array) */
     hasSeen(id = computerID) {

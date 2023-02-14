@@ -11,12 +11,10 @@ import { TIMEOUT } from './constants';
 import {
   clearDB,
   createDBIfNotExists,
-  getDBEntry,
-  getDBEntrySide,
+  findShortestRoute,
   printDB,
   pruneTTLs,
-  pruneWirelessIfHardwired,
-  updateDBEntry,
+  updateRoute,
 } from './db';
 import { luaArray, sleepUntil } from './lib';
 import { BGPMessage, IPMessage, ModemMessage } from './types';
@@ -93,11 +91,13 @@ function handleBGPMessage(
   state: Pick<State, 'modemSides' | 'wirelessModemSides'>,
   event: ModemMessage
 ) {
-  const { message, side } = event;
+  const { side } = event;
+  const message = event.message as BGPMessage;
   const messageTrace = trace(luaArray(message.trace));
 
   const propagateMessage = message as BGPMessage;
   const hasSeen = messageTrace.hasSeen();
+  const from = messageTrace.from();
 
   if (!hasSeen) {
     // If we haven't seen this message before,
@@ -105,28 +105,33 @@ function handleBGPMessage(
     broadcastBGPPropagate(state, propagateMessage, side);
   }
 
-  if (propagateMessage?.neighbors) {
-    luaArray(propagateMessage.neighbors).forEach((neighbor) => {
-      // Only update the DB if the neighbor is not us
-      if (neighbor !== computerID && !messageTrace.isEmpty()) {
-        updateDBEntry({
-          destination: neighbor,
+  // Run through each of the ids in the trace
+  // stop at the last one, because that is the one that sent us the message.
+  // We can use trace().distance(destination) to get the number of hops to the destination
+  luaArray(message.trace).forEach((id, index) => {
+    const destination = id;
+    const via = from;
 
-          // We can reach the destination via the node that sent us the message
-          via: messageTrace.from(),
-          side,
-          hardwired: propagateMessage.hardwired,
-        });
-      }
-    });
-  }
+    const hops = messageTrace.distance(destination);
+
+    // Only update the DB if the neighbor is not us
+    if (destination !== computerID && via) {
+      updateRoute({
+        destination,
+        via,
+        side,
+        hops,
+      });
+    }
+  });
 }
 
 function handleIPMessage(
   state: Pick<State, 'modemSides' | 'wirelessModemSides'>,
   event: ModemMessage
 ) {
-  const { message, channel } = event;
+  const { channel } = event;
+  const message = event.message as IPMessage;
   const ipMessage = message as IPMessage;
   const messageTrace = trace(luaArray(ipMessage.trace));
 
@@ -145,10 +150,9 @@ function handleIPMessage(
     return;
   }
 
-  const entry = getDBEntry(message.to);
-  const via =
-    entry && Object.keys(entry).length > 0 ? Object.keys(entry)[0] : null;
-  let side = getDBEntrySide(message.to);
+  const route = findShortestRoute(message.to);
+  const via = route?.via;
+  const side = route?.side;
 
   if (ipMessage.to === computerID) {
     // TODO: when we have custom events, we should emit an event here
@@ -162,7 +166,7 @@ function handleIPMessage(
 
     let newMessage = {
       ...ipMessage,
-      trace: trace(luaArray(ipMessage.trace)).add([parseInt(via)]),
+      trace: trace(luaArray(ipMessage.trace)).add([via]),
     };
 
     const sides = Array.from(
@@ -252,14 +256,13 @@ function main() {
       event = null;
     } else {
       pruneTTLs();
-      pruneWirelessIfHardwired();
 
       // If we didn't get a message, then we timed out
       // broadcast our own BGP message
       broadcastBGPPropagate(state);
     }
 
-    printDB(true);
+    printDB();
   }
 }
 
