@@ -3,8 +3,8 @@
   "main": "debug.lua",
   "deps": [],
   "files": [
-    "log.lua",
     "debug.lua",
+    "log.lua",
     "pkg.json"
   ]
 }

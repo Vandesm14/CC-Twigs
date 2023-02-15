@@ -55,10 +55,11 @@ names.forEach((name) => {
   const pkgJSON = JSON.parse(existingJSON);
   pkgJSON.name ??= name;
   pkgJSON.main ??= `${name}.lua`;
-  pkgJSON.deps = needs;
+  pkgJSON.deps = needs.sort();
   pkgJSON.files = files
     .filter((file) => !file.endsWith('.ts'))
-    .map((file) => file.replace(`pkgs/${name}/`, ''));
+    .map((file) => file.replace(`pkgs/${name}/`, ''))
+    .sort();
 
   Deno.writeTextFileSync(
     `./pkgs/${name}/pkg.json`,

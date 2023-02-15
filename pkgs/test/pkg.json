@@ -4,7 +4,7 @@
   "deps": [],
   "files": [
     "hello.lua",
-    "test.lua",
-    "pkg.json"
+    "pkg.json",
+    "test.lua"
   ]
 }

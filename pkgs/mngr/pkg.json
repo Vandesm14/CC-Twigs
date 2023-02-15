@@ -3,10 +3,10 @@
   "main": "mngr.lua",
   "deps": [],
   "files": [
-    "mngr.lua",
     "README.md",
     "api.lua",
     "install.lua",
+    "mngr.lua",
     "pkg.json",
     "types.lua"
   ],

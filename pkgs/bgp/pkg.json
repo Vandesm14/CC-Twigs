@@ -2,20 +2,20 @@
   "name": "bgp",
   "main": "bgp.lua",
   "deps": [
-    "time",
-    "lib"
+    "lib",
+    "time"
   ],
   "files": [
-    "bgp.lua",
-    "lib.lua",
-    "types.lua",
-    "db.lua",
     "api.lua",
-    "tasks.md",
-    "send.lua",
+    "bgp.lua",
     "constants.lua",
+    "db.lua",
+    "lib.lua",
+    "pkg.json",
+    "send.lua",
     "sleep.lua",
-    "pkg.json"
+    "tasks.md",
+    "types.lua"
   ],
   "bin": {
     "bgp": "bgp.lua"
