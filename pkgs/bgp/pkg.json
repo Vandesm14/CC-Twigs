@@ -16,5 +16,8 @@
     "constants.lua",
     "sleep.lua",
     "pkg.json"
-  ]
+  ],
+  "bin": {
+    "bgp": "bgp.lua"
+  }
 }
