@@ -1,6 +1,5 @@
 {
   "name": "cat",
-  "lastUpdated": 1676496128330,
   "main": "cat.lua",
   "deps": [],
   "files": [

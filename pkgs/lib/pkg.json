@@ -1,6 +1,5 @@
 {
   "name": "lib",
-  "lastUpdated": 1676496128328,
   "main": "lib.lua",
   "deps": [],
   "files": [

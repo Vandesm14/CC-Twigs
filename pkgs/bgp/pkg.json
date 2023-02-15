@@ -1,6 +1,5 @@
 {
   "name": "bgp",
-  "lastUpdated": 1676496128327,
   "main": "bgp.lua",
   "deps": [
     "time",

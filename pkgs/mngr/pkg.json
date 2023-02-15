@@ -1,6 +1,5 @@
 {
   "name": "mngr",
-  "lastUpdated": 1676496128330,
   "main": "mngr.lua",
   "deps": [],
   "files": [

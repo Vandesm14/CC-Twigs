@@ -1,6 +1,5 @@
 {
   "name": "time",
-  "lastUpdated": 1676496128331,
   "main": "time.lua",
   "deps": [],
   "files": [
