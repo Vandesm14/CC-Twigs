@@ -200,7 +200,7 @@ function main() {
 
   // Timeout to wait for a message (real-world BGP uses 30 seconds)
   let state: State = getPeripheralState();
-  let epochTimeout = os.epoch('utc') + TIMEOUT;
+  let epochTimeout = os.epoch() + TIMEOUT;
 
   const handlePeripheralChange = () => {
     print('Peripherals changed, refreshing...');
@@ -230,7 +230,7 @@ function main() {
       () => {
         // Wait for `TIMEOUT` seconds
         sleepUntil(epochTimeout);
-        epochTimeout = os.epoch('utc') + TIMEOUT;
+        epochTimeout = os.epoch() + TIMEOUT;
       },
       () => {
         // Wait for a peripheral to be added

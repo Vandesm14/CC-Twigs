@@ -1,3 +1,4 @@
+import { epoch } from 'time/time';
 import { TTL } from './constants';
 import { chunkArray } from './lib';
 import { BGPDatabase, BGPDatabaseRecord } from './types';
@@ -48,7 +49,7 @@ export function updateRoute(record: Omit<BGPDatabaseRecord, 'ttl'>) {
   );
 
   if (existing) {
-    existing.ttl = os.epoch('utc') + TTL;
+    existing.ttl = epoch() + TTL;
     existing.hops = hops;
     existing.side = side;
   } else {
@@ -56,7 +57,7 @@ export function updateRoute(record: Omit<BGPDatabaseRecord, 'ttl'>) {
       destination,
       via,
       side,
-      ttl: os.epoch('utc') + TTL,
+      ttl: epoch() + TTL,
       hops,
     });
   }
@@ -143,7 +144,7 @@ export function getRoutesForDest(
 
 export function pruneTTLs() {
   const db = getDB();
-  const now = os.epoch('utc');
+  const now = epoch();
 
   const pruned = db.filter((entry) => entry.ttl > now);
 

@@ -1,5 +1,5 @@
 export function sleepUntil(epoch: number) {
-  const now = os.epoch('utc');
+  const now = os.epoch();
   const diff = epoch - now;
   if (diff > 0) sleep(diff / 1000);
 }

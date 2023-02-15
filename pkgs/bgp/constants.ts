@@ -1,5 +1,5 @@
 /** The interval at which nodes broadcast an update */
-export const TIMEOUT = 5 * 1000;
+export const TIMEOUT = 5_000;
 
 /** The TTL of an entry in the database */
 export const TTL = TIMEOUT + 2_000;
