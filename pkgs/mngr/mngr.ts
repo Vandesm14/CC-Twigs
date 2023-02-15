@@ -70,7 +70,7 @@ function printUsage() {
 if (cmd === 'run') {
   if (!scope) printUsage();
 
-  updateAndRunPackage(scope);
+  updateAndRunPackage(scope, args.slice(2));
 }
 
 if (cmd === 'install') {
@@ -84,7 +84,7 @@ if (cmd === 'update') {
   const pkgs = scope ? [scope] : listInstalledPackages();
 
   print(`Updating ${pkgs.length} packages...`);
-  pkgs.forEach(doInstallPackage);
+  pkgs.forEach((pkg) => doInstallPackage(pkg));
 }
 
 if (cmd === 'remove') {

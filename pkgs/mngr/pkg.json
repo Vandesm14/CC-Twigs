@@ -9,5 +9,8 @@
     "install.lua",
     "pkg.json",
     "types.lua"
-  ]
+  ],
+  "bin": {
+    "mngr": "mngr.lua"
+  }
 }

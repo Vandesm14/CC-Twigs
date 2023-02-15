@@ -93,9 +93,7 @@ export function installPackage(pkg: string, dry = false) {
   }
 
   // Copy a top-level package file to the root of `pkgs/` so that it can be run
-  if (fs.exists(`.mngr/bin/${pkg}.lua`)) fs.delete(`.mngr/bin/${pkg}.lua`);
-  if (fs.exists(`.mngr/lib/${pkg}/${pkg}.lua`))
-    fs.copy(`.mngr/lib/${pkg}/${pkg}.lua`, `.mngr/bin/${pkg}.lua`);
+  copyBinFiles(pkg);
 
   return totals;
 }
@@ -109,19 +107,24 @@ export function isPkgInstalled(pkg: string) {
   return fs.exists(`.mngr/lib/${pkg}`);
 }
 
-export function doInstallPackage(pkg: string) {
+export function doInstallPackage(pkg: string, doPrint = true) {
   const total = installPackage(pkg);
-  print(
-    `Installed ${pkg} along with ${total.deps} deps (${total.files} total files)`
-  );
+  if (doPrint)
+    print(
+      `Installed ${pkg} along with ${total.deps} deps (${total.files} total files)`
+    );
 }
 
-export function updateAndRunPackage(pkg: string, bin?: string) {
-  bin = bin ?? pkg;
-  doInstallPackage(pkg);
+export function updateAndRunPackage(pkg: string, args?: string[]) {
+  doInstallPackage(pkg, false);
+
+  if (!fs.exists(`.mngr/bin/${pkg}.lua`)) {
+    print(`Failed to find .mngr/bin/${pkg}.lua`);
+    return;
+  }
 
   // Runs the main package file
-  shell.run(`.mngr/bin/${bin}.lua`);
+  shell.run(`.mngr/bin/${pkg}.lua ${args?.join(' ') ?? ''}`);
 }
 
 export function listInstalledPackages() {
@@ -143,13 +146,20 @@ export function fetchLocalPackage(pkg: string): Package {
 }
 
 /** Copies bin files from .mngr/lib/<pkg> to .mngr/bin/<bin>.lua */
-// export function copyBinFiles() {
-//   const pkgs = listInstalledPackages();
-//   for (const pkg of pkgs) {
-//     const { bin } = fetchLocalPackage(pkg);
-//     const binFiles =
-//     for (const bin of binFiles) {
-//       fs.copy(`.mngr/lib/${pkg}/bin/${bin}`, `.mngr/bin/${bin}`);
-//     }
-//   }
-// }
+export function copyBinFiles(pkg?: string) {
+  const pkgs = pkg ? [pkg] : listInstalledPackages();
+  for (const pkg of pkgs) {
+    const { bin } = fetchLocalPackage(pkg);
+    if (bin) {
+      for (const [cmd, file] of Object.entries(bin)) {
+        if (fs.exists(`.mngr/lib/${pkg}/${file}`)) {
+          if (fs.exists(`.mngr/bin/${cmd}.lua`)) {
+            fs.delete(`.mngr/bin/${cmd}.lua`);
+          }
+
+          fs.copy(`.mngr/lib/${pkg}/${file}`, `.mngr/bin/${cmd}.lua`);
+        }
+      }
+    }
+  }
+}
