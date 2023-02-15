@@ -41,7 +41,6 @@ names.forEach((name) => {
   const existingJSON = Deno.readTextFileSync(`./pkgs/${name}/pkg.json`);
   const pkgJSON = JSON.parse(existingJSON);
   pkgJSON.name ??= name;
-  pkgJSON.lastUpdated = Date.now();
   pkgJSON.main ??= `${name}.lua`;
   pkgJSON.deps = needs;
   pkgJSON.files = files
