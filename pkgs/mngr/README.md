@@ -7,7 +7,7 @@ A simple package manager for ComputerCraft.
 You can run the command below to install `mngr`.
 
 ```sh
-wget run http://mr.thedevbird.com:3000/pkgs/mngr/mngr.lua
+wget run http://mr.thedevbird.com:3000/pkgs/mngr/install.lua
 ```
 
 Once installed, it will automatically set itself up.
