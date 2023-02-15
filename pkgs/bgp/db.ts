@@ -97,6 +97,9 @@ let lastPrint = '';
 export function printDB(text?: { above?: string; below?: string }) {
   const db = getDB();
   if (db.length === 0) {
+    term.clear();
+    term.setCursorPos(1, 1);
+
     print(`DB: empty`);
     return;
   }

@@ -23,6 +23,7 @@ const BGP_PORT = 179;
 const computerID = os.getComputerID();
 
 let textBelow = '';
+let originHistory: number[] = [];
 
 /** Broadcasts or forwards a BGP propagation message */
 function broadcastBGPPropagate(
@@ -90,6 +91,13 @@ function handleBGPMessage(
   const propagateMessage = message as BGPMessage;
   const hasSeen = messageTrace.hasSeen();
   const from = messageTrace.from();
+
+  const origin = messageTrace.origin();
+  if (originHistory.includes(origin)) {
+    return;
+  }
+
+  originHistory.push(origin);
 
   if (!hasSeen) {
     // If we haven't seen this message before,
@@ -200,6 +208,8 @@ function main() {
 
   // Timeout to wait for a message (real-world BGP uses 30 seconds)
   let state: State = getPeripheralState();
+
+  // Initialize the timeout to now so we trigger immediately
   let epochTimeout = os.epoch();
 
   const handlePeripheralChange = () => {
@@ -251,6 +261,7 @@ function main() {
       event = null;
     } else {
       pruneTTLs();
+      originHistory = [];
 
       // If we didn't get a message, then we timed out
       // broadcast our own BGP message
