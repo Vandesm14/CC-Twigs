@@ -1,5 +1,5 @@
 import {
-  displayIPMessage,
+  formatIPMessage,
   getPeripheralState,
   openPorts,
   sendRawBGP,
@@ -148,9 +148,10 @@ function handleIPMessage(
 
   if (ipMessage.to === computerID) {
     // TODO: when we have custom events, we should emit an event here
-    // this is when we receive a message for us
-    displayIPMessage(ipMessage);
-    return;
+    textBelow = formatIPMessage(ipMessage);
+    printDB({
+      below: textBelow,
+    });
   } else if (via && side) {
     textBelow = `Received IP Message from ${message.from} -> ${message.to} via ${via}`;
     printDB({

@@ -1,4 +1,4 @@
-import { pretty_print } from 'cc.pretty';
+import { pretty, render } from 'cc.pretty';
 import { getModems } from 'lib/lib';
 import { BGP_PORT, IP_PORT } from './constants';
 import { findShortestRoute } from './db';
@@ -45,9 +45,8 @@ export function openPorts({ sidesToModems }: Pick<State, 'sidesToModems'>) {
 }
 
 /** Displays a BGP message */
-export function displayIPMessage(message: IPMessage) {
-  print(`Received IP message:`);
-  pretty_print(message);
+export function formatIPMessage(message: IPMessage) {
+  return `Receeived IP Message:\n${render(pretty(message))}`;
 }
 
 /** A small wrapper to ensure type-safety of sending a BGP message */
@@ -96,8 +95,7 @@ export function sendIP(
 
   if (to === computerID) {
     // TODO: actually handle sending to "localhost"
-    displayIPMessage(ipMessage);
-    return;
+    throw new Error(`Cannot send message to self`);
   } else if (opts?.broadcast) {
     print(`Sent message to ${to} via *`);
   } else {
@@ -115,44 +113,6 @@ export function sendIP(
   sides.forEach((side) => {
     sendRawIP(ipMessage, opts?.channel ?? IP_PORT, side);
   });
-
-  // const { to } = message;
-  // const route = findShortestRoute(to);
-
-  // if (!opts?.broadcast && !route) {
-  //   throw new Error(`Could not find a route to: ${to}`);
-  // }
-
-  // let sides = opts?.broadcast ? getModems() : [route.side];
-
-  // let ipMessage: IPMessage = {
-  //   ...message,
-
-  //   // We add the ID of the destination so that they know
-  //   // that they are the next hop in our journey (but not the destination)
-  //   // Only do this if we are not broadcasting
-  //   trace: opts?.broadcast ? [computerID] : [computerID, route.via],
-  // };
-
-  // if (to === computerID) {
-  //   // TODO: actually handle sending to "localhost"
-  //   displayIPMessage(ipMessage);
-  //   return;
-  // }
-
-  // if (sides.length === 0) {
-  //   throw new Error(
-  //     `Could not find a modem that sends to: ${to} via ${
-  //       opts?.broadcast ? 'any' : route
-  //     }`
-  //   );
-  // }
-
-  // sides.forEach((side) => {
-  //   sendRawIP(ipMessage, opts?.channel ?? IP_PORT, side);
-  // });
-
-  // print(`Sent message to ${to} via ${opts?.broadcast ? 'any' : route.via}`);
 }
 
 export function trace(trace?: number[]) {
@@ -201,7 +161,7 @@ export function trace(trace?: number[]) {
       );
     },
 
-    /** Checks if the trace is not empty */
+    /** Checks if the trace is empty */
     isEmpty() {
       return !(storedTrace.length > 0);
     },
