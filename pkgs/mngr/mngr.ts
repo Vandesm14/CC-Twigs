@@ -1,9 +1,11 @@
-// @ts-expect-error: FIXME: We're in module scope, args isn't redeclared
+import { pretty_print } from 'cc.pretty';
+
 const args = [...$vararg];
 const cmd = args[0];
 const scope = args[1];
 
-const address = settings.get('mngr.address') ?? 'http://mr.thedevbird.com:3000/pkgs';
+const address =
+  settings.get('mngr.address') ?? 'http://mr.thedevbird.com:3000/pkgs';
 
 function getServerList() {
   // read from ".mngr/serverlist.txt", a list of servers separated by newline
@@ -148,7 +150,7 @@ function downloadPackage(pkg: string, lib?: string) {
   }
 
   // check if the folder pkgs/<pkg> exists
-  const dirExists = fs.exists(`pkgs/${pkg}`);
+  const dirExists = isPkgInstalled(pkg);
   if (!dirExists) {
     fs.makeDir(`pkgs/${pkg}`);
   }
@@ -193,7 +195,8 @@ function installPackage(pkg: string, dry = false) {
 
   // Copy a top-level package file to the root of `pkgs/` so that it can be run
   if (fs.exists(`pkgs/${pkg}.lua`)) fs.delete(`pkgs/${pkg}.lua`);
-  fs.copy(`pkgs/${pkg}/${pkg}.lua`, `pkgs/${pkg}.lua`);
+  if (fs.exists(`pkgs/${pkg}/${pkg}.lua`))
+    fs.copy(`pkgs/${pkg}/${pkg}.lua`, `pkgs/${pkg}.lua`);
 
   return totals;
 }
@@ -203,7 +206,7 @@ function removePackage(pkg: string) {
   fs.delete(`pkgs/${pkg}.lua`);
 }
 
-function doesPackageExist(pkg: string) {
+function isPkgInstalled(pkg: string) {
   return fs.exists(`pkgs/${pkg}`);
 }
 
@@ -270,19 +273,16 @@ if (cmd === 'list') {
 if (cmd === 'info') {
   if (!scope) printUsage();
 
-  // TODO: Implement info for installed packages
-  if (doesPackageExist(scope)) {
-    print(
-      `Package ${scope} is already installed. (installed info not yet implemented)`
-    );
+  const obj = {
+    Package: scope,
+    Depends: getDepsForPackage(scope).join(',') ?? 'N/A',
+    Includes: getLibsForPackage(scope).join(','),
+  };
 
-    // @ts-expect-error: Lua allows this
-    return;
-  }
-
-  const total = installPackage(scope, true);
   print(
-    `Package ${scope} is not installed. Has ${total.deps} deps (${total.files} total files)`
+    Object.entries(obj)
+      .map(([k, v]) => `${k}: ${v}`)
+      .join('\n')
   );
 }
 
@@ -292,3 +292,5 @@ if (cmd === 'check') {
 }
 
 if (cmd === 'help' || !cmd) printUsage();
+
+export {};
