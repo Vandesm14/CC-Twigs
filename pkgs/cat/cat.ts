@@ -12,7 +12,7 @@ if (!exists) {
 
 const [f, err] = fs.open(file, 'r');
 
-if (err) {
+if (err || !f) {
   print(`Failed to open file ${file}: ${err}`);
 
   // @ts-expect-error: Lua allows this
