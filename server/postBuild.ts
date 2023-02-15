@@ -5,6 +5,15 @@ const names = [...packages].map((pkg) => pkg.name);
 
 console.log(`${names.length} Packages:`, names.join(', '));
 
+const existsSync = (path: string) => {
+  try {
+    Deno.statSync(path);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 names.forEach((name) => {
   // Get all the .lua files in the package
   const lua = walkSync(`./pkgs/${name}`, {
@@ -37,6 +46,10 @@ names.forEach((name) => {
 
     Deno.writeTextFileSync(luaName, newLuaFile);
   });
+
+  if (!existsSync(`./pkgs/${name}/pkg.json`)) {
+    Deno.writeTextFileSync(`./pkgs/${name}/pkg.json`, '{}');
+  }
 
   const existingJSON = Deno.readTextFileSync(`./pkgs/${name}/pkg.json`);
   const pkgJSON = JSON.parse(existingJSON);
