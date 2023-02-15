@@ -1,4 +1,3 @@
-// @ts-expect-error: FIXME: We're in module scope, args isn't redeclared
 const args = [...$vararg];
 const file = args[0];
 
@@ -24,3 +23,5 @@ f.close();
 
 const lines = text.split('\n');
 lines.forEach((str) => print(str));
+
+export {};
