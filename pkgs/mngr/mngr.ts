@@ -11,6 +11,7 @@ function getServerList() {
   if (!file) {
     print('Failed to open serverlist.txt');
     shell.exit();
+    return;
   }
 
   const servers = file.readAll().split('\n');
@@ -32,6 +33,7 @@ function ensureServerList() {
   if (!file) {
     print('Failed to create serverlist.txt');
     shell.exit();
+    return;
   }
 
   file.write(address);
@@ -47,6 +49,7 @@ function ensureAutorun() {
   if (!file) {
     print('Failed to create startup.lua');
     shell.exit();
+    return;
   }
 
   file.write(`shell.setPath(shell.path() .. ":/pkgs/")`);
@@ -95,7 +98,9 @@ ensureMngrSetup();
 
 function getDepsForPackage(pkg: string) {
   // TODO: Implement scanning from multiple servers ("mirrors")
-  const server = getServerList()[0];
+  const servers = getServerList();
+  if (!servers) throw new Error('No servers found');
+  const server = servers[0];
 
   const url = `${server}/${pkg}/needs.txt`;
   const [res] = http.get(url);
@@ -105,13 +110,16 @@ function getDepsForPackage(pkg: string) {
 
   const text = res.readAll();
   res.close();
+  if (!text) return [];
 
   return text.split('\n');
 }
 
 function getLibsForPackage(pkg: string) {
   // TODO: Implement scanning from multiple servers ("mirrors")
-  const server = getServerList()[0];
+  const servers = getServerList();
+  if (!servers) throw new Error('No servers found');
+  const server = servers[0];
 
   const url = `${server}/${pkg}/has.txt`;
   const [res] = http.get(url);
@@ -121,12 +129,15 @@ function getLibsForPackage(pkg: string) {
 
   const text = res.readAll();
   res.close();
+  if (!text) return [pkg];
 
   return text.split('\n');
 }
 
 function downloadPackage(pkg: string, lib?: string) {
-  const server = getServerList()[0];
+  const servers = getServerList();
+  if (!servers) throw new Error('No servers found');
+  const server = servers[0];
   lib = lib ?? pkg;
 
   const url = `${server}/${pkg}/${lib}.lua`;
