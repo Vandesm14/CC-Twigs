@@ -25,7 +25,8 @@ export function getPeripheralState(): State {
     modemSides.map((side) => [side, peripheral.wrap(side) as ModemPeripheral])
   );
   const wirelessModemSides = modemSides.filter((side) =>
-    sidesToModems.get(side).isWireless()
+    // We know that the modem exists because we just wrapped it
+    sidesToModems.get(side)!.isWireless()
   );
 
   return {
@@ -86,56 +87,86 @@ export function sendIP(
   opts?: { broadcast?: boolean; channel?: number }
 ) {
   const { to } = message;
-  const route = findShortestRoute(to);
-
-  if (!opts?.broadcast && !route) {
-    throw new Error(`Could not find a route to: ${to}`);
-  }
-
-  let sides = opts?.broadcast ? getModems() : [route.side];
-
-  let ipMessage: IPMessage = {
+  const ipMessage: IPMessage = {
     ...message,
-
-    // We add the ID of the destination so that they know
-    // that they are the next hop in our journey (but not the destination)
-    // Only do this if we are not broadcasting
-    trace: opts?.broadcast ? [computerID] : [computerID, route.via],
+    trace: [computerID],
   };
+
+  let sides = getModems();
 
   if (to === computerID) {
     // TODO: actually handle sending to "localhost"
     displayIPMessage(ipMessage);
     return;
-  }
+  } else if (opts?.broadcast) {
+    print(`Sent message to ${to} via *`);
+  } else {
+    if (sides.length === 0) throw new Error(`No modems found`);
 
-  if (sides.length === 0) {
-    throw new Error(
-      `Could not find a modem that sends to: ${to} via ${
-        opts?.broadcast ? 'any' : route
-      }`
-    );
+    const route = findShortestRoute(to);
+    if (!route) throw new Error(`Could not find a route to: ${to}`);
+
+    sides = [route.side];
+    ipMessage.trace = [computerID, route.via];
+
+    print(`Sent message to ${to} via ${route.via}`);
   }
 
   sides.forEach((side) => {
     sendRawIP(ipMessage, opts?.channel ?? IP_PORT, side);
   });
 
-  print(`Sent message to ${to} via ${opts?.broadcast ? 'any' : route.via}`);
+  // const { to } = message;
+  // const route = findShortestRoute(to);
+
+  // if (!opts?.broadcast && !route) {
+  //   throw new Error(`Could not find a route to: ${to}`);
+  // }
+
+  // let sides = opts?.broadcast ? getModems() : [route.side];
+
+  // let ipMessage: IPMessage = {
+  //   ...message,
+
+  //   // We add the ID of the destination so that they know
+  //   // that they are the next hop in our journey (but not the destination)
+  //   // Only do this if we are not broadcasting
+  //   trace: opts?.broadcast ? [computerID] : [computerID, route.via],
+  // };
+
+  // if (to === computerID) {
+  //   // TODO: actually handle sending to "localhost"
+  //   displayIPMessage(ipMessage);
+  //   return;
+  // }
+
+  // if (sides.length === 0) {
+  //   throw new Error(
+  //     `Could not find a modem that sends to: ${to} via ${
+  //       opts?.broadcast ? 'any' : route
+  //     }`
+  //   );
+  // }
+
+  // sides.forEach((side) => {
+  //   sendRawIP(ipMessage, opts?.channel ?? IP_PORT, side);
+  // });
+
+  // print(`Sent message to ${to} via ${opts?.broadcast ? 'any' : route.via}`);
 }
 
 export function trace(trace?: number[]) {
-  trace = trace ? [...trace] : [];
+  const storedTrace = trace ? [...trace] : [];
 
   const obj = {
     /** Gets the last item */
     from() {
-      return trace.slice(-1)[0];
+      return storedTrace.slice(-1)[0];
     },
 
     /** Gets the first item */
     origin() {
-      return trace[0];
+      return storedTrace[0];
     },
 
     /**
@@ -156,35 +187,38 @@ export function trace(trace?: number[]) {
       const selfIsAtEnd = obj.from() === computerID;
 
       if (selfIsAtEnd) {
-        return trace.length - trace.indexOf(id) - 2;
+        return storedTrace.length - storedTrace.indexOf(id) - 2;
       } else {
-        return trace.length - trace.indexOf(id) - 1;
+        return storedTrace.length - storedTrace.indexOf(id) - 1;
       }
     },
 
     /** Checks if the node has seen the message (only if the id is within the array) */
     hasSeen(id = computerID) {
-      return trace.indexOf(id) !== -1 && trace.indexOf(id) !== obj.size() - 1;
+      return (
+        storedTrace.indexOf(id) !== -1 &&
+        storedTrace.indexOf(id) !== obj.size() - 1
+      );
     },
 
     /** Checks if the trace is not empty */
     isEmpty() {
-      return !(trace.length > 0);
+      return !(storedTrace.length > 0);
     },
 
     /** Adds the computerID to the end of the trace */
     addSelf(ids?: number[]) {
-      return [...trace, computerID, ...(ids ?? [])];
+      return [...storedTrace, computerID, ...(ids ?? [])];
     },
 
     /** Adds an array of computerIDs to the end of the trace */
     add(ids: number[]) {
-      return [...trace, ...ids];
+      return [...storedTrace, ...ids];
     },
 
     /** Gets the size of the trace */
     size() {
-      return trace.length;
+      return storedTrace.length;
     },
 
     /** Creates a Set from the trace */

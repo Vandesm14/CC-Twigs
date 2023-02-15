@@ -4,10 +4,6 @@ export function sleepUntil(epoch: number) {
   if (diff > 0) sleep(diff / 1000);
 }
 
-export function luaArray(luaArr: Record<number, any>) {
-  return Object.values(luaArr ?? {});
-}
-
 export function chunkArray<T>(arr: T[], chunkSize: number): T[][] {
   const chunks = [];
   for (let i = 0; i < arr.length; i += chunkSize) {

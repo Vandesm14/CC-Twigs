@@ -16,7 +16,7 @@ import {
   pruneTTLs,
   updateRoute,
 } from './db';
-import { luaArray, sleepUntil } from './lib';
+import { sleepUntil } from './lib';
 import { BGPMessage, IPMessage, ModemMessage } from './types';
 
 const BGP_PORT = 179;
@@ -34,7 +34,7 @@ function broadcastBGPPropagate(
   side?: string
 ) {
   const message: BGPMessage = {
-    trace: trace(luaArray(previous?.trace)).addSelf(),
+    trace: trace(previous?.trace).addSelf(),
     hardwired: modemSides.length > wirelessModemSides.length,
   };
 
@@ -85,7 +85,7 @@ function handleBGPMessage(
 ) {
   const { side } = event;
   const message = event.message as BGPMessage;
-  const messageTrace = trace(luaArray(message.trace));
+  const messageTrace = trace(message.trace);
 
   const propagateMessage = message as BGPMessage;
   const hasSeen = messageTrace.hasSeen();
@@ -100,7 +100,7 @@ function handleBGPMessage(
   // Run through each of the ids in the trace
   // stop at the last one, because that is the one that sent us the message.
   // We can use trace().distance(destination) to get the number of hops to the destination
-  luaArray(message.trace).forEach((id, index) => {
+  message.trace.forEach((id, index) => {
     const destination = id;
     const via = from;
 
@@ -125,7 +125,7 @@ function handleIPMessage(
   const { channel } = event;
   const message = event.message as IPMessage;
   const ipMessage = message as IPMessage;
-  const messageTrace = trace(luaArray(ipMessage.trace));
+  const messageTrace = trace(ipMessage.trace);
 
   // When an IP message is sent, it will usually have the immediate
   // destination as the last entry in the trace.
@@ -159,7 +159,7 @@ function handleIPMessage(
 
     let newMessage = {
       ...ipMessage,
-      trace: trace(luaArray(ipMessage.trace)).add([via]),
+      trace: trace(ipMessage.trace).add([via]),
     };
 
     const sides = Array.from(
@@ -215,7 +215,7 @@ function main() {
   broadcastBGPPropagate(state);
 
   while (true) {
-    let event: ModemMessage | null;
+    let event: ModemMessage | null = null;
 
     // Ensure that all of the ports are open
     openPorts(state);

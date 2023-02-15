@@ -1,8 +1,3 @@
-export type LuaArray<T> = {
-  [key: number]: T;
-  [Symbol.iterator](): IterableIterator<T>;
-};
-
 export type BGPDatabase = Array<BGPDatabaseRecord>;
 
 export interface BGPDatabaseRecord {
@@ -40,7 +35,7 @@ export interface ModemMessage {
 
 export interface BGPMessage {
   /** The trace of nodes that handled the message (origin, ...first -> last) */
-  trace: LuaArray<number>;
+  trace: number[];
 
   /** If the last node was hardwired. If we get a message from a hardwired node, we drop latter wireless entries (no need for extra hops) */
   hardwired: boolean;
@@ -54,7 +49,7 @@ export interface IPMessage {
   from: number;
 
   /** The trace of nodes that handled the message (origin, ...first -> last) */
-  trace: LuaArray<number>;
+  trace: number[];
 
   /** The data that is being sent */
   data: any;

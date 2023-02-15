@@ -15,9 +15,10 @@ export function createDBIfNotExists() {
 
 export function clearDB() {
   const [fileWrite] = fs.open(DB_PATH, 'w');
+  if (!fileWrite) throw new Error('DB file not found');
   // TODO: Find a better way to initialize with self
   // Currently, we need a side and a TTL, which we don't have
-  const initWith = [];
+  const initWith: BGPDatabase = [];
   fileWrite.write(
     // Initialize with self
     textutils.serializeJSON(initWith)
@@ -29,6 +30,7 @@ export function clearDB() {
 
 export function saveDB(db: BGPDatabase) {
   const [fileWrite] = fs.open(DB_PATH, 'w');
+  if (!fileWrite) throw new Error('DB file not found');
   fileWrite.write(textutils.serializeJSON(db));
   fileWrite.close();
 
@@ -69,7 +71,7 @@ export function findShortestRoute(
   const records = getRoutesForDest(destination);
   if (!records || records.length === 0) return null;
 
-  const smallest = records.reduce<BGPDatabaseRecord>((acc, value) => {
+  const smallest = records.reduce<BGPDatabaseRecord | null>((acc, value) => {
     if (!acc) return value;
     if (value.hops < acc.hops) return value;
     return acc;
@@ -81,6 +83,8 @@ export function findShortestRoute(
 export function getDB() {
   if (localDB.length > 0) return localDB;
   const [fileRead] = fs.open(DB_PATH, 'r');
+  if (!fileRead) throw new Error('DB file not found');
+
   const text = fileRead.readAll();
   const db = textutils.unserializeJSON(text) as BGPDatabase;
   fileRead.close();
