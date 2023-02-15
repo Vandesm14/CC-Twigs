@@ -1,8 +1,10 @@
+import { Package } from './types';
+
 export const address =
   settings.get('mngr.address') ?? 'http://mr.thedevbird.com:3000/pkgs';
 
 export function getServerList() {
-  const [file] = fs.open('pkgs/mngr/serverlist.txt', 'r');
+  const [file] = fs.open('.mngr/serverlist.txt', 'r');
   if (!file) {
     print('Failed to open serverlist.txt');
     shell.exit();
@@ -15,87 +17,67 @@ export function getServerList() {
   return servers;
 }
 
-export function getDepsForPackage(pkg: string) {
-  // TODO: Implement scanning from multiple servers ("mirrors")
+export function fetchPackage(pkg: string): Package {
   const servers = getServerList();
   if (!servers) throw new Error('No servers found');
   const server = servers[0];
 
-  const url = `${server}/${pkg}/needs.txt`;
+  const url = `${server}/${pkg}/pkg.json`;
   const [res] = http.get(url);
+
   if (typeof res === 'boolean' || !res) {
-    return [];
+    throw new Error(`Failed to fetch ${pkg} from ${server}`);
   }
 
   const text = res.readAll();
   res.close();
-  if (!text) return [];
+  if (!text) throw new Error(`Failed to fetch ${pkg} from ${server}`);
 
-  return text.split('\n');
+  return textutils.unserializeJSON(text);
 }
 
-export function getLibsForPackage(pkg: string) {
-  // TODO: Implement scanning from multiple servers ("mirrors")
+export function downloadPackage(pkg: string, file?: string) {
   const servers = getServerList();
   if (!servers) throw new Error('No servers found');
   const server = servers[0];
+  file = file ?? pkg;
 
-  const url = `${server}/${pkg}/has.txt`;
-  const [res] = http.get(url);
-  if (typeof res === 'boolean' || !res) {
-    return [pkg];
-  }
-
-  const text = res.readAll();
-  res.close();
-  if (!text) return [pkg];
-
-  return text.split('\n');
-}
-
-export function downloadPackage(pkg: string, lib?: string) {
-  const servers = getServerList();
-  if (!servers) throw new Error('No servers found');
-  const server = servers[0];
-  lib = lib ?? pkg;
-
-  const url = `${server}/${pkg}/${lib}.lua`;
+  const url = `${server}/${pkg}/${file}`;
   const [res] = http.get(url);
   if (typeof res === 'boolean') {
-    print(`Failed to download ${pkg}/${lib} from ${server}`);
+    print(`Failed to download ${pkg}/${file} from ${server}`);
     return;
   }
 
-  // check if the folder pkgs/<pkg> exists
+  // check if the folder .mngr/lib/<pkg> exists
   const dirExists = isPkgInstalled(pkg);
   if (!dirExists) {
-    fs.makeDir(`pkgs/${pkg}`);
+    fs.makeDir(`.mngr/lib/${pkg}`);
   }
 
-  const [file] = fs.open(`pkgs/${pkg}/${lib}.lua`, 'w');
-  if (!file) {
-    print(`Failed to create file for ${pkg}/${lib}`);
+  const [fileWrite] = fs.open(`.mngr/lib/${pkg}/${file}`, 'w');
+  if (!fileWrite) {
+    print(`Failed to create file for ${pkg}/${file}`);
     return;
   }
 
   if (!res) {
-    print(`Failed to download ${pkg}/${lib} from ${server}`);
+    print(`Failed to download ${pkg}/${file} from ${server}`);
     print(`URL: ${url}`);
     return;
   }
 
-  file.write(res.readAll());
-  file.close();
+  fileWrite.write(res.readAll());
+  fileWrite.close();
   res.close();
 }
 
 export function installPackage(pkg: string, dry = false) {
-  const deps = getDepsForPackage(pkg);
-  const libs = getLibsForPackage(pkg);
+  const { deps, files } = fetchPackage(pkg);
 
   const totals = {
     deps: deps.length,
-    files: libs.length,
+    files: files.length,
   };
 
   for (const dep of deps) {
@@ -106,25 +88,25 @@ export function installPackage(pkg: string, dry = false) {
 
   if (dry) return totals;
 
-  for (const lib of libs) {
-    downloadPackage(pkg, lib);
+  for (const file of files) {
+    downloadPackage(pkg, file);
   }
 
   // Copy a top-level package file to the root of `pkgs/` so that it can be run
-  if (fs.exists(`pkgs/${pkg}.lua`)) fs.delete(`pkgs/${pkg}.lua`);
-  if (fs.exists(`pkgs/${pkg}/${pkg}.lua`))
-    fs.copy(`pkgs/${pkg}/${pkg}.lua`, `pkgs/${pkg}.lua`);
+  if (fs.exists(`.mngr/bin/${pkg}.lua`)) fs.delete(`.mngr/bin/${pkg}.lua`);
+  if (fs.exists(`.mngr/lib/${pkg}/${pkg}.lua`))
+    fs.copy(`.mngr/lib/${pkg}/${pkg}.lua`, `.mngr/bin/${pkg}.lua`);
 
   return totals;
 }
 
 export function removePackage(pkg: string) {
-  fs.delete(`pkgs/${pkg}`);
-  fs.delete(`pkgs/${pkg}.lua`);
+  fs.delete(`.mngr/lib/${pkg}`);
+  fs.delete(`.mngr/bin/${pkg}.lua`);
 }
 
 export function isPkgInstalled(pkg: string) {
-  return fs.exists(`pkgs/${pkg}`);
+  return fs.exists(`.mngr/lib/${pkg}`);
 }
 
 export function doInstallPackage(pkg: string) {
@@ -134,14 +116,40 @@ export function doInstallPackage(pkg: string) {
   );
 }
 
-export function updateAndRunPackage(scope: string) {
-  const parts = scope.split('/');
-
-  const pkg = parts[0];
-  const lib = parts.length > 1 ? parts[1] : pkg;
-
+export function updateAndRunPackage(pkg: string, bin?: string) {
+  bin = bin ?? pkg;
   doInstallPackage(pkg);
 
   // Runs the main package file
-  shell.run(`pkgs/${pkg}/${lib}.lua`);
+  shell.run(`.mngr/bin/${bin}.lua`);
 }
+
+export function listInstalledPackages() {
+  const pkgs = fs.list('.mngr/lib');
+  const installed = pkgs.filter((pkg) => !pkg.endsWith('.lua'));
+  return installed;
+}
+
+export function fetchLocalPackage(pkg: string): Package {
+  const [file] = fs.open(`.mngr/lib/${pkg}/pkg.json`, 'r');
+  if (!file) {
+    throw new Error(`Failed to open .mngr/lib/${pkg}/pkg.json`);
+  }
+
+  const text = file.readAll();
+  file.close();
+
+  return textutils.unserializeJSON(text);
+}
+
+/** Copies bin files from .mngr/lib/<pkg> to .mngr/bin/<bin>.lua */
+// export function copyBinFiles() {
+//   const pkgs = listInstalledPackages();
+//   for (const pkg of pkgs) {
+//     const { bin } = fetchLocalPackage(pkg);
+//     const binFiles =
+//     for (const bin of binFiles) {
+//       fs.copy(`.mngr/lib/${pkg}/bin/${bin}`, `.mngr/bin/${bin}`);
+//     }
+//   }
+// }

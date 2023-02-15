@@ -1,0 +1,11 @@
+{
+  "name": "test",
+  "lastUpdated": 1676496128330,
+  "main": "test.lua",
+  "deps": [],
+  "files": [
+    "hello.lua",
+    "test.lua",
+    "pkg.json"
+  ]
+}

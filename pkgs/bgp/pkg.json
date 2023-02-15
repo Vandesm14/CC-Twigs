@@ -1,0 +1,21 @@
+{
+  "name": "bgp",
+  "lastUpdated": 1676496128327,
+  "main": "bgp.lua",
+  "deps": [
+    "time",
+    "lib"
+  ],
+  "files": [
+    "bgp.lua",
+    "lib.lua",
+    "types.lua",
+    "db.lua",
+    "api.lua",
+    "tasks.md",
+    "send.lua",
+    "constants.lua",
+    "sleep.lua",
+    "pkg.json"
+  ]
+}

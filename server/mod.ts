@@ -14,12 +14,13 @@ function debounce(fn: () => any, time: number) {
 async function getEntries() {
   const entries = [];
   for await (const entry of walk(PATH, {
-    exts: ['.lua', '.txt'],
+    skip: [/\.ts$/],
     maxDepth: 2,
   })) {
     entries.push(entry.path);
   }
-  return entries;
+  // Slice the first entry because it's the path we're serving
+  return entries.slice(1);
 }
 
 let entries: string[] = await getEntries();

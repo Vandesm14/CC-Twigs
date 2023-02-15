@@ -1,0 +1,14 @@
+{
+  "name": "mngr",
+  "lastUpdated": 1676496128330,
+  "main": "mngr.lua",
+  "deps": [],
+  "files": [
+    "mngr.lua",
+    "README.md",
+    "api.lua",
+    "install.lua",
+    "pkg.json",
+    "types.lua"
+  ]
+}
