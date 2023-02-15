@@ -5,5 +5,8 @@
   "files": [
     "cat.lua",
     "pkg.json"
-  ]
+  ],
+  "bin": {
+    "cat": "cat.lua"
+  }
 }

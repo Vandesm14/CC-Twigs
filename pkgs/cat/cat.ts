@@ -1,6 +1,14 @@
 const args = [...$vararg];
 const file = args[0];
 
+if (!file) {
+  print('Usage: cat <file>');
+  print('Example: cat hello.lua');
+
+  // @ts-expect-error: Lua allows this
+  return;
+}
+
 const exists = fs.exists(file);
 if (!exists) {
   print(`File ${file} does not exist.`);
