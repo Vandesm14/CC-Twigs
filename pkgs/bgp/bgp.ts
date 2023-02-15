@@ -200,14 +200,14 @@ function main() {
 
   // Timeout to wait for a message (real-world BGP uses 30 seconds)
   let state: State = getPeripheralState();
-  let epochTimeout = os.epoch() + TIMEOUT;
+  let epochTimeout = os.epoch();
 
   const handlePeripheralChange = () => {
     print('Peripherals changed, refreshing...');
     state = getPeripheralState();
     openPorts(state);
 
-    // If a port is removed, we need to clear the DB
+    // If a modem is removed, we need to clear the DB
     // because the data is no longer valid
     clearDB();
   };
