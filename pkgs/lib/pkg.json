@@ -1,9 +1,0 @@
-{
-  "name": "lib",
-  "main": "lib.lua",
-  "deps": [],
-  "files": [
-    "lib.lua",
-    "pkg.json"
-  ]
-}
