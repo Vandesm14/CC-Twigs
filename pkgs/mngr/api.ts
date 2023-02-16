@@ -170,3 +170,19 @@ export function copyBinFiles(pkg?: string) {
     }
   }
 }
+
+/** Gets the relations between binary names and packages */
+export function getBinRelations(): Record<string, string> {
+  const pkgs = listInstalledPackages();
+  const relations: Record<string, string> = {};
+  for (const pkg of pkgs) {
+    const localPkg = fetchLocalPackage(pkg);
+    if (localPkg?.bin !== undefined) {
+      for (const [cmd, file] of Object.entries(localPkg.bin)) {
+        relations[cmd] = pkg;
+      }
+    }
+  }
+
+  return relations;
+}
