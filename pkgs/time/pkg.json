@@ -1,0 +1,8 @@
+{
+  "name": "time",
+  "main": "time.lua",
+  "deps": [],
+  "files": [
+    "time.lua"
+  ]
+}
