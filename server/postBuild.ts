@@ -41,7 +41,7 @@ names.forEach((name) => {
     // Match: `require("pkgs.")` and remove the `pkgs.`
     let newLuaFile = luaFile.replace(/(?<=require\(")pkgs\./g, '');
 
-    // Change package path to include the pkgs folder
+    // Change package path to include the .mngr/lib/ folder
     newLuaFile = `package.path = "/.mngr/lib/?.lua;" .. package.path\n${newLuaFile}`;
 
     Deno.writeTextFileSync(luaName, newLuaFile);
