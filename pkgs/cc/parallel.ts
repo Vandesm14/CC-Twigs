@@ -14,6 +14,8 @@ export function waitForAll(this: void, ...fns: (() => unknown)[]): void {
   parallel.waitForAll(...fns);
 }
 
+export default { waitForAny, waitForAll };
+
 declare module parallel {
   function waitForAny(this: void, ...fns: (() => unknown)[]): void;
   function waitForAll(this: void, ...fns: (() => unknown)[]): void;

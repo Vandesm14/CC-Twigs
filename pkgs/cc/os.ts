@@ -108,6 +108,20 @@ export function queueEvent<T extends Event<EventKind>>(this: void, event: T): vo
   }
 }
 
+export default {
+  sleep,
+  sleepUntil,
+  epoch,
+  clock,
+  shutdown,
+  reboot,
+  id,
+  label,
+  setLabel,
+  event,
+  queueEvent,
+};
+
 /** Represents a locale. */
 export const enum Locale {
   /** Relative to ingame. */

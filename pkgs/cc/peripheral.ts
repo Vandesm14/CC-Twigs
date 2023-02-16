@@ -52,6 +52,8 @@ export function type(this: void, wrapped: Peripheral<PeripheralKind>): Periphera
   throw "cannot get type as peripheral does not exist";
 }
 
+export default { names, find, wrap, type };
+
 /** Represents a peripheral. */
 export type Peripheral<P extends PeripheralKind> = P extends
   PeripheralKind.Command ? CommandBlockPeripheral
