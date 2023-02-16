@@ -1,4 +1,4 @@
-import { Peripheral } from "./peripheral";
+import { Peripheral } from './peripheral';
 
 /**
  * Synchronously waits for {@linkcode millis} to elapse on the current thread
@@ -76,7 +76,11 @@ export function setLabel(this: void, label?: ComputerLabel): void {
  * @param filter The {@linkcode EventKind} to filter by.
  * @param raw Whether to also check for {@linkcode EventKind.Terminate}.
  */
-export function event<E extends EventKind>(this: void, filter: E, raw = false): Event<E> {
+export function event<E extends EventKind>(
+  this: void,
+  filter: E,
+  raw = false
+): Event<E> {
   const event = raw ? os.pullEventRaw(filter) : os.pullEvent(filter);
   return createEvent(event);
 }
@@ -86,23 +90,26 @@ export function event<E extends EventKind>(this: void, filter: E, raw = false): 
  *
  * @param event The {@linkcode Event} to queue.
  */
-export function queueEvent<T extends Event<EventKind>>(this: void, event: T): void {
+export function queueEvent<T extends Event<EventKind>>(
+  this: void,
+  event: T
+): void {
   switch (event.event) {
-    case (EventKind.ModemMessage):
+    case EventKind.ModemMessage:
       os.queueEvent(
         event.event,
         event.side,
         event.channel,
         event.replyChannel,
         event.message,
-        event.distance,
+        event.distance
       );
       break;
-    case (EventKind.PeripheralAttach):
-    case (EventKind.PeripheralDetach):
+    case EventKind.PeripheralAttach:
+    case EventKind.PeripheralDetach:
       os.queueEvent(event.event, event.side);
       break;
-    case (EventKind.Terminate):
+    case EventKind.Terminate:
       os.queueEvent(event.event);
       break;
   }
@@ -125,11 +132,11 @@ export default {
 /** Represents a locale. */
 export const enum Locale {
   /** Relative to ingame. */
-  InGame = "ingame",
+  InGame = 'ingame',
   /** Relative to UTC. */
-  Utc = "utc",
+  Utc = 'utc',
   /** Relative to user local. */
-  Local = "local",
+  Local = 'local',
 }
 
 /** Represents a computer ID. */
@@ -140,9 +147,12 @@ export type ComputerLabel = string | undefined;
 /** Represents an event. */
 export type Event<E extends EventKind> = E extends EventKind.ModemMessage
   ? ModemMessageEvent
-  : E extends EventKind.PeripheralAttach ? PeripheralAttachEvent
-  : E extends EventKind.PeripheralDetach ? PeripheralDetachEvent
-  : E extends EventKind.Terminate ? TerminateEvent
+  : E extends EventKind.PeripheralAttach
+  ? PeripheralAttachEvent
+  : E extends EventKind.PeripheralDetach
+  ? PeripheralDetachEvent
+  : E extends EventKind.Terminate
+  ? TerminateEvent
   : AnyEvent;
 /** Represents any event. */
 export type AnyEvent =
@@ -194,29 +204,29 @@ export type TerminateEvent = {
 /** Represents an event kind. */
 export const enum EventKind {
   /** A modem message event. */
-  ModemMessage = "modem_message",
+  ModemMessage = 'modem_message',
   /** A peripheral attach event. */
-  PeripheralAttach = "peripheral",
+  PeripheralAttach = 'peripheral',
   /** A peripheral detach event. */
-  PeripheralDetach = "peripheral_detach",
+  PeripheralDetach = 'peripheral_detach',
   /** A terminate event. */
-  Terminate = "terminate",
+  Terminate = 'terminate',
 }
 
 /** Represents a block side relative to its direction. */
 export const enum Side {
   /** The top side. */
-  Top = "top",
+  Top = 'top',
   /** The bottom side. */
-  Bottom = "bottom",
+  Bottom = 'bottom',
   /** The left side. */
-  Left = "left",
+  Left = 'left',
   /** The right side. */
-  Right = "right",
+  Right = 'right',
   /** The front side. */
-  Front = "front",
+  Front = 'front',
   /** The back side. */
-  Back = "back",
+  Back = 'back',
 }
 
 function createEvent<E extends EventKind>(event: [string, ...unknown[]]) {
@@ -260,10 +270,13 @@ declare module os {
   function getComputerLabel(this: void): string | undefined;
   function setComputerLabel(this: void, label?: string): void;
 
-  function pullEvent(this: void, filter?: string): LuaMultiReturn<[string, ...unknown[]]>;
+  function pullEvent(
+    this: void,
+    filter?: string
+  ): LuaMultiReturn<[string, ...unknown[]]>;
   function pullEventRaw(
     this: void,
-    filter?: string,
+    filter?: string
   ): LuaMultiReturn<[string, ...unknown[]]>;
 
   function queueEvent(this: void, event: string, ...args: unknown[]): void;

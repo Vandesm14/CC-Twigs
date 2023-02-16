@@ -1,4 +1,4 @@
-import { Side } from "./os";
+import { Side } from './os';
 
 /**
  * Returns the attached {@linkcode PeripheralName}s and their
@@ -22,7 +22,10 @@ export function names(this: void): PeripheralNameKind[] {
  *
  * @param fitler The {@linkcode PeripheralKind} to filter by.
  */
-export function find<P extends PeripheralKind>(this: void, fitler: P): Peripheral<P>[] {
+export function find<P extends PeripheralKind>(
+  this: void,
+  fitler: P
+): Peripheral<P>[] {
   return peripheral.find(fitler) as Peripheral<P>[];
 }
 
@@ -46,20 +49,26 @@ export function wrap(this: void, name: PeripheralName): AnyPeripheral {
  *
  * @throws If the {@linkcode Peripheral} is invalid.
  */
-export function type(this: void, wrapped: Peripheral<PeripheralKind>): PeripheralKind {
+export function type(
+  this: void,
+  wrapped: Peripheral<PeripheralKind>
+): PeripheralKind {
   const type = peripheral.getType(wrapped);
   if (type !== undefined) return type;
-  throw "cannot get type as peripheral does not exist";
+  throw 'cannot get type as peripheral does not exist';
 }
 
 export default { names, find, wrap, type };
 
 /** Represents a peripheral. */
-export type Peripheral<P extends PeripheralKind> = P extends
-  PeripheralKind.Command ? CommandBlockPeripheral
-  : P extends PeripheralKind.Computer ? ComputerPeripheral
-  : P extends PeripheralKind.Modem ? ModemPeripheral
-  : AnyPeripheral;
+export type Peripheral<P extends PeripheralKind> =
+  P extends PeripheralKind.Command
+    ? CommandBlockPeripheral
+    : P extends PeripheralKind.Computer
+    ? ComputerPeripheral
+    : P extends PeripheralKind.Modem
+    ? ModemPeripheral
+    : AnyPeripheral;
 /** Represents any peripheral. */
 export type AnyPeripheral =
   | CommandBlockPeripheral
@@ -69,19 +78,19 @@ export type AnyPeripheral =
 /** Represents a peripheral kind. */
 export const enum PeripheralKind {
   /** A command block. */
-  Command = "command",
+  Command = 'command',
   /** A computer. */
-  Computer = "computer",
+  Computer = 'computer',
   /** A disk drive. */
-  Drive = "drive",
+  Drive = 'drive',
   /** A modem. */
-  Modem = "modem",
+  Modem = 'modem',
   /** A monitor. */
-  Monitor = "monitor",
+  Monitor = 'monitor',
   /** A printer. */
-  Printer = "printer",
+  Printer = 'printer',
   /** A speaker. */
-  Speaker = "speaker",
+  Speaker = 'speaker',
 }
 
 /** Represents a command block. */
@@ -163,7 +172,7 @@ export declare class ModemPeripheral {
     this: void,
     channel: number,
     replyChannel: number,
-    message: T,
+    message: T
   ): void;
 
   /** Returns whether the modem is wireless. */
@@ -179,8 +188,11 @@ declare module peripheral {
   function getNames(this: void): PeripheralName[];
   function getType(
     this: void,
-    name: PeripheralName | Peripheral<PeripheralKind>,
+    name: PeripheralName | Peripheral<PeripheralKind>
   ): PeripheralKind | undefined;
   function find(this: void, kind: string): LuaMultiReturn<unknown[]>;
-  function wrap(this: void, name: string): Peripheral<PeripheralKind> | undefined;
+  function wrap(
+    this: void,
+    name: string
+  ): Peripheral<PeripheralKind> | undefined;
 }

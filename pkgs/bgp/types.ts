@@ -1,4 +1,4 @@
-import { PeripheralName } from "cc/peripheral";
+import { PeripheralName } from 'cc/peripheral';
 
 export type BGPDatabase = Array<BGPDatabaseRecord>;
 

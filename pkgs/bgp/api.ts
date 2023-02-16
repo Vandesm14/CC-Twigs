@@ -1,6 +1,11 @@
 import { pretty, render } from 'cc.pretty';
 import { default as os } from 'cc/os';
-import { ModemPeripheral, default as peripheral, PeripheralKind, PeripheralName } from 'cc/peripheral';
+import {
+  ModemPeripheral,
+  default as peripheral,
+  PeripheralKind,
+  PeripheralName,
+} from 'cc/peripheral';
 import { BGP_PORT, IP_PORT } from './constants';
 import { findShortestRoute } from './db';
 import { BGPMessage, IPMessage } from './types';
@@ -22,8 +27,13 @@ export interface State {
 /** Creates useful compositions around modems such as getting all sides occupied by modems */
 export function getPeripheralState(): State {
   const modems = peripheral.find(PeripheralKind.Modem);
-  const modemNames = peripheral.names().filter(({ kind }) => kind === PeripheralKind.Modem).map(({ name }) => name);
-  const wirelessModemNames = modemNames.filter((name) => (peripheral.wrap(name) as ModemPeripheral).isWireless());
+  const modemNames = peripheral
+    .names()
+    .filter(({ kind }) => kind === PeripheralKind.Modem)
+    .map(({ name }) => name);
+  const wirelessModemNames = modemNames.filter((name) =>
+    (peripheral.wrap(name) as ModemPeripheral).isWireless()
+  );
 
   return { modemNames, modems, wirelessModemNames };
 }
@@ -83,7 +93,10 @@ export function sendIP(
     trace: [COMPUTER_ID],
   };
 
-  let sides = peripheral.names().filter(({ kind }) => kind === PeripheralKind.Modem).map(({ name }) => name);
+  let sides = peripheral
+    .names()
+    .filter(({ kind }) => kind === PeripheralKind.Modem)
+    .map(({ name }) => name);
 
   if (to === COMPUTER_ID) {
     // TODO: actually handle sending to "localhost"

@@ -50,7 +50,8 @@ function ensurePathOnStartup(): boolean {
 function ensureMngrSetup() {
   // Ensure that the serverlist.txt exists (for storing servers/mirrors)
   // Ensure that the startup.lua exists (for setting shell path to mngr bin)
-  if (!ensureServerList() || !ensurePathOnStartup()) print('Mngr setup failure.');
+  if (!ensureServerList() || !ensurePathOnStartup())
+    print('Mngr setup failure.');
 }
 
 ensureMngrSetup();
@@ -77,8 +78,8 @@ if (cmd === 'update') {
 } else if (cmd === 'help' || !cmd) printUsage();
 
 if (scope) {
-  if (cmd === 'run') updateAndRunPackage(scope, args.slice(2))
-  else if (cmd === 'install') doInstallPackage(scope)
+  if (cmd === 'run') updateAndRunPackage(scope, args.slice(2));
+  else if (cmd === 'install') doInstallPackage(scope);
   else if (cmd === 'remove') {
     removePackage(scope);
     print(`Removed ${scope}.`);
