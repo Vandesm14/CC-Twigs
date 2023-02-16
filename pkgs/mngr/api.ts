@@ -1,20 +1,13 @@
+import { readOrDefault } from './file';
 import { Package } from './types';
 
 export const address =
   settings.get('mngr.address') ?? 'http://mr.thedevbird.com:3000/pkgs';
 
 export function getServerList() {
-  const [file] = fs.open('.mngr/serverlist.txt', 'r');
-  if (!file) {
-    print('Failed to open serverlist.txt');
-    shell.exit();
-    return;
-  }
-
-  const servers = file.readAll().split('\n');
-  file.close();
-
-  return servers;
+  return readOrDefault('.mngr/serverlist.txt', [address].join('\n')).split(
+    '\n'
+  );
 }
 
 export function fetchPackage(pkg: string): Package {

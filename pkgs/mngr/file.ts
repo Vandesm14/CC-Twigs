@@ -10,15 +10,14 @@ export function createFileIfNotExist(path: string, content = '') {
   file.close();
 }
 
-export function readOrDefault<T = string>(
-  path: string,
-  init: T,
-  asJSON = false
-): T {
+export function readOrDefault(path: string, init: string): string {
   const [file] = fs.open(path, 'r');
   if (!file) {
+    createFileIfNotExist(path, init);
+
     return init;
   }
+
   const data = file.readAll();
   file.close();
 
@@ -26,9 +25,5 @@ export function readOrDefault<T = string>(
     return init;
   }
 
-  if (asJSON) {
-    return textutils.unserializeJSON(data) as T;
-  }
-
-  return data as T;
+  return data;
 }

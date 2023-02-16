@@ -16,20 +16,6 @@ const args = [...$vararg];
 const command = args[0];
 const arg1 = args[1];
 
-function ensureServerList() {
-  if (fs.exists('.mngr/serverlist.txt')) return;
-
-  const [file] = fs.open('.mngr/serverlist.txt', 'w');
-  if (!file) {
-    throw new Error('Could not create serverlist.txt');
-  }
-
-  file.write(address);
-  file.close();
-
-  print('Added default server to serverlist.txt');
-}
-
 function ensurePathOnStartup() {
   if (!shell.path().includes(':/.mngr/bin/'))
     shell.setPath(shell.path() + ':/.mngr/bin/');
@@ -39,16 +25,7 @@ function ensurePathOnStartup() {
     `shell.setPath(shell.path() .. ":/.mngr/bin/")`
   );
 }
-
-function ensureMngrSetup() {
-  // Ensure that the serverlist.txt exists (for storing servers/mirrors)
-  ensureServerList();
-
-  // Ensure that the startup/mngr.lua exists (for setting shell path to mngr bin)
-  ensurePathOnStartup();
-}
-
-ensureMngrSetup();
+ensurePathOnStartup();
 
 function printUsage() {
   print('Usage: mngr <install|update|remove|run> <package>');
