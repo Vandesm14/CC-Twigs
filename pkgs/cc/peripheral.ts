@@ -1,4 +1,4 @@
-import type { Side } from './os';
+import type { Side, ModemMessageEvent } from './os';
 
 /** Returns all attached {@linkcode Peripheral} names and kinds. */
 export function attached(
@@ -133,7 +133,7 @@ export declare class CommandPeripheral {
   getCommand(this: void): string;
 
   /**
-   * Sets the {@linkcode command} that will be executed.
+   * Sets the command to be executed.
    *
    * @param command The new command.
    */
@@ -167,8 +167,7 @@ export declare class ComputerPeripheral {
 /** Represents a wireless or wired modem. */
 export declare class ModemPeripheral {
   /**
-   * Opens a channel so that it can receive
-   * {@linkcode EventKind.ModemMessage}.
+   * Opens a channel so that it can receive {@linkcode ModemMessageEvent}.
    *
    * @param channel The channel to open.
    *
@@ -178,8 +177,7 @@ export declare class ModemPeripheral {
   open(this: void, channel: number): void;
 
   /**
-   * Closes a channel so that it can not receive
-   * {@linkcode EventKind.ModemMessage}.
+   * Closes a channel so that it cannot receive {@linkcode ModemMessageEvent}.
    *
    * @param channel The channel to close.
    *
@@ -191,10 +189,10 @@ export declare class ModemPeripheral {
   closeAll(this: void, channel: number): void;
 
   /**
-   * Sends a {@linkcode EventKind.ModemMessage} to all attached modems with
-   * {@linkcode channel} open.
+   * Sends a {@linkcode ModemMessageEvent} to all attached modems with the
+   * specified channel open.
    *
-   * This does not require {@linkcode channel} to be open on this modem.
+   * This does not require the channel to be open on this modem.
    *
    * @param channel The channel to send via.
    * @param replyChannel The channel to reply via.
