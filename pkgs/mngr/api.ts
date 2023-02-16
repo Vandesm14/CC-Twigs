@@ -36,11 +36,16 @@ export function fetchPackage(pkg: string): Package {
   return textutils.unserializeJSON(text);
 }
 
-export function downloadPackage(pkg: string, file?: string) {
+export function downloadPackage(
+  pkg: string,
+  opts?: { file?: string; quiet?: boolean }
+) {
+  const file = opts?.file ?? pkg;
+  const quiet = opts?.quiet ?? false;
+
   const servers = getServerList();
   if (!servers) throw new Error('No servers found');
   const server = servers[0];
-  file = file ?? pkg;
 
   const url = `${server}/${pkg}/${file}`;
   const [res] = http.get(url);
@@ -71,10 +76,16 @@ export function downloadPackage(pkg: string, file?: string) {
   fileWrite.close();
   res.close();
 
-  print(`Downloaded ${pkg}/${file}`);
+  if (!quiet) print(`Downloaded ${pkg}/${file}`);
 }
 
-export function installPackage(pkg: string, dry = false) {
+export function installPackage(
+  pkg: string,
+  opts?: { dry?: boolean; quiet?: boolean }
+) {
+  const dry = opts?.dry ?? false;
+  const quiet = opts?.quiet ?? false;
+
   const { deps, files } = fetchPackage(pkg);
 
   const totals = {
@@ -83,7 +94,7 @@ export function installPackage(pkg: string, dry = false) {
   };
 
   for (const dep of deps) {
-    const total = installPackage(dep, dry);
+    const total = installPackage(dep, { dry, quiet });
     totals.files += total.files;
     totals.deps += total.deps;
   }
@@ -91,10 +102,11 @@ export function installPackage(pkg: string, dry = false) {
   if (dry) return totals;
 
   for (const file of files) {
-    downloadPackage(pkg, file);
+    downloadPackage(pkg, { file, quiet });
   }
 
-  // Copy a top-level package file to the root of `pkgs/` so that it can be run
+  // Copys the files specified as binaries in the pkg.json file
+  // to the .mngr/bin folder so they can be run from the command line
   copyBinFiles(pkg);
 
   return totals;
@@ -152,23 +164,60 @@ export function fetchLocalPackage(pkg: string): Package | undefined {
   return textutils.unserializeJSON(text);
 }
 
-/** Copies bin files from .mngr/lib/<pkg> to .mngr/bin/<bin>.lua */
-export function copyBinFiles(pkg?: string) {
-  const pkgs = pkg ? [pkg] : listInstalledPackages();
+export function copyAllBinFiles() {
+  const pkgs = listInstalledPackages();
   for (const pkg of pkgs) {
-    const localPkg = fetchLocalPackage(pkg);
-    if (localPkg?.bin !== undefined) {
-      for (const [cmd, file] of Object.entries(localPkg.bin)) {
-        if (fs.exists(`.mngr/lib/${pkg}/${file}`)) {
-          if (fs.exists(`.mngr/bin/${cmd}.lua`)) {
-            fs.delete(`.mngr/bin/${cmd}.lua`);
-          }
+    copyBinFiles(pkg);
+  }
+}
 
-          fs.copy(`.mngr/lib/${pkg}/${file}`, `.mngr/bin/${cmd}.lua`);
-        }
-      }
+/** Copies bin files from .mngr/lib/<pkg> to .mngr/bin/<bin>.lua */
+export function copyBinFiles(pkg: string) {
+  const localPkg = fetchLocalPackage(pkg);
+  const linkedBins = getLinkedBins()
+    .filter((link) => link.pkg === pkg)
+    .map((link) => link.bin);
+  if (localPkg?.bin !== undefined) {
+    for (const [bin] of Object.entries(localPkg.bin)) {
+      // If the binary isn't linked, we can copy it
+      // if it is linked, copyBinFile will copy it
+      // to the linked folder instead of the bin folder
+      copyBinFile(pkg, bin, linkedBins.includes(bin));
     }
   }
+}
+
+/** Copies a bin file from .mngr/lib/<pkg> to .mngr/bin/<bin>.lua */
+export function copyBinFile(pkg: string, bin: string, useLinked = false) {
+  const binFolder = useLinked ? '.mngr/links' : '.mngr/bin';
+
+  const localPkg = fetchLocalPackage(pkg);
+  if (localPkg?.bin !== undefined) {
+    const file = localPkg.bin[bin];
+    if (file) {
+      if (fs.exists(`${binFolder}/${bin}.lua`)) {
+        fs.delete(`${binFolder}/${bin}.lua`);
+      }
+
+      fs.copy(`.mngr/lib/${pkg}/${file}`, `${binFolder}/${bin}.lua`);
+    }
+  }
+}
+
+/** Gets a list of all linked binaries */
+export function getLinkedBins(): { pkg: string; bin: string }[] {
+  if (!fs.exists('.mngr/links')) return [];
+  const bins = fs.list('.mngr/links').map((bin) => bin.replace('.lua', ''));
+  const linkedBins: { pkg: string; bin: string }[] = [];
+  const binRelations = getBinRelations();
+  for (const bin of bins) {
+    const pkg = binRelations[bin];
+    if (pkg) {
+      linkedBins.push({ pkg, bin });
+    }
+  }
+
+  return linkedBins;
 }
 
 /** Gets the relations between binary names and packages */

@@ -1,17 +1,20 @@
 import {
   address,
-  copyBinFiles,
+  copyAllBinFiles,
   doInstallPackage,
   fetchPackage,
+  getBinRelations,
+  getLinkedBins,
+  installPackage,
   listInstalledPackages,
   removePackage,
   updateAndRunPackage,
 } from './api';
 
 const args = [...$vararg];
-const cmd = args[0];
-const pkg = args[1];
-const file = args[2];
+const command = args[0];
+const arg1 = args[1];
+const arg2 = args[2];
 
 function ensureServerList(): boolean {
   if (fs.exists('.mngr/serverlist.txt')) return true;
@@ -64,45 +67,136 @@ function printUsage() {
   print('Example: mngr remove bgp');
 }
 
-if (cmd === 'copy-bin') {
-  copyBinFiles();
+if (command === 'copy-bin') {
+  copyAllBinFiles();
   print('Copied all bin files to .mngr/bin/*');
 }
 
-if (cmd === 'update') {
+if (command === 'update') {
   // If no argument, update all packages
-  const pkgs = pkg ? [pkg] : listInstalledPackages();
+  const links = getLinkedBins();
+  const pkgs = arg1
+    ? [arg1]
+    : listInstalledPackages().filter(
+        (pkg) => !links.some((link) => link.pkg === pkg)
+      );
 
   print(`Updating ${pkgs.length} packages...`);
   pkgs.forEach((pkg) => doInstallPackage(pkg, false));
   print(
-    `Updated ${pkgs.length} package${pkgs.length ? 's' : ''} (${pkgs.join(
+    `Updated ${pkgs.length} package${pkgs.length ? 's' : ''}: ${pkgs.join(
       ', '
-    )})`
+    )}`
   );
-} else if (cmd === 'help' || !cmd) printUsage();
 
-if (pkg) {
-  if (cmd === 'run')
-    updateAndRunPackage(pkg, {
-      ...(file ? { bin: file } : {}),
-      args: args.slice(!!file ? 3 : 2),
+  // @ts-expect-error
+  return;
+} else if (command === 'links') {
+  const links = getLinkedBins().map((link) => `${link.pkg}/${link.bin}`);
+  print(links.length > 0 ? links.join('\n') : 'No links found.');
+
+  // @ts-expect-error
+  return;
+} else if (command === 'help' || !command) {
+  printUsage();
+
+  // @ts-expect-error
+  return;
+}
+
+if (arg1) {
+  if (command === 'run') {
+    updateAndRunPackage(arg1, {
+      ...(arg2 ? { bin: arg2 } : {}),
+      args: args.slice(!!arg2 ? 3 : 2),
     });
-  else if (cmd === 'dev') {
+  } else if (command === 'link') {
+    const binRelations = getBinRelations();
+    const binary = arg1;
+
+    if (binary === 'mngr') {
+      print('Linking mngr is not allowed');
+
+      // @ts-expect-error
+      return;
+    }
+
+    const pkg = binRelations[binary];
+    if (!pkg) {
+      print(`No package found for ${binary}`);
+
+      // @ts-expect-error
+      return;
+    }
+
     // Installs the package, and aliases the binaries to run `mngr run <pkg> <bin>`
     doInstallPackage(pkg);
-  } else if (cmd === 'install') doInstallPackage(pkg);
-  else if (cmd === 'remove') {
-    removePackage(pkg);
-    print(`Removed ${pkg}.`);
-  } else if (cmd === 'list') {
+
+    const luaAliasCode = (pkg: string, file?: string) =>
+      `
+      local args = {...}
+      shell.run("mngr", "use-link", "${pkg}", "${file}", unpack(args))
+      shell.run(".mngr/links/${file}", unpack(args))`
+        .split('\n')
+        .map((line) => line.trim())
+        .join('\n')
+        .trim();
+
+    const binPath = `.mngr/bin/${binary}.lua`;
+    const linkPath = `.mngr/links/${binary}.lua`;
+
+    if (fs.exists(linkPath)) {
+      fs.delete(linkPath);
+    }
+    // Move the actual binary to the links folder
+    fs.move(binPath, linkPath);
+
+    // Create a new binary that aliases the actual binary
+    const [fileWrite] = fs.open(binPath, 'w');
+    if (!fileWrite) {
+      print(`Failed to create ${binPath}`);
+    } else {
+      fileWrite.write(luaAliasCode(pkg, binary));
+      fileWrite.close();
+      print(`Linked ${binary}`);
+    }
+  } else if (command === 'use-link') {
+    // This is an "alias" for install just so we don't print anything
+    installPackage(arg1, { quiet: true });
+  } else if (command === 'unlink') {
+    const binary = arg1;
+
+    const binRelations = getBinRelations();
+    const pkg = binRelations[binary];
+    if (!pkg) {
+      print(`No package found for ${binary}`);
+
+      // @ts-expect-error
+      return;
+    }
+
+    installPackage(pkg);
+
+    const path = `.mngr/links/${binary}.lua`;
+    if (fs.exists(path)) {
+      fs.delete(path);
+      print(`Unlinked ${binary}`);
+    } else {
+      print(`No link found for ${binary}`);
+    }
+  } else if (command === 'install') {
+    doInstallPackage(arg1);
+  } else if (command === 'remove') {
+    removePackage(arg1);
+    print(`Removed ${arg1}.`);
+  } else if (command === 'list') {
     const pkgs = listInstalledPackages();
     print(`Installed packages: ${pkgs.join(', ')}`);
-  } else if (cmd === 'info') {
-    const { deps, files } = fetchPackage(pkg);
+  } else if (command === 'info') {
+    const { deps, files } = fetchPackage(arg1);
 
     const obj = {
-      Package: pkg,
+      Package: arg1,
       Depends: deps.join(', '),
       Includes: files.join(', '),
     };
@@ -113,4 +207,6 @@ if (pkg) {
         .join('\n')
     );
   }
+} else {
+  printUsage();
 }
