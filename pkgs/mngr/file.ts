@@ -10,7 +10,7 @@ export function createFileIfNotExist(path: string, content = '') {
   file.close();
 }
 
-export function readOrDefault(path: string, init: string): string {
+export function readOrCreate(path: string, init: string): string {
   const [file] = fs.open(path, 'r');
   if (!file) {
     createFileIfNotExist(path, init);

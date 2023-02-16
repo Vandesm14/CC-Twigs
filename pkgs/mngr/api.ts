@@ -1,13 +1,11 @@
-import { readOrDefault } from './file';
+import { readOrCreate } from './file';
 import { Package } from './types';
 
 export const address =
   settings.get('mngr.address') ?? 'http://mr.thedevbird.com:3000/pkgs';
 
 export function getServerList() {
-  return readOrDefault('.mngr/serverlist.txt', [address].join('\n')).split(
-    '\n'
-  );
+  return readOrCreate('.mngr/serverlist.txt', [address].join('\n')).split('\n');
 }
 
 export function fetchPackage(pkg: string): Package {
