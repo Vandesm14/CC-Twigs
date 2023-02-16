@@ -8,5 +8,8 @@
   ],
   "bin": {
     "cat": "cat.lua"
+  },
+  "checksums": {
+    "cat.lua": "425d372de361da39ff2a505e10db3b09"
   }
 }

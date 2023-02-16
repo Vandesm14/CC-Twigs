@@ -1,4 +1,6 @@
 import { walkSync } from 'https://deno.land/std@0.175.0/fs/walk.ts';
+import { Hash, encode } from 'https://deno.land/x/checksum@1.2.0/mod.ts';
+import { Package } from '../pkgs/mngr/types.ts';
 
 const packages = Deno.readDirSync('./pkgs');
 const names = [...packages].map((pkg) => pkg.name);
@@ -52,7 +54,7 @@ names.forEach((name) => {
   }
 
   const existingJSON = Deno.readTextFileSync(`./pkgs/${name}/pkg.json`);
-  const pkgJSON = JSON.parse(existingJSON);
+  const pkgJSON: Package = JSON.parse(existingJSON);
   pkgJSON.name ??= name;
   pkgJSON.main ??= `${name}.lua`;
   pkgJSON.deps = needs.sort();
@@ -60,6 +62,16 @@ names.forEach((name) => {
     .filter((file) => !file.endsWith('.ts'))
     .map((file) => file.replace(`pkgs/${name}/`, ''))
     .sort();
+
+  pkgJSON.checksums = {};
+  pkgJSON.files.forEach((file) => {
+    // Don't include the pkg.json file in the checksums
+    if (file === 'pkg.json') return;
+
+    const content = Deno.readFileSync(`./pkgs/${name}/${file}`);
+    const hash = new Hash('md5');
+    pkgJSON.checksums[file] = hash.digest(content).hex();
+  });
 
   Deno.writeTextFileSync(
     `./pkgs/${name}/pkg.json`,

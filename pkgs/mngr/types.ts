@@ -11,6 +11,9 @@ export interface Package {
   /** The files included in the package */
   files: string[];
 
+  /** The checksums for each file */
+  checksums: Record<string, string>;
+
   /** Mappings between files and their corresponding commands */
   bin: Record<string, string>;
 }
