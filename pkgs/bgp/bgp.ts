@@ -1,3 +1,5 @@
+import os, { EventKind, ModemMessageEvent } from 'cc/os';
+import parallel from 'cc/parallel';
 import {
   formatIPMessage,
   getPeripheralState,
@@ -16,11 +18,10 @@ import {
   pruneTTLs,
   updateRoute,
 } from './db';
-import { sleepUntil } from './lib';
-import { BGPMessage, IPMessage, ModemMessage } from './types';
+import { BGPMessage, IPMessage } from './types';
 
 const BGP_PORT = 179;
-const computerID = os.getComputerID();
+const COMPUTER_ID = os.id();
 
 let textBelow = '';
 let originHistory: number[] = [];
@@ -28,61 +29,51 @@ let originHistory: number[] = [];
 /** Broadcasts or forwards a BGP propagation message */
 function broadcastBGPPropagate(
   {
-    modemSides,
-    wirelessModemSides,
-  }: Pick<State, 'modemSides' | 'wirelessModemSides'>,
+    modemNames,
+    wirelessModemNames,
+  }: Pick<State, 'modemNames' | 'wirelessModemNames'>,
   previous?: BGPMessage,
   side?: string
 ) {
   const message: BGPMessage = {
     trace: trace(previous?.trace).addSelf(),
-    hardwired: modemSides.length > wirelessModemSides.length,
+    hardwired: modemNames.length > wirelessModemNames.length,
   };
 
   // Filter out the sides that we've already sent the message to or seen the message from
-  const sidesToSendTo = Array.from(
+  const namesToSendTo = Array.from(
     new Set([
-      ...modemSides.filter((modemSide) => modemSide !== side),
+      ...modemNames.filter((modemName) => modemName !== side),
 
       // We are using a trick to get neighbors for LAN modems,
       // we can't use that trick for wireless modems, so we
       // always have to relay to wireless modems
-      ...wirelessModemSides,
+      ...wirelessModemNames,
     ])
   );
 
-  sidesToSendTo.forEach((modemSide) => {
+  namesToSendTo.forEach((modemName) => {
     // Send a BGP message
-    sendRawBGP(message, modemSide);
+    sendRawBGP(message, modemName);
   });
 }
 
 /** Waits for a `modem_message` OS event, then returns the message */
-function waitForMessage(this: void): ModemMessage {
-  const [event, side, channel, replyChannel, rawMessage] =
-    os.pullEvent('modem_message');
-
-  const message = rawMessage;
-  return {
-    event,
-    side,
-    channel,
-    replyChannel,
-    message,
-  };
+function waitForMessage(this: void): ModemMessageEvent {
+  return os.event(EventKind.ModemMessage);
 }
 
 function waitForPeripheralAdd(this: void) {
-  os.pullEvent('peripheral');
+  os.event(EventKind.PeripheralAttach);
 }
 
 function waitForPeripheralRemove(this: void) {
-  os.pullEvent('peripheral_detach');
+  os.event(EventKind.PeripheralDetach);
 }
 
 function handleBGPMessage(
-  state: Pick<State, 'modemSides' | 'wirelessModemSides'>,
-  event: ModemMessage
+  state: Pick<State, 'modemNames' | 'wirelessModemNames'>,
+  event: ModemMessageEvent
 ) {
   const { side } = event;
   const message = event.message as BGPMessage;
@@ -115,7 +106,7 @@ function handleBGPMessage(
     const hops = messageTrace.distance(destination);
 
     // Only update the DB if the neighbor is not us
-    if (destination !== computerID && via) {
+    if (destination !== COMPUTER_ID && via) {
       updateRoute({
         destination,
         via,
@@ -127,8 +118,8 @@ function handleBGPMessage(
 }
 
 function handleIPMessage(
-  state: Pick<State, 'modemSides' | 'wirelessModemSides'>,
-  event: ModemMessage
+  state: Pick<State, 'modemNames' | 'wirelessModemNames'>,
+  event: ModemMessageEvent
 ) {
   const { channel } = event;
   const message = event.message as IPMessage;
@@ -141,7 +132,7 @@ function handleIPMessage(
   // If the IP message was broadcasted, that is,
   // without an immediate destination, then we will handle it.
   const notForUs =
-    messageTrace.size() > 1 ? messageTrace.from() !== computerID : false;
+    messageTrace.size() > 1 ? messageTrace.from() !== COMPUTER_ID : false;
 
   const hasSeen = messageTrace.hasSeen();
 
@@ -154,7 +145,7 @@ function handleIPMessage(
   const via = route?.via;
   const side = route?.side;
 
-  if (ipMessage.to === computerID) {
+  if (ipMessage.to === COMPUTER_ID) {
     // TODO: when we have custom events, we should emit an event here
     textBelow = formatIPMessage(ipMessage);
     printDB({
@@ -173,8 +164,8 @@ function handleIPMessage(
 
     const sides = Array.from(
       new Set([
-        ...state.modemSides.filter((side) => side !== event.side),
-        ...state.wirelessModemSides,
+        ...state.modemNames.filter((side) => side !== event.side),
+        ...state.wirelessModemNames,
       ])
     );
 
@@ -192,8 +183,8 @@ function handleIPMessage(
 
 /** Handles a BGP message depending on the type */
 function handleMessageEvent(
-  state: Pick<State, 'modemSides' | 'wirelessModemSides'>,
-  event: ModemMessage
+  state: Pick<State, 'modemNames' | 'wirelessModemNames'>,
+  event: ModemMessageEvent
 ) {
   if (event.channel === BGP_PORT) {
     handleBGPMessage(state, event);
@@ -226,7 +217,7 @@ function main() {
   broadcastBGPPropagate(state);
 
   while (true) {
-    let event: ModemMessage | null = null;
+    let event: ModemMessageEvent | null = null;
 
     // Ensure that all of the ports are open
     openPorts(state);
@@ -239,7 +230,7 @@ function main() {
       },
       () => {
         // Wait for `TIMEOUT` seconds
-        sleepUntil(epochTimeout);
+        os.sleepUntil(epochTimeout);
         epochTimeout = os.epoch() + TIMEOUT;
       },
       () => {

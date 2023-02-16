@@ -1,44 +1,36 @@
 import { pretty, render } from 'cc.pretty';
-import { getModems } from 'lib/lib';
+import { default as os } from 'cc/os';
+import { ModemPeripheral, default as peripheral, PeripheralKind, PeripheralName } from 'cc/peripheral';
 import { BGP_PORT, IP_PORT } from './constants';
 import { findShortestRoute } from './db';
 import { BGPMessage, IPMessage } from './types';
 
 /** The ID of the computer */
-const computerID = os.getComputerID();
+const COMPUTER_ID = os.id();
 
 export interface State {
-  /** List of modem sides */
-  modemSides: string[];
+  /** List of modem names */
+  modemNames: PeripheralName[];
 
-  /** Map of modem sides to modem peripherals */
-  sidesToModems: Map<string, ModemPeripheral>;
+  /** Modem peripherals */
+  modems: ModemPeripheral[];
 
-  /** List of modem sides that are wireless */
-  wirelessModemSides: string[];
+  /** List of modem names that are wireless */
+  wirelessModemNames: PeripheralName[];
 }
 
 /** Creates useful compositions around modems such as getting all sides occupied by modems */
 export function getPeripheralState(): State {
-  const modemSides = getModems();
-  const sidesToModems = new Map<string, ModemPeripheral>(
-    modemSides.map((side) => [side, peripheral.wrap(side) as ModemPeripheral])
-  );
-  const wirelessModemSides = modemSides.filter((side) =>
-    // We know that the modem exists because we just wrapped it
-    sidesToModems.get(side)!.isWireless()
-  );
+  const modems = peripheral.find(PeripheralKind.Modem);
+  const modemNames = peripheral.names().filter(({ kind }) => kind === PeripheralKind.Modem).map(({ name }) => name);
+  const wirelessModemNames = modemNames.filter((name) => (peripheral.wrap(name) as ModemPeripheral).isWireless());
 
-  return {
-    modemSides,
-    sidesToModems,
-    wirelessModemSides,
-  };
+  return { modemNames, modems, wirelessModemNames };
 }
 
 /** Opens the BGP port on all modems */
-export function openPorts({ sidesToModems }: Pick<State, 'sidesToModems'>) {
-  sidesToModems.forEach((modem) => {
+export function openPorts({ modems }: Pick<State, 'modems'>) {
+  modems.forEach((modem) => {
     modem.open(BGP_PORT);
     modem.open(IP_PORT);
   });
@@ -50,7 +42,7 @@ export function formatIPMessage(message: IPMessage) {
 }
 
 /** A small wrapper to ensure type-safety of sending a BGP message */
-export function sendRawBGP(message: BGPMessage, modemSide: string) {
+export function sendRawBGP(message: BGPMessage, modemSide: PeripheralName) {
   const modem = peripheral.wrap(modemSide) as ModemPeripheral;
   if (!modem) return;
 
@@ -61,9 +53,9 @@ export function sendRawBGP(message: BGPMessage, modemSide: string) {
 export function sendRawIP(
   message: IPMessage,
   channel: number,
-  modemSide: string
+  modemName: PeripheralName
 ) {
-  const modem = peripheral.wrap(modemSide) as ModemPeripheral;
+  const modem = peripheral.wrap(modemName) as ModemPeripheral;
   if (!modem) return;
 
   modem.transmit(channel, channel, message);
@@ -88,12 +80,12 @@ export function sendIP(
   const { to } = message;
   const ipMessage: IPMessage = {
     ...message,
-    trace: [computerID],
+    trace: [COMPUTER_ID],
   };
 
-  let sides = getModems();
+  let sides = peripheral.names().filter(({ kind }) => kind === PeripheralKind.Modem).map(({ name }) => name);
 
-  if (to === computerID) {
+  if (to === COMPUTER_ID) {
     // TODO: actually handle sending to "localhost"
     throw new Error(`Cannot send message to self`);
   } else if (opts?.broadcast) {
@@ -105,7 +97,7 @@ export function sendIP(
     if (!route) throw new Error(`Could not find a route to: ${to}`);
 
     sides = [route.side];
-    ipMessage.trace = [computerID, route.via];
+    ipMessage.trace = [COMPUTER_ID, route.via];
 
     print(`Sent message to ${to} via ${route.via}`);
   }
@@ -143,8 +135,8 @@ export function trace(trace?: number[]) {
      * distance(a)    = 4
      */
     distance(id: number) {
-      if (id === computerID) return 0;
-      const selfIsAtEnd = obj.from() === computerID;
+      if (id === COMPUTER_ID) return 0;
+      const selfIsAtEnd = obj.from() === COMPUTER_ID;
 
       if (selfIsAtEnd) {
         return storedTrace.length - storedTrace.indexOf(id) - 2;
@@ -154,7 +146,7 @@ export function trace(trace?: number[]) {
     },
 
     /** Checks if the node has seen the message (only if the id is within the array) */
-    hasSeen(id = computerID) {
+    hasSeen(id = COMPUTER_ID) {
       return (
         storedTrace.indexOf(id) !== -1 &&
         storedTrace.indexOf(id) !== obj.size() - 1
@@ -168,7 +160,7 @@ export function trace(trace?: number[]) {
 
     /** Adds the computerID to the end of the trace */
     addSelf(ids?: number[]) {
-      return [...storedTrace, computerID, ...(ids ?? [])];
+      return [...storedTrace, COMPUTER_ID, ...(ids ?? [])];
     },
 
     /** Adds an array of computerIDs to the end of the trace */

@@ -1,10 +1,10 @@
-import { epoch } from 'time/time';
+import os from 'cc/os';
 import { TTL } from './constants';
 import { chunkArray } from './lib';
 import { BGPDatabase, BGPDatabaseRecord } from './types';
 
 /** The ID of the computer */
-const computerID = os.getComputerID();
+const COMPUTER_ID = os.id();
 const DB_PATH = 'pkgs/bgp/bgp.db';
 
 let localDB: BGPDatabase = [];
@@ -49,7 +49,7 @@ export function updateRoute(record: Omit<BGPDatabaseRecord, 'ttl'>) {
   );
 
   if (existing) {
-    existing.ttl = epoch() + TTL;
+    existing.ttl = os.epoch() + TTL;
     existing.hops = hops;
     existing.side = side;
   } else {
@@ -57,7 +57,7 @@ export function updateRoute(record: Omit<BGPDatabaseRecord, 'ttl'>) {
       destination,
       via,
       side,
-      ttl: epoch() + TTL,
+      ttl: os.epoch() + TTL,
       hops,
     });
   }
@@ -117,7 +117,7 @@ export function printDB(text?: { above?: string; below?: string }) {
       .sort(([a], [b]) => a - b)
       .map(([dest, record]) => {
         if (!record) return `${dest}: null`;
-        if (computerID === record.destination)
+        if (COMPUTER_ID === record.destination)
           return `${dest}: self (${record.hops})`;
         return `${dest}: ${record.via} (${record.hops})`;
       }),
@@ -147,7 +147,7 @@ export function getRoutesForDest(
 
 export function pruneTTLs() {
   const db = getDB();
-  const now = epoch();
+  const now = os.epoch();
 
   const pruned = db.filter((entry) => entry.ttl > now);
 

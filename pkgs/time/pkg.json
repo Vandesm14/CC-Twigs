@@ -1,9 +1,0 @@
-{
-  "name": "time",
-  "main": "time.lua",
-  "deps": [],
-  "files": [
-    "pkg.json",
-    "time.lua"
-  ]
-}

@@ -1,9 +1,3 @@
-export function sleepUntil(epoch: number) {
-  const now = os.epoch();
-  const diff = epoch - now;
-  if (diff > 0) sleep(diff / 1000);
-}
-
 export function chunkArray<T>(arr: T[], chunkSize: number): T[][] {
   const chunks = [];
   for (let i = 0; i < arr.length; i += chunkSize) {

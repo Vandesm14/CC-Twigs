@@ -2,8 +2,7 @@
   "name": "bgp",
   "main": "bgp.lua",
   "deps": [
-    "lib",
-    "time"
+    "cc"
   ],
   "files": [
     "README.md",

@@ -1,3 +1,5 @@
+import { PeripheralName } from "cc/peripheral";
+
 export type BGPDatabase = Array<BGPDatabaseRecord>;
 
 export interface BGPDatabaseRecord {
@@ -8,7 +10,7 @@ export interface BGPDatabaseRecord {
   via: number;
 
   /** The side of the modem that connects to `via` */
-  side: string;
+  side: PeripheralName;
 
   /** The TTL of the entry (as expiry time in epoch) */
   ttl: number;
@@ -23,14 +25,6 @@ export interface BGPDatabaseRecord {
    * then `B` will take `0` hops to get to `C` (direct connection)
    */
   hops: number;
-}
-
-export interface ModemMessage {
-  event: string;
-  side: string;
-  channel: number;
-  replyChannel: number;
-  message: any;
 }
 
 export interface BGPMessage {
