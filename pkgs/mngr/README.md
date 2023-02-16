@@ -61,3 +61,51 @@ To list all packages, run the command below.
 ```sh
 mngr list
 ```
+
+### Auto-downloading and running a package
+
+To auto-download and run a package, run the command below.
+
+```sh
+mngr run <package> [binary] [args...]
+```
+
+_Note: This installs the package as normal, but runs it afterward_
+
+## Links
+
+Mngr has a special feature called **Links**. Links are a way to alias a binary so that it mngr updates it before you run it, all without having to run `mngr run <package>` each time!
+
+### Creating links
+
+To get started, you can create a link with the command below.
+
+```sh
+mngr link <package> [binary]
+```
+
+_Note: The package needs to be installed before you link_
+
+### Using links
+
+To use a link, simply run the command as normal. Each time you run the binary, it will be loaded with the latest version of the package (Perfect for Development!).
+
+```sh
+<binary> [args...]
+```
+
+### Removing links
+
+To remove a link, run the command below.
+
+```sh
+mngr unlink <binary>
+```
+
+### Listing links
+
+To list all links, run the command below.
+
+```sh
+mngr links
+```
