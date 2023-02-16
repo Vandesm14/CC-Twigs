@@ -11,5 +11,6 @@ function downloadFile(file: string) {
 
 downloadFile('mngr');
 downloadFile('api');
+downloadFile('file');
 
 shell.run('.mngr/lib/mngr/mngr.lua install mngr');

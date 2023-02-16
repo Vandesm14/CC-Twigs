@@ -10,52 +10,42 @@ import {
   removePackage,
   updateAndRunPackage,
 } from './api';
+import { createFileIfNotExist } from './file';
 
 const args = [...$vararg];
 const command = args[0];
 const arg1 = args[1];
-const arg2 = args[2];
 
-function ensureServerList(): boolean {
-  if (fs.exists('.mngr/serverlist.txt')) return true;
+function ensureServerList() {
+  if (fs.exists('.mngr/serverlist.txt')) return;
 
   const [file] = fs.open('.mngr/serverlist.txt', 'w');
   if (!file) {
-    print('Failed to create serverlist.txt');
-    shell.exit();
-    return false;
+    throw new Error('Could not create serverlist.txt');
   }
 
   file.write(address);
   file.close();
 
   print('Added default server to serverlist.txt');
-  return true;
 }
 
-function ensurePathOnStartup(): boolean {
-  if (fs.exists('startup.lua')) return true;
-
-  const [file] = fs.open('startup.lua', 'w');
-  if (!file) {
-    print('Failed to create startup.lua');
-    shell.exit();
-    return false;
-  }
-
-  file.write(`shell.setPath(shell.path() .. ":/.mngr/bin/")`);
-  file.close();
-
+function ensurePathOnStartup() {
   if (!shell.path().includes(':/.mngr/bin/'))
     shell.setPath(shell.path() + ':/.mngr/bin/');
-  return true;
+
+  createFileIfNotExist(
+    'startup/mngr.lua',
+    `shell.setPath(shell.path() .. ":/.mngr/bin/")`
+  );
 }
 
 function ensureMngrSetup() {
   // Ensure that the serverlist.txt exists (for storing servers/mirrors)
-  // Ensure that the startup.lua exists (for setting shell path to mngr bin)
-  if (!ensureServerList() || !ensurePathOnStartup())
-    print('Mngr setup failure.');
+  ensureServerList();
+
+  // Ensure that the startup/mngr.lua exists (for setting shell path to mngr bin)
+  ensurePathOnStartup();
 }
 
 ensureMngrSetup();
@@ -73,10 +63,12 @@ if (command === 'copy-bin') {
 }
 
 if (command === 'update') {
+  const pkg = arg1;
+
   // If no argument, update all packages
   const links = getLinkedBins();
-  const pkgs = arg1
-    ? [arg1]
+  const pkgs = pkg
+    ? [pkg]
     : listInstalledPackages().filter(
         (pkg) => !links.some((link) => link.pkg === pkg)
       );
@@ -106,9 +98,15 @@ if (command === 'update') {
 
 if (arg1) {
   if (command === 'run') {
-    updateAndRunPackage(arg1, {
-      ...(arg2 ? { bin: arg2 } : {}),
-      args: args.slice(!!arg2 ? 3 : 2),
+    const pathSpec = arg1.split('/');
+    const pkg = pathSpec[0];
+    const bin = pathSpec.length > 1 ? pathSpec[1] : undefined;
+
+    if (!pkg) throw new Error('Invalid pathspec');
+
+    updateAndRunPackage(pkg, {
+      ...(bin ? { bin } : {}),
+      args: args.slice(2),
     });
   } else if (command === 'link') {
     const binRelations = getBinRelations();
@@ -161,8 +159,10 @@ if (arg1) {
       print(`Linked ${binary}`);
     }
   } else if (command === 'use-link') {
+    const pkg = arg1;
+
     // This is an "alias" for install just so we don't print anything
-    installPackage(arg1, { quiet: true });
+    installPackage(pkg, { quiet: true });
   } else if (command === 'unlink') {
     const binary = arg1;
 
@@ -185,18 +185,22 @@ if (arg1) {
       print(`No link found for ${binary}`);
     }
   } else if (command === 'install') {
-    doInstallPackage(arg1);
+    const pkg = arg1;
+    doInstallPackage(pkg);
   } else if (command === 'remove') {
-    removePackage(arg1);
-    print(`Removed ${arg1}.`);
+    const pkg = arg1;
+    removePackage(pkg);
+    print(`Removed ${pkg}.`);
   } else if (command === 'list') {
     const pkgs = listInstalledPackages();
     print(`Installed packages: ${pkgs.join(', ')}`);
   } else if (command === 'info') {
-    const { deps, files } = fetchPackage(arg1);
+    const pkg = arg1;
+
+    const { deps, files } = fetchPackage(pkg);
 
     const obj = {
-      Package: arg1,
+      Package: pkg,
       Depends: deps.join(', '),
       Includes: files.join(', '),
     };
