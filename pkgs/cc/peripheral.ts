@@ -1,16 +1,15 @@
-import { Side } from './os';
+import type { Side } from './os';
 
-/**
- * Returns the attached {@linkcode PeripheralName}s and their
- * {@linkcode PeripheralKind}.
- */
-export function names(this: void): PeripheralNameKind[] {
+/** Returns all attached {@linkcode Peripheral} names and kinds. */
+export function attached(
+  this: void
+): { name: PeripheralName; kind: PeripheralKind }[] {
   const res = [];
 
   const names = peripheral.getNames();
   for (let i = 0; i < names.length; i++) {
     const name = names[i]!;
-    const kind = peripheral.getType(name)!;
+    const kind = type(name)!;
     res.push({ name, kind });
   }
 
@@ -18,9 +17,9 @@ export function names(this: void): PeripheralNameKind[] {
 }
 
 /**
- * Returns all {@linkcode Peripheral}s that match the {@linkcode filter}.
+ * Returns all {@linkcode Peripheral}s that match a specified kind.
  *
- * @param fitler The {@linkcode PeripheralKind} to filter by.
+ * @param fitler The {@linkcode PeripheralKind} to filter for.
  */
 export function find<P extends PeripheralKind>(
   this: void,
@@ -30,40 +29,36 @@ export function find<P extends PeripheralKind>(
 }
 
 /**
- * Returns a {@linkcode Peripheral} from its {@linkcode PeripheralName}.
+ * Returns wrapped {@linkcode Peripheral} by its name.
  *
  * @param name The {@linkcode PeripheralName} to wrap.
- *
- * @throws If the {@linkcode PeripheralName} is invalid.
  */
-export function wrap(this: void, name: PeripheralName): AnyPeripheral {
-  const wrapped = peripheral.wrap(name);
-  if (wrapped !== undefined) return wrapped;
-  throw `cannot wrap "${name}" as it does not exist`;
+export function wrap<P extends PeripheralName>(
+  this: void,
+  name: P
+): PeripheralByName<P> | undefined {
+  return peripheral.wrap(name) as PeripheralByName<P> | undefined;
 }
 
 /**
- * Returns the {@linkcode PeripheralKind} of a {@linkcode Peripheral}.
+ * Returns the kind of a {@linkcode Peripheral} or by its name.
  *
- * @param wrapped The {@linkcode Peripheral} to get the {@linkcode PeripheralKind} of.
- *
- * @throws If the {@linkcode Peripheral} is invalid.
+ * @param per The {@linkcode Peripheral} or {@linkcode PeripheralName} to query.
  */
+// TODO: make this return the PeripheralKind if known
 export function type(
   this: void,
-  wrapped: Peripheral<PeripheralKind>
-): PeripheralKind {
-  const type = peripheral.getType(wrapped);
-  if (type !== undefined) return type;
-  throw 'cannot get type as peripheral does not exist';
+  per: Peripheral<PeripheralKind> | PeripheralName
+): PeripheralKind | undefined {
+  return peripheral.getType(per);
 }
 
-export default { names, find, wrap, type };
+export default { attached, find, wrap, type };
 
 /** Represents a peripheral. */
 export type Peripheral<P extends PeripheralKind> =
   P extends PeripheralKind.Command
-    ? CommandBlockPeripheral
+    ? CommandPeripheral
     : P extends PeripheralKind.Computer
     ? ComputerPeripheral
     : P extends PeripheralKind.Modem
@@ -71,7 +66,7 @@ export type Peripheral<P extends PeripheralKind> =
     : AnyPeripheral;
 /** Represents any peripheral. */
 export type AnyPeripheral =
-  | CommandBlockPeripheral
+  | CommandPeripheral
   | ComputerPeripheral
   | ModemPeripheral;
 
@@ -93,8 +88,47 @@ export const enum PeripheralKind {
   Speaker = 'speaker',
 }
 
+/** Represents a peripheral by name. */
+export type PeripheralByName<P extends PeripheralName> =
+  P extends `${PeripheralKind.Command}_${number}`
+    ? CommandPeripheral
+    : P extends `${PeripheralKind.Computer}_${number}`
+    ? ComputerPeripheral
+    : P extends `${PeripheralKind.Drive}_${number}`
+    ? DrivePeripheral
+    : P extends `${PeripheralKind.Modem}_${number}`
+    ? ModemPeripheral
+    : P extends `${PeripheralKind.Monitor}_${number}`
+    ? MonitorPeripheral
+    : P extends `${PeripheralKind.Printer}_${number}`
+    ? PrinterPeripheral
+    : P extends `${PeripheralKind.Speaker}_${number}`
+    ? SpeakerPeripheral
+    : AnyPeripheral;
+
+/** Represents a peripheral kind by name. */
+export type PeripheralKindByName<P extends PeripheralName> =
+  P extends `${PeripheralKind.Command}_${number}`
+    ? PeripheralKind.Command
+    : P extends `${PeripheralKind.Computer}_${number}`
+    ? PeripheralKind.Computer
+    : P extends `${PeripheralKind.Drive}_${number}`
+    ? PeripheralKind.Drive
+    : P extends `${PeripheralKind.Modem}_${number}`
+    ? PeripheralKind.Modem
+    : P extends `${PeripheralKind.Monitor}_${number}`
+    ? PeripheralKind.Monitor
+    : P extends `${PeripheralKind.Printer}_${number}`
+    ? PeripheralKind.Printer
+    : P extends `${PeripheralKind.Speaker}_${number}`
+    ? PeripheralKind.Speaker
+    : PeripheralKind;
+
+/** Represents the name of a peripheral. */
+export type PeripheralName = Side | `${PeripheralKind}_${number}`;
+
 /** Represents a command block. */
-export declare class CommandBlockPeripheral {
+export declare class CommandPeripheral {
   /** Returns the command that will be executed. */
   getCommand(this: void): string;
 
@@ -179,10 +213,7 @@ export declare class ModemPeripheral {
   isWireless(this: void): boolean;
 }
 
-/** Represents the name of a peripheral. */
-export type PeripheralName = Side | `${PeripheralKind}_${number}`;
-
-type PeripheralNameKind = { name: PeripheralName; kind: PeripheralKind };
+// type PeripheralNameKind = { name: PeripheralName; kind: PeripheralKind };
 
 declare module peripheral {
   function getNames(this: void): PeripheralName[];

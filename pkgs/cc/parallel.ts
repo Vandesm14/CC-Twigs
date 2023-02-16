@@ -1,14 +1,16 @@
 /**
- * Synchronously waits for any function to call {@linkcode coroutine.yield}
- * before continuing execution on the current thread.
+ * Waits for any supplied function to call {@linkcode coroutine.yield}.
+ *
+ * @param fns The functions to wait for.
  */
 export function waitForAny(this: void, ...fns: (() => unknown)[]): void {
   parallel.waitForAny(...fns);
 }
 
 /**
- * Synchronously waits for all functions to call {@linkcode coroutine.yield}
- * before continuing execution on the current thread.
+ * Waits for all supplied functions to call {@linkcode coroutine.yield}.
+ *
+ * @param fns The functions to wait for.
  */
 export function waitForAll(this: void, ...fns: (() => unknown)[]): void {
   parallel.waitForAll(...fns);

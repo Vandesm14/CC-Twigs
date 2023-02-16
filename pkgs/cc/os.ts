@@ -1,25 +1,29 @@
-import { Peripheral } from './peripheral';
+import type { Peripheral, ModemPeripheral } from './peripheral';
 
 /**
- * Synchronously waits for {@linkcode millis} to elapse on the current thread
- * before continuing execution.
+ * Puts the current thread to sleep for the specifier amount of time.
+ *
+ * The thread may sleep for shorter or longer than specified in real-time due to
+ * scheduling.
  *
  * This calls {@linkcode coroutine.yield} internally.
  *
- * @param millis The number of milliseconds.
+ * @param millis The number of milliseconds to sleep.
  */
-export function sleep(this: void, millis: number): void {
+export function sleep(this: void, millis: number) {
   os.sleep(millis / 1000);
 }
 
 /**
- * Synchronously waits for the {@linkcode until} epoch on the current thread
- * before continuing execution.
+ * Puts the current thread to sleep until an epoch is reached.
+ *
+ * The thread may sleep for shorter or longer than specified in real-time due to
+ * scheduling.
  *
  * This calls {@linkcode sleep} internally.
  *
- * @param until The epoch to wait until in milliseconds.
- * @param locale The {@linkcode Locale} to be relative to.
+ * @param until The epoch in milliseconds to sleep until.
+ * @param locale The locale whoes epoch to compare against.
  */
 export function sleepUntil(this: void, until: number, locale = Locale.InGame) {
   const diff = until - epoch(locale);
@@ -27,58 +31,61 @@ export function sleepUntil(this: void, until: number, locale = Locale.InGame) {
 }
 
 /**
- * Returns the epoch since the beginning of a {@linkcode Locale}.
+ * Returns the duration in milliseconds since the epoch for `locale`.
  *
- * This converts `ingame` milliseconds into real-world milliseconds.
+ * This converts in-game milliseconds into real-world milliseconds.
  *
- * @param locale The {@linkcode Locale} to be relative to.
+ * @param locale The locale to get the epoch for.
  */
 export function epoch(this: void, locale = Locale.InGame): number {
   return locale === Locale.InGame ? os.epoch() / 72 : os.epoch(locale);
 }
 
-/** Returns the number of milliseconds the computer has been up. */
-export function clock(this: void): number {
+/** Returns the duration in milliseconds since this computer was started. */
+export function uptime(this: void): number {
   return os.clock() * 1000;
 }
 
-/** Shutdown the computer immediately. */
+/** Shutdown this computer immediately. */
 export function shutdown(this: void): never {
   os.shutdown();
 }
 
-/** Reboot the computer immediately. */
+/** Reboot this computer immediately. */
 export function reboot(this: void): never {
   os.reboot();
 }
 
-/** Returns the computer ID. */
-export function id(this: void): ComputerId {
+/** Returns this computer's ID. */
+export function id(this: void): number {
   return os.getComputerID();
 }
 
-/** Returns the computer label. */
-export function label(this: void): ComputerLabel {
+/** Returns this computer's label. */
+export function label(this: void): string | undefined {
   return os.getComputerLabel();
 }
 
-/** Sets the computer label, or unsets it if `undefined`. */
-export function setLabel(this: void, label?: ComputerLabel): void {
+/**
+ * Sets this computer's label, or unsets it if `undefined` is supplied.
+ *
+ * @param label The new label or `undefined` to unset the label.
+ */
+export function setLabel(this: void, label?: string): void {
   os.setComputerLabel(label);
 }
 
 /**
- * Synchronously waits for an {@linkcode Event} on the current thread before
- * continuing execution.
+ * Waits for an {@linkcode Event}.
  *
  * This calls {@linkcode coroutine.yield} internally.
  *
- * @param filter The {@linkcode EventKind} to filter by.
- * @param raw Whether to also check for {@linkcode EventKind.Terminate}.
+ * @param filter The {@linkcode EventKind} to wait for.
+ * @param raw Whether to also wait for {@linkcode TerminateEvent}s.
  */
 export function event<E extends EventKind>(
   this: void,
-  filter: E,
+  filter?: E,
   raw = false
 ): Event<E> {
   const event = raw ? os.pullEventRaw(filter) : os.pullEvent(filter);
@@ -119,7 +126,7 @@ export default {
   sleep,
   sleepUntil,
   epoch,
-  clock,
+  uptime,
   shutdown,
   reboot,
   id,
@@ -131,18 +138,13 @@ export default {
 
 /** Represents a locale. */
 export const enum Locale {
-  /** Relative to ingame. */
+  /** Relative to in-game time. */
   InGame = 'ingame',
   /** Relative to UTC. */
   Utc = 'utc',
-  /** Relative to user local. */
+  /** Relative to the user's local time. */
   Local = 'local',
 }
-
-/** Represents a computer ID. */
-export type ComputerId = number;
-/** Represents a computer label. */
-export type ComputerLabel = string | undefined;
 
 /** Represents an event. */
 export type Event<E extends EventKind> = E extends EventKind.ModemMessage
@@ -164,7 +166,7 @@ export type AnyEvent =
  * Represents an event fired when a {@linkcode ModemPeripheral} receives a
  * message.
  */
-export type ModemMessageEvent = {
+export type ModemMessageEvent<T = unknown> = {
   /** The {@linkcode EventKind} repeated. */
   event: EventKind.ModemMessage;
   /** The {@linkcode Side} the message was received from. */
@@ -174,7 +176,7 @@ export type ModemMessageEvent = {
   /** The channel to reply via. */
   replyChannel: number;
   /** The message data. */
-  message: unknown;
+  message: T;
   /** The distance in metres between the sender and receiver. */
   distance: number;
 };
@@ -183,15 +185,15 @@ export type ModemMessageEvent = {
 export type PeripheralAttachEvent = {
   /** The {@linkcode EventKind} repeated. */
   event: EventKind.PeripheralAttach;
-  /** The {@linkcode Side} the {@linkcode Peripheral} was attached to. */
+  /** The {@linkcode Side} the peripheral was attached to. */
   side: Side;
 };
 
-/** Represents an event fired when a {@linkcode Peripheral} is attached. */
+/** Represents an event fired when a {@linkcode Peripheral} is detached. */
 export type PeripheralDetachEvent = {
   /** The {@linkcode EventKind} repeated. */
   event: EventKind.PeripheralDetach;
-  /** The {@linkcode Side} the {@linkcode Peripheral} was detached to. */
+  /** The {@linkcode Side} the peripheral was detached from. */
   side: Side;
 };
 
@@ -229,7 +231,9 @@ export const enum Side {
   Back = 'back',
 }
 
-function createEvent<E extends EventKind>(event: [string, ...unknown[]]) {
+function createEvent<E extends EventKind>(
+  event: [string, ...unknown[]]
+): Event<E> {
   switch (event[0]) {
     case EventKind.ModemMessage:
       return {
@@ -241,19 +245,15 @@ function createEvent<E extends EventKind>(event: [string, ...unknown[]]) {
         distance: event[5],
       } as Event<E>;
     case EventKind.PeripheralAttach:
-      return {
-        event: EventKind.PeripheralAttach,
-        side: event[1],
-      } as Event<E>;
     case EventKind.PeripheralDetach:
       return {
-        event: EventKind.PeripheralDetach,
+        event: event[0],
         side: event[1],
       } as Event<E>;
     case EventKind.Terminate:
       return { event: EventKind.Terminate } as Event<E>;
     default:
-      throw `unknown event: ${event[0]}`;
+      throw `unsupported event: ${event[0]}`;
   }
 }
 
