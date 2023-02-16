@@ -3,11 +3,14 @@
   "scripts": {
     "start": "deno run --allow-all server/mod.ts pkgs",
     "build": "tstl && yarn post-build",
-    "post-build": "deno run --allow-all server/postBuild.ts"
+    "post-build": "deno run --allow-all server/postBuild.ts",
+    "format": "prettier --write \"**/*.ts\"",
+    "format:check": "prettier --check \"**/*.ts\""
   },
   "devDependencies": {
     "@jackmacwindows/lua-types": "^2.13.1",
     "@jackmacwindows/typescript-to-lua": "^1.12.0",
+    "prettier": "^2.8.4",
     "typescript": "^4.9.5"
   }
 }
