@@ -19,6 +19,7 @@
     "types.lua"
   ],
   "bin": {
-    "bgp": "bgp.lua"
+    "bgp": "bgp.lua",
+    "send-ip": "send.lua"
   }
 }
