@@ -10,7 +10,8 @@ import {
 
 const args = [...$vararg];
 const cmd = args[0];
-const scope = args[1];
+const pkg = args[1];
+const file = args[2];
 
 function ensureServerList(): boolean {
   if (fs.exists('.mngr/serverlist.txt')) return true;
@@ -60,7 +61,6 @@ function printUsage() {
   print('Usage: mngr <install|update|remove|run> <package>');
   print('Example: mngr install bgp');
   print('Example: mngr run bgp');
-  print('Example: mngr run bgp/start');
   print('Example: mngr remove bgp');
 }
 
@@ -71,26 +71,38 @@ if (cmd === 'copy-bin') {
 
 if (cmd === 'update') {
   // If no argument, update all packages
-  const pkgs = scope ? [scope] : listInstalledPackages();
+  const pkgs = pkg ? [pkg] : listInstalledPackages();
 
   print(`Updating ${pkgs.length} packages...`);
-  pkgs.forEach((pkg) => doInstallPackage(pkg));
+  pkgs.forEach((pkg) => doInstallPackage(pkg, false));
+  print(
+    `Updated ${pkgs.length} package${pkgs.length ? 's' : ''} (${pkgs.join(
+      ', '
+    )})`
+  );
 } else if (cmd === 'help' || !cmd) printUsage();
 
-if (scope) {
-  if (cmd === 'run') updateAndRunPackage(scope, args.slice(2));
-  else if (cmd === 'install') doInstallPackage(scope);
+if (pkg) {
+  if (cmd === 'run')
+    updateAndRunPackage(pkg, {
+      ...(file ? { bin: file } : {}),
+      args: args.slice(!!file ? 3 : 2),
+    });
+  else if (cmd === 'dev') {
+    // Installs the package, and aliases the binaries to run `mngr run <pkg> <bin>`
+    doInstallPackage(pkg);
+  } else if (cmd === 'install') doInstallPackage(pkg);
   else if (cmd === 'remove') {
-    removePackage(scope);
-    print(`Removed ${scope}.`);
+    removePackage(pkg);
+    print(`Removed ${pkg}.`);
   } else if (cmd === 'list') {
     const pkgs = listInstalledPackages();
     print(`Installed packages: ${pkgs.join(', ')}`);
   } else if (cmd === 'info') {
-    const { deps, files } = fetchPackage(scope);
+    const { deps, files } = fetchPackage(pkg);
 
     const obj = {
-      Package: scope,
+      Package: pkg,
       Depends: deps.join(', '),
       Includes: files.join(', '),
     };

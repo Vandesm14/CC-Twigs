@@ -70,6 +70,8 @@ export function downloadPackage(pkg: string, file?: string) {
   fileWrite.write(res.readAll());
   fileWrite.close();
   res.close();
+
+  print(`Downloaded ${pkg}/${file}`);
 }
 
 export function installPackage(pkg: string, dry = false) {
@@ -115,16 +117,21 @@ export function doInstallPackage(pkg: string, doPrint = true) {
     );
 }
 
-export function updateAndRunPackage(pkg: string, args?: string[]) {
-  doInstallPackage(pkg, false);
+export function updateAndRunPackage(
+  pkg: string,
+  opts?: { args?: string[]; bin?: string }
+): void {
+  doInstallPackage(pkg);
 
-  if (!fs.exists(`.mngr/bin/${pkg}.lua`)) {
-    print(`Failed to find .mngr/bin/${pkg}.lua`);
+  const fileToRun = opts?.bin ?? pkg;
+
+  if (!fs.exists(`.mngr/bin/${fileToRun}.lua`)) {
+    print(`Failed to find .mngr/bin/${fileToRun}.lua`);
     return;
   }
 
   // Runs the main package file
-  shell.run(`.mngr/bin/${pkg}.lua ${args?.join(' ') ?? ''}`);
+  shell.run(`.mngr/bin/${fileToRun}.lua ${opts?.args?.join(' ') ?? ''}`);
 }
 
 export function listInstalledPackages() {
