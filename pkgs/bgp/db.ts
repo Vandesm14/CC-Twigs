@@ -5,7 +5,7 @@ import { BGPDatabase, BGPDatabaseRecord } from './types';
 
 /** The ID of the computer */
 const COMPUTER_ID = os.id();
-const DB_PATH = 'pkgs/bgp/bgp.db';
+const DB_PATH = '.mngr/lib/bgp/bgp.db';
 
 let localDB: BGPDatabase = [];
 
