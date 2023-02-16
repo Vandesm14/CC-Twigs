@@ -13,7 +13,6 @@
     "lib.lua",
     "pkg.json",
     "send.lua",
-    "sleep.lua",
     "tasks.md",
     "types.lua"
   ],
@@ -29,7 +28,6 @@
     "db.lua": "6529632096a835183e23ca1d092643ad",
     "lib.lua": "79c3284ab9f9dda9682b897048b03abd",
     "send.lua": "0bd6fd0f2fb24300700d010bd58fd315",
-    "sleep.lua": "4102bb622a5436dca0313a0b982432f6",
     "tasks.md": "d3c1be4ae0beb71b537b343b4cddb28d",
     "types.lua": "a21ea92f14dbdd0498cbd82598633b87"
   }
