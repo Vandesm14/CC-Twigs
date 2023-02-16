@@ -93,7 +93,7 @@ function handleBGPMessage(
   const from = messageTrace.from();
 
   const origin = messageTrace.origin();
-  if (originHistory.includes(origin)) {
+  if (origin === undefined || originHistory.includes(origin)) {
     return;
   }
 

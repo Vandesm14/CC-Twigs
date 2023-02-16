@@ -14,7 +14,6 @@
     "lib.lua",
     "pkg.json",
     "send.lua",
-    "sleep.lua",
     "tasks.md",
     "types.lua"
   ],

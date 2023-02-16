@@ -1,0 +1,11 @@
+{
+  "name": "cc",
+  "main": "cc.lua",
+  "deps": [],
+  "files": [
+    "os.lua",
+    "parallel.lua",
+    "peripheral.lua",
+    "pkg.json"
+  ]
+}

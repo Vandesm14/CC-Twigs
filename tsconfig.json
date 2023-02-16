@@ -3,10 +3,21 @@
     "target": "ESNext",
     "lib": ["ESNext"],
     "moduleResolution": "node",
-    "strict": true,
     "typeRoots": ["./types"],
     "types": ["@jackmacwindows/lua-types/cc", "craftos", "cc"],
-    "baseUrl": "./pkgs"
+    "baseUrl": "./pkgs",
+
+    "strict": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
+
+    "forceConsistentCasingInFileNames": true
   },
   "tstl": {
     "luaTarget": "CC",

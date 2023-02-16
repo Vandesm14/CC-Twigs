@@ -133,7 +133,7 @@ export function listInstalledPackages() {
   return installed;
 }
 
-export function fetchLocalPackage(pkg: string): Package {
+export function fetchLocalPackage(pkg: string): Package | undefined {
   const [file] = fs.open(`.mngr/lib/${pkg}/pkg.json`, 'r');
   if (!file) {
     throw new Error(`Failed to open .mngr/lib/${pkg}/pkg.json`);
@@ -149,9 +149,9 @@ export function fetchLocalPackage(pkg: string): Package {
 export function copyBinFiles(pkg?: string) {
   const pkgs = pkg ? [pkg] : listInstalledPackages();
   for (const pkg of pkgs) {
-    const { bin } = fetchLocalPackage(pkg);
-    if (bin) {
-      for (const [cmd, file] of Object.entries(bin)) {
+    const localPkg = fetchLocalPackage(pkg);
+    if (localPkg?.bin !== undefined) {
+      for (const [cmd, file] of Object.entries(localPkg.bin)) {
         if (fs.exists(`.mngr/lib/${pkg}/${file}`)) {
           if (fs.exists(`.mngr/bin/${cmd}.lua`)) {
             fs.delete(`.mngr/bin/${cmd}.lua`);

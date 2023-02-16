@@ -12,30 +12,31 @@ const args = [...$vararg];
 const cmd = args[0];
 const scope = args[1];
 
-function ensureServerList() {
+function ensureServerList(): boolean {
   if (fs.exists('.mngr/serverlist.txt')) return true;
 
   const [file] = fs.open('.mngr/serverlist.txt', 'w');
   if (!file) {
     print('Failed to create serverlist.txt');
     shell.exit();
-    return;
+    return false;
   }
 
   file.write(address);
   file.close();
 
   print('Added default server to serverlist.txt');
+  return true;
 }
 
-function ensurePathOnStartup() {
+function ensurePathOnStartup(): boolean {
   if (fs.exists('startup.lua')) return true;
 
   const [file] = fs.open('startup.lua', 'w');
   if (!file) {
     print('Failed to create startup.lua');
     shell.exit();
-    return;
+    return false;
   }
 
   file.write(`shell.setPath(shell.path() .. ":/.mngr/bin/")`);
@@ -43,18 +44,13 @@ function ensurePathOnStartup() {
 
   if (!shell.path().includes(':/.mngr/bin/'))
     shell.setPath(shell.path() + ':/.mngr/bin/');
+  return true;
 }
 
 function ensureMngrSetup() {
-  const success = [];
-
   // Ensure that the serverlist.txt exists (for storing servers/mirrors)
-  success.push(ensureServerList());
-
-  // Ensure that the autorun.lua exists (for setting shell path to mngr bin)
-  success.push(ensurePathOnStartup());
-
-  if (success.includes(false)) print('Mngr setup complete!');
+  // Ensure that the startup.lua exists (for setting shell path to mngr bin)
+  if (!ensureServerList() || !ensurePathOnStartup()) print('Mngr setup failure.');
 }
 
 ensureMngrSetup();
@@ -67,16 +63,9 @@ function printUsage() {
   print('Example: mngr remove bgp');
 }
 
-if (cmd === 'run') {
-  if (!scope) printUsage();
-
-  updateAndRunPackage(scope, args.slice(2));
-}
-
-if (cmd === 'install') {
-  if (!scope) printUsage();
-
-  doInstallPackage(scope);
+if (cmd === 'copy-bin') {
+  copyBinFiles();
+  print('Copied all bin files to .mngr/bin/*');
 }
 
 if (cmd === 'update') {
@@ -85,47 +74,30 @@ if (cmd === 'update') {
 
   print(`Updating ${pkgs.length} packages...`);
   pkgs.forEach((pkg) => doInstallPackage(pkg));
+} else if (cmd === 'help' || !cmd) printUsage();
+
+if (scope) {
+  if (cmd === 'run') updateAndRunPackage(scope, args.slice(2))
+  else if (cmd === 'install') doInstallPackage(scope)
+  else if (cmd === 'remove') {
+    removePackage(scope);
+    print(`Removed ${scope}.`);
+  } else if (cmd === 'list') {
+    const pkgs = listInstalledPackages();
+    print(`Installed packages: ${pkgs.join(', ')}`);
+  } else if (cmd === 'info') {
+    const { deps, files } = fetchPackage(scope);
+
+    const obj = {
+      Package: scope,
+      Depends: deps.join(', '),
+      Includes: files.join(', '),
+    };
+
+    print(
+      Object.entries(obj)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join('\n')
+    );
+  }
 }
-
-if (cmd === 'remove') {
-  if (!scope) printUsage();
-
-  removePackage(scope);
-  print(`Removed ${scope}.`);
-}
-
-if (cmd === 'list') {
-  const pkgs = listInstalledPackages();
-  print(`Installed packages: ${pkgs.join(', ')}`);
-}
-
-if (cmd === 'info') {
-  if (!scope) printUsage();
-  const { deps, files } = fetchPackage(scope);
-
-  const obj = {
-    Package: scope,
-    Depends: deps.join(', '),
-    Includes: files.join(', '),
-  };
-
-  print(
-    Object.entries(obj)
-      .map(([k, v]) => `${k}: ${v}`)
-      .join('\n')
-  );
-}
-
-if (cmd === 'check') {
-  // TODO: Implement checking for updates
-  print('NOPE, not yet implemented');
-}
-
-if (cmd === 'copy-bin') {
-  copyBinFiles();
-  print('Copied all bin files to .mngr/bin/*');
-}
-
-if (cmd === 'help' || !cmd) printUsage();
-
-export {};
