@@ -6,6 +6,7 @@
     "time"
   ],
   "files": [
+    "README.md",
     "api.lua",
     "bgp.lua",
     "constants.lua",
