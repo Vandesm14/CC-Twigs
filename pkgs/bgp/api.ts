@@ -6,7 +6,7 @@ import {
   PeripheralKind,
   PeripheralName,
 } from 'cc/peripheral';
-import { BGP_PORT, IP_PORT } from './constants';
+import { BGP_CHANNEL, IP_PORT } from './constants';
 import { findShortestRoute } from './db';
 import { BGPMessage, IPMessage } from './types';
 
@@ -28,7 +28,7 @@ export interface State {
 export function getPeripheralState(): State {
   const modems = peripheral.find(PeripheralKind.Modem);
   const modemNames = peripheral
-    .names()
+    .attached()
     .filter(({ kind }) => kind === PeripheralKind.Modem)
     .map(({ name }) => name);
   const wirelessModemNames = modemNames.filter((name) =>
@@ -41,7 +41,7 @@ export function getPeripheralState(): State {
 /** Opens the BGP port on all modems */
 export function openPorts({ modems }: Pick<State, 'modems'>) {
   modems.forEach((modem) => {
-    modem.open(BGP_PORT);
+    modem.open(BGP_CHANNEL);
     modem.open(IP_PORT);
   });
 }
@@ -56,7 +56,7 @@ export function sendRawBGP(message: BGPMessage, modemSide: PeripheralName) {
   const modem = peripheral.wrap(modemSide) as ModemPeripheral;
   if (!modem) return;
 
-  modem.transmit(BGP_PORT, BGP_PORT, message);
+  modem.transmit(BGP_CHANNEL, BGP_CHANNEL, message);
 }
 
 /** A small wrapper to ensure type-safety of sending an IP message */
@@ -94,7 +94,7 @@ export function sendIP(
   };
 
   let sides = peripheral
-    .names()
+    .attached()
     .filter(({ kind }) => kind === PeripheralKind.Modem)
     .map(({ name }) => name);
 
