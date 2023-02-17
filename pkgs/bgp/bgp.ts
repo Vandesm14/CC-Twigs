@@ -22,7 +22,6 @@ const COMPUTER_ID = os.id();
 
 let shouldExit = false;
 let heartbeatTimeout = os.epoch() + HEARTBEAT_INTERVAL;
-let seenSources: number[] = [];
 let routes: BGPRoute[] = [];
 
 let logs: string[] = [];
@@ -61,7 +60,6 @@ while (!shouldExit) {
       os.sleepUntil(heartbeatTimeout);
       heartbeatTimeout = os.epoch() + HEARTBEAT_INTERVAL;
 
-      seenSources = [];
       routes = routes.filter((route) => route.ttl > os.epoch());
 
       broadcastBGP(modems());
@@ -86,8 +84,7 @@ while (!shouldExit) {
 function handleBGPMessage(event: ModemMessageEvent<BGPMessage>) {
   const source = BGP.source(event.message);
 
-  if (source === undefined || seenSources.includes(source)) return;
-  seenSources.push(source);
+  if (source === undefined) return;
 
   if (!BGP.seen(event.message)) {
     broadcastBGP(modems(), event.message, event.side);
