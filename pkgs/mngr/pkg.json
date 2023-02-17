@@ -8,18 +8,23 @@
     "file.lua",
     "install.lua",
     "mngr.lua",
+    "new.txt",
     "pkg.json",
-    "types.lua"
+    "types.lua",
+    "usage.txt"
   ],
   "bin": {
     "mngr": "mngr.lua"
   },
   "checksums": {
-    "README.md": "0227a41ae38e7b95ca37fa2b898c027c",
-    "api.lua": "40cf9c95120a96c7a3dccc0230d833d4",
+    "pkg.json": "6fa83cb33056bc5e7993664abdb0dd0f",
+    "README.md": "7574980d1ab3a3087a3f89f28afee2ea",
+    "api.lua": "8c27358f470364403977de7b9a7ffee4",
     "file.lua": "993319efaa22d683e3d604229a58af9e",
     "install.lua": "9491cb6737a5281b24cf7bed751f8200",
-    "mngr.lua": "f42c0cae840b293ca4073c20a3b92387",
-    "types.lua": "a21ea92f14dbdd0498cbd82598633b87"
+    "mngr.lua": "14ce32cdcb255fbc5a859b355bbafc1f",
+    "new.txt": "d41d8cd98f00b204e9800998ecf8427e",
+    "types.lua": "a21ea92f14dbdd0498cbd82598633b87",
+    "usage.txt": "42d4781280b3c676c752e8f519de0d42"
   }
 }

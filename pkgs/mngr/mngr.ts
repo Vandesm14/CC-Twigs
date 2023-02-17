@@ -1,6 +1,7 @@
 import {
   copyAllBinFiles,
   doInstallPackage,
+  doUpdatePackage,
   fetchAllLocalPackages,
   fetchPackage,
   getBinRelations,
@@ -29,10 +30,16 @@ function ensurePathOnStartup() {
 ensurePathOnStartup();
 
 function printUsage() {
-  print('Usage: mngr <install|update|remove|run> <package>');
-  print('Example: mngr install bgp');
-  print('Example: mngr run bgp');
-  print('Example: mngr remove bgp');
+  const [file] = fs.open('.mngr/lib/mngr/usage.txt', 'r');
+  if (!file) {
+    print('Failed to open usage.txt');
+    return;
+  }
+
+  const data = file.readAll();
+  file.close();
+
+  print(data);
 }
 
 if (command === 'copy-bin') {
@@ -51,13 +58,23 @@ if (command === 'update') {
         (pkg) => !links.some((link) => link.pkg === pkg)
       );
 
-  print(`Updating ${pkgs.length} packages...`);
-  pkgs.forEach((pkg) => doInstallPackage(pkg, false));
-  print(
-    `Updated ${pkgs.length} package${pkgs.length ? 's' : ''}: ${pkgs.join(
-      ', '
-    )}`
-  );
+  // filter out packages that don't need updating
+  const pkgsToUpdate = pkgs.filter((pkg) => {
+    const filesToUpdate = getFilesToUpdate(pkg);
+    return filesToUpdate && filesToUpdate.length > 0;
+  });
+
+  if (pkgsToUpdate.length > 0) {
+    print(`Updating ${pkgsToUpdate.length} packages...`);
+    pkgsToUpdate.forEach((pkg) => doUpdatePackage(pkg, false));
+    print(
+      `Updated ${pkgsToUpdate.length} package${
+        pkgsToUpdate.length ? 's' : ''
+      }: ${pkgsToUpdate.join(', ')}`
+    );
+  } else {
+    print(`${pkg ? `${pkg} is` : 'All packages are'} up to date`);
+  }
 
   // @ts-expect-error
   return;
@@ -71,7 +88,7 @@ if (command === 'update') {
     try {
       const filesToUpdate = getFilesToUpdate(pkg.name);
 
-      if (filesToUpdate.length > 0) {
+      if (filesToUpdate && filesToUpdate.length > 0) {
         needsUpdate[pkg.name] = filesToUpdate.length;
       }
     } catch (e) {
@@ -84,7 +101,7 @@ if (command === 'update') {
     print(`  ${pkg}: ${count} file${count > 1 ? 's' : ''}`);
   }
 
-  print(`${Object.keys(errors).length} packages have errors:`);
+  print(`\n${Object.keys(errors).length} packages have errors:`);
   for (const [pkg, error] of Object.entries(errors)) {
     print(`  ${pkg}: ${error}`);
   }

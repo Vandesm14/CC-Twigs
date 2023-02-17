@@ -9,6 +9,7 @@
     "pkg.json"
   ],
   "checksums": {
+    "pkg.json": "2aab6bad5b2a8132dd38d0df89050915",
     "os.lua": "908488fe67f16a457147b647c28409d2",
     "parallel.lua": "ffa7fbcbe1ecf2c1b8b382f2c60ad58a",
     "peripheral.lua": "9e7d93376c18ff670f359c4d13921819"

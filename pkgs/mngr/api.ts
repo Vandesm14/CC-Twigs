@@ -84,6 +84,9 @@ export function installPackage(
     files: files.length,
   };
 
+  let filesToUpdate = getFilesToUpdate(pkg);
+  filesToUpdate = filesToUpdate ? filesToUpdate : files;
+
   for (const dep of deps) {
     const total = installPackage(dep, { dry, quiet });
     totals.files += total.files;
@@ -93,7 +96,8 @@ export function installPackage(
   if (dry) return totals;
 
   for (const file of files) {
-    downloadPackage(pkg, { file, quiet });
+    const shouldDownload = filesToUpdate.includes(file) ?? true;
+    if (shouldDownload) downloadPackage(pkg, { file, quiet });
   }
 
   // Copys the files specified as binaries in the pkg.json file
@@ -117,6 +121,16 @@ export function doInstallPackage(pkg: string, doPrint = true) {
   if (doPrint)
     print(
       `Installed ${pkg} along with ${total.deps} deps (${total.files} total files)`
+    );
+}
+
+export function doUpdatePackage(pkg: string, doPrint = true) {
+  if (!isPkgInstalled(pkg)) throw new Error(`Package ${pkg} is not installed`);
+
+  const total = installPackage(pkg);
+  if (doPrint)
+    print(
+      `Updated ${pkg} along with ${total.deps} deps (${total.files} total files)`
     );
 }
 
@@ -240,14 +254,14 @@ export function fetchAllLocalPackages(remote = false): Package[] {
   return packages;
 }
 
-export function getFilesToUpdate(pkg: string) {
+export function getFilesToUpdate(pkg: string): string[] | undefined {
   const local = fetchLocalPackage(pkg);
   const remote = fetchPackage(pkg);
 
   const files: string[] = [];
 
   if (!local || !remote) {
-    throw new Error(`Failed to fetch local or remote package ${pkg}`);
+    return undefined;
   }
 
   const checksums = local.checksums;
@@ -267,6 +281,10 @@ export function getFilesToUpdate(pkg: string) {
       }
     }
   }
+
+  // If we have files to update, update the pkg.json file
+  // i.e. If we have a change, we need to update the checksums
+  if (files.length > 0) files.push('pkg.json');
 
   return files;
 }

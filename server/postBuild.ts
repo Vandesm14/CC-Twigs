@@ -16,6 +16,16 @@ const existsSync = (path: string) => {
   }
 };
 
+function getFileChecksum(pkg: string, file: string) {
+  const content = Deno.readTextFileSync(`./pkgs/${pkg}/${file}`);
+  return checksum(content);
+}
+
+function checksum(text: string) {
+  const hash = new Hash('md5');
+  return hash.digest(encode(text)).hex();
+}
+
 names.forEach((name) => {
   // Get all the .lua files in the package
   const lua = walkSync(`./pkgs/${name}`, {
@@ -64,13 +74,17 @@ names.forEach((name) => {
     .sort();
 
   pkgJSON.checksums = {};
+
+  pkgJSON.checksums['pkg.json'] = (() => {
+    const content = JSON.stringify(pkgJSON, null, 2);
+    return checksum(content);
+  })();
+
   pkgJSON.files.forEach((file) => {
     // Don't include the pkg.json file in the checksums
     if (file === 'pkg.json') return;
 
-    const content = Deno.readFileSync(`./pkgs/${name}/${file}`);
-    const hash = new Hash('md5');
-    pkgJSON.checksums[file] = hash.digest(content).hex();
+    pkgJSON.checksums[file] = getFileChecksum(name, file);
   });
 
   Deno.writeTextFileSync(

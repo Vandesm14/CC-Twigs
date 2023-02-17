@@ -1,0 +1,11 @@
+Usage:
+  mngr info <package>          - fetch package info
+  mngr install <package>       - install a package
+  mngr update <package>        - update a package
+  mngr update                  - update all packages
+  mngr list                    - list installed packages
+  mngr remove <package>        - remove a package
+  mngr run <package>           - update and run a package
+  mngr link <package> [binary] - link a binary to auto-update
+  mngr links                   - list linked binaries
+  mngr unlink <binary>         - unlink a binary

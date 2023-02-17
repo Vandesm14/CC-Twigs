@@ -14,14 +14,6 @@ Once installed, it will automatically set itself up.
 
 ## Usage
 
-### Installing a package
-
-To install a package, run the command below.
-
-```sh
-mngr install <package>
-```
-
 ### Fetching info for a package
 
 To get info for a package (installed or not), run the command below.
@@ -30,12 +22,12 @@ To get info for a package (installed or not), run the command below.
 mngr info <package>
 ```
 
-### Removing a package
+### Installing a package
 
-To Remove a package, run the command below.
+To install a package, run the command below.
 
 ```sh
-mngr remove <package>
+mngr install <package>
 ```
 
 ### Updating a package
@@ -60,6 +52,14 @@ To list all packages, run the command below.
 
 ```sh
 mngr list
+```
+
+### Removing a package
+
+To Remove a package, run the command below.
+
+```sh
+mngr remove <package>
 ```
 
 ### Auto-downloading and running a package
@@ -94,18 +94,18 @@ To use a link, simply run the command as normal. Each time you run the binary, i
 <binary> [args...]
 ```
 
-### Removing links
-
-To remove a link, run the command below.
-
-```sh
-mngr unlink <binary>
-```
-
 ### Listing links
 
 To list all links, run the command below.
 
 ```sh
 mngr links
+```
+
+### Removing links
+
+To remove a link, run the command below.
+
+```sh
+mngr unlink <binary>
 ```
