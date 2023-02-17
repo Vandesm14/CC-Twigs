@@ -17,6 +17,7 @@ import {
   HEARTBEAT_INTERVAL,
   TIME_TO_LIVE_INTERVAL,
   NetEventKind,
+  IPMessageEvent,
 } from './api';
 
 const COMPUTER_ID = os.id();
@@ -114,7 +115,7 @@ function handleIPMessage(event: ModemMessageEvent<IPMessage>) {
   // the base message is for us
   if (event.message.destination === COMPUTER_ID) {
     logs.push(`took ${pretty.render(pretty.pretty(event.message))}`);
-    os.queueCustomEvent([
+    os.queueCustomEvent<[NetEventKind.IP, IPMessageEvent]>([
       NetEventKind.IP,
       {
         ...event.message,
