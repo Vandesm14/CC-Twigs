@@ -134,12 +134,12 @@ export type UDPMessage<T = unknown> = IPMessage & {
 
 /** Represents a network event. */
 export type NetEvent<E extends NetEventKind> = E extends NetEventKind.IP
-  ? never
+  ? IPMessageEvent
   : E extends NetEventKind.UDP
-  ? never
+  ? UDPMessageEvent
   : AnyNetEvent;
 /** Represents any network event. */
-export type AnyNetEvent = never;
+export type AnyNetEvent = IPMessageEvent | UDPMessageEvent;
 
 /** Represents a network event kind. */
 export const enum NetEventKind {
@@ -156,3 +156,6 @@ export type IPMessageEvent = IPMessage & {
   /** The channel to send reply messages via. */
   replyChannel: number;
 };
+
+/** Represents a UDP network event. */
+export type UDPMessageEvent = IPMessageEvent & UDPMessage;
