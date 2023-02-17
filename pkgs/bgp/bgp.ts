@@ -7,8 +7,8 @@ import peripheral, {
   PeripheralName,
 } from 'cc/peripheral';
 import {
-  BASE,
-  BaseMessage,
+  IP,
+  IPMessage,
   BGP,
   BGPMessage,
   BGP_CHANNEL,
@@ -73,9 +73,9 @@ while (!shouldExit) {
       if (event.channel === BGP_CHANNEL && BGP.isBGPMessage(message)) {
         // NOTE: this is to ensure type safety as typescript is not smart enough otherwise
         handleBGPMessage({ ...event, message });
-      } else if (BASE.isBaseMessage(message)) {
+      } else if (IP.isIPMessage(message)) {
         // NOTE: this is to ensure type safety as typescript is not smart enough otherwise
-        handleBaseMessage({ ...event, message });
+        handleIPMessage({ ...event, message });
       }
     }
   );
@@ -100,9 +100,9 @@ function handleBGPMessage(event: ModemMessageEvent<BGPMessage>) {
   });
 }
 
-function handleBaseMessage(event: ModemMessageEvent<BaseMessage>) {
+function handleIPMessage(event: ModemMessageEvent<IPMessage>) {
   if (
-    BASE.seen(event.message) ||
+    IP.seen(event.message) ||
     event.message.trace.length < 2 ||
     event.message.trace.slice(-1)[0] !== COMPUTER_ID
   ) {
@@ -135,7 +135,7 @@ function handleBaseMessage(event: ModemMessageEvent<BaseMessage>) {
   }
 
   logs.push(
-    `passed ${BASE.source(event.message)} to ${BASE.destination(
+    `passed ${IP.source(event.message)} to ${IP.destination(
       event.message
     )} via ${via}`
   );
@@ -155,7 +155,9 @@ function broadcastBGP(
   const filteredModems = modems.filter(
     ([name, modem]) => modem.isWireless() || name !== side
   );
-  filteredModems.forEach(([_name, modem]) => modem.transmit(BGP_CHANNEL, BGP_CHANNEL, message));
+  filteredModems.forEach(([_name, modem]) =>
+    modem.transmit(BGP_CHANNEL, BGP_CHANNEL, message)
+  );
 }
 
 function updateRoute(route: Omit<BGPRoute, 'ttl'>) {

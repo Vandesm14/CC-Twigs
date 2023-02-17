@@ -56,15 +56,15 @@ export const BGP = {
   },
 };
 
-/** Contains functionality for {@linkcode BaseMessage}s. */
-export const BASE = {
-  /** Creates a {@linkcode BaseMessage}. */
-  create(destination: number, via: number, source = COMPUTER_ID): BaseMessage {
+/** Contains functionality for {@linkcode IPMessage}s. */
+export const IP = {
+  /** Creates a {@linkcode IPMessage}. */
+  create(destination: number, via: number, source = COMPUTER_ID): IPMessage {
     return { destination, trace: [source, via] };
   },
 
-  /** Returns whether an unknown message is a {@linkcode BaseMessage}. */
-  isBaseMessage(this: void, message: unknown): message is BaseMessage {
+  /** Returns whether an unknown message is a {@linkcode IPMessage}. */
+  isIPMessage(this: void, message: unknown): message is IPMessage {
     return (
       typeof message === 'object' &&
       message !== null &&
@@ -76,17 +76,17 @@ export const BASE = {
   },
 
   /** Returns the source computer. */
-  source(this: void, message: BaseMessage): number | undefined {
+  source(this: void, message: IPMessage): number | undefined {
     return message.trace[0];
   },
 
   /** Returns the destination computer. */
-  destination(this: void, message: BaseMessage): number | undefined {
+  destination(this: void, message: IPMessage): number | undefined {
     return message.destination;
   },
 
   /** Returns whether this computer has already seen the message. */
-  seen(this: void, message: BaseMessage, id = COMPUTER_ID): boolean {
+  seen(this: void, message: IPMessage, id = COMPUTER_ID): boolean {
     return (
       message.trace.indexOf(id) !== -1 &&
       message.trace.indexOf(id) !== message.trace.length - 1
@@ -100,8 +100,8 @@ export type BGPMessage = {
   trace: number[];
 };
 
-/** A base message routable by BGP. */
-export type BaseMessage = {
+/** An IP message routable by BGP. */
+export type IPMessage = {
   /** The destination of the packet. */
   destination: number;
   /** The trace of computers visited so far. */
