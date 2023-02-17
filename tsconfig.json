@@ -3,8 +3,8 @@
     "target": "ESNext",
     "lib": ["ESNext"],
     "moduleResolution": "node",
-    "typeRoots": ["./types"],
-    "types": ["@jackmacwindows/lua-types/cc", "craftos", "cc"],
+    "typeRoots": ["./types", "./node_modules/@types"],
+    "types": ["@jackmacwindows/lua-types/cc", "craftos", "cc", "jest"],
     "baseUrl": "./pkgs",
 
     "strict": true,
@@ -25,6 +25,6 @@
     // "luaBundle": "main.lua",
     // "luaBundleEntry": "main.ts"
   },
-  "include": ["./pkgs/**/**.ts", "types/event.ts"],
+  "include": ["./pkgs/**/**.ts", "types/event.ts", "./tests/**/**.ts"],
   "exclude": ["server"]
 }

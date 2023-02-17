@@ -5,12 +5,20 @@
     "build": "tstl && yarn post-build",
     "post-build": "deno run --allow-all server/postBuild.ts",
     "format": "prettier --write \"**/*.ts\"",
-    "format:check": "prettier --check \"**/*.ts\""
+    "format:check": "prettier --check \"**/*.ts\"",
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "devDependencies": {
     "@jackmacwindows/lua-types": "^2.13.1",
     "@jackmacwindows/typescript-to-lua": "^1.12.0",
+    "@types/jest": "^29.4.0",
+    "@types/node": "^18.13.0",
     "prettier": "^2.8.4",
     "typescript": "^4.9.5"
+  },
+  "dependencies": {
+    "jest": "^29.4.3",
+    "ts-jest": "^29.0.5"
   }
 }
