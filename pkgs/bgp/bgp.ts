@@ -1,3 +1,4 @@
+import * as pretty from 'cc.pretty';
 import os, { EventKind, ModemMessageEvent, Side } from 'cc/os';
 import parallel from 'cc/parallel';
 import peripheral, {
@@ -23,6 +24,8 @@ let shouldExit = false;
 let heartbeatTimeout = os.epoch() + HEARTBEAT_INTERVAL;
 let seenSources: number[] = [];
 let routes: BGPRoute[] = [];
+
+let logs: string[] = [];
 
 while (!shouldExit) {
   displayRoutes();
@@ -73,7 +76,8 @@ while (!shouldExit) {
         // NOTE: this is to ensure type safety as typescript is not smart enough otherwise
         handleBGPMessage({ ...event, message });
       } else if (BASE.isBaseMessage(message)) {
-        handleBaseMessage(message);
+        // NOTE: this is to ensure type safety as typescript is not smart enough otherwise
+        handleBaseMessage({ ...event, message });
       }
     }
   );
@@ -99,8 +103,46 @@ function handleBGPMessage(event: ModemMessageEvent<BGPMessage>) {
   });
 }
 
-function handleBaseMessage(message: BaseMessage) {
-  throw 'not implemented yet';
+function handleBaseMessage(event: ModemMessageEvent<BaseMessage>) {
+  if (
+    BASE.seen(event.message) ||
+    event.message.trace.length < 2 ||
+    event.message.trace.slice(-1)[0] !== COMPUTER_ID
+  ) {
+    logs.push(`dropped ${pretty.render(pretty.pretty(event.message))}`);
+    return;
+  }
+
+  // the base message is for us
+  if (event.message.destination === COMPUTER_ID) {
+    // TODO: accept the message event
+    logs.push(`took ${pretty.render(pretty.pretty(event.message))}`);
+    return;
+  }
+
+  // the base message is for another computer
+  const route = shortestRoute(event.message.destination);
+  if (route === undefined) {
+    logs.push(`no route ${pretty.render(pretty.pretty(event.message))}`);
+    return;
+  }
+
+  const via = route.via;
+  const side = route.side;
+  event.message.trace.push(via);
+
+  const modem = modems().find(([name, _modem]) => name === side)?.[1];
+  if (modem === undefined) {
+    logs.push(`no modem ${pretty.render(pretty.pretty(event.message))}`);
+    return;
+  }
+
+  logs.push(
+    `passed ${BASE.source(event.message)} to ${BASE.destination(
+      event.message
+    )} via ${via}`
+  );
+  modem.transmit(event.channel, event.replyChannel, event.message);
 }
 
 function broadcastBGP(
@@ -152,8 +194,8 @@ function modems(): [PeripheralName, ModemPeripheral][] {
     .map(({ name }) => [name, peripheral.wrap(name) as ModemPeripheral]);
 }
 
-function displayRoutes(above?: string, below?: string) {
-  const [width, _height] = term.getSize();
+function displayRoutes() {
+  const [width, height] = term.getSize();
 
   const uniqueDests = routes.reduce(
     (acc, val) =>
@@ -186,13 +228,16 @@ function displayRoutes(above?: string, below?: string) {
   term.setCursorPos(1, 1);
 
   print(`Route Table: ${destAndRoutes.length} dest(s)`);
-  if (above !== undefined) term.write(`${above}`);
   print('\ndest: via (hops)');
 
   print(prettyDestAndRoutes);
 
-  if (below !== undefined) term.write(`\n${below}`);
-  print();
+  print('\nLogs:');
+  const [_x, y] = term.getCursorPos();
+  while (logs.length > height - y) logs.shift();
+  for (const log of logs) {
+    print(log);
+  }
 }
 
 function shortestRoute(destination: number): BGPRoute | undefined {

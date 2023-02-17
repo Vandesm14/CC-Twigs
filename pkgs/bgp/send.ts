@@ -1,25 +1,21 @@
-// import { sendIP } from './api';
+import peripheral, { PeripheralKind } from 'cc/peripheral';
+import { BASE } from './api';
+
 const args = [...$vararg];
-const destination = args[0];
-const message = args[1];
-const broadcast = args[2];
+const destination_ = args[0];
+const via_ = args[1];
 
-if (!destination) throw new Error('No destination provided');
-if (!message) throw new Error('No message provided');
+if (destination_ === undefined) throw 'No destination provided';
+if (via_ === undefined) throw 'No message provided';
 
-const to = parseInt(destination);
+const destination = parseInt(destination_);
+const via = parseInt(via_);
 
-if (isNaN(to)) throw new Error('Destination is not a number');
+if (isNaN(destination)) throw 'Destination is not a number';
+if (isNaN(via)) throw 'Via is not a number';
 
-throw 'not implemented yet';
+const message = BASE.create(destination, via);
 
-// sendIP(
-//   {
-//     from: os.getComputerID(),
-//     to,
-//     data: message,
-//   },
-//   {
-//     broadcast: !!broadcast,
-//   }
-// );
+peripheral
+  .find(PeripheralKind.Modem)
+  .forEach((modem) => modem.transmit(1, 2, message));

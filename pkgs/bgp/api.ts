@@ -58,6 +58,11 @@ export const BGP = {
 
 /** Contains functionality for {@linkcode BaseMessage}s. */
 export const BASE = {
+  /** Creates a {@linkcode BaseMessage}. */
+  create(destination: number, via: number, source = COMPUTER_ID): BaseMessage {
+    return { destination, trace: [source, via] };
+  },
+
   /** Returns whether an unknown message is a {@linkcode BaseMessage}. */
   isBaseMessage(this: void, message: unknown): message is BaseMessage {
     return (
@@ -78,6 +83,14 @@ export const BASE = {
   /** Returns the destination computer. */
   destination(this: void, message: BaseMessage): number | undefined {
     return message.destination;
+  },
+
+  /** Returns whether this computer has already seen the message. */
+  seen(this: void, message: BaseMessage, id = COMPUTER_ID): boolean {
+    return (
+      message.trace.indexOf(id) !== -1 &&
+      message.trace.indexOf(id) !== message.trace.length - 1
+    );
   },
 };
 

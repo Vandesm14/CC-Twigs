@@ -8,28 +8,20 @@
     "README.md",
     "api.lua",
     "bgp.lua",
-    "constants.lua",
-    "db.lua",
-    "lib.lua",
     "pkg.json",
     "send.lua",
-    "tasks.md",
-    "types.lua"
+    "tasks.md"
   ],
   "bin": {
     "bgp": "bgp.lua",
-    "send-ip": "send.lua"
+    "send-base": "send.lua"
   },
   "checksums": {
-    "pkg.json": "5cf70bdf3602a0cf1aeaf07e29022c1b",
+    "pkg.json": "f67ba548a7dd133faeb3b98cf1184e71",
     "README.md": "0cd7e8e517a7d94efd38f1419ce4aad3",
-    "api.lua": "4b44d0f7ed6105138290010acb25be12",
-    "bgp.lua": "3a9ceaa292dccf5f94d4fb02d64a2d5e",
-    "constants.lua": "fc015fd1b1d6de62d5331d0b0bb01de5",
-    "db.lua": "be1f7c296afe18c45b3e53892c632ca0",
-    "lib.lua": "87fa58c26cc5680926faaa4ca6cdceed",
-    "send.lua": "e792de811a405e69427007166af6308b",
-    "tasks.md": "d3c1be4ae0beb71b537b343b4cddb28d",
-    "types.lua": "5aad8e5ef04bb731e17a9556a63e0b35"
+    "api.lua": "3c7df1dc88f81b4d149e7cffe5bcff90",
+    "bgp.lua": "fd8f688a2ce55c39e70efa55ed99ee3a",
+    "send.lua": "a27909ab3a10c4e9a4f693236032ea7c",
+    "tasks.md": "d3c1be4ae0beb71b537b343b4cddb28d"
   }
 }
