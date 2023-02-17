@@ -26,12 +26,18 @@ function checksum(text: string) {
   return hash.digest(encode(text)).hex();
 }
 
+function dedupe<T>(array: T[]) {
+  return Array.from(new Set(array));
+}
+
 names.forEach((name) => {
   // Get all the .lua files in the package
   const lua = walkSync(`./pkgs/${name}`, {
     includeDirs: false,
   });
-  const files = [...lua].map((file) => file.path);
+  const files = dedupe(
+    [...lua, { path: `pkgs/${name}/pkg.json` }].map((file) => file.path)
+  );
   const luaNames = files.filter((path) => path.endsWith('.lua'));
   const needs: string[] = [];
 
