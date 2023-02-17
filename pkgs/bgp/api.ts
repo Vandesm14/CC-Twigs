@@ -102,8 +102,14 @@ export type BGPMessage = {
 
 /** An IP message routable by BGP. */
 export type IPMessage = {
-  /** The destination of the packet. */
+  /** The destination of the message. */
   destination: number;
   /** The trace of computers visited so far. */
   trace: number[];
+};
+
+/** A UDP message routable by IP. */
+export type UDPMessage<T = unknown> = IPMessage & {
+  /** The data of the message. */
+  data: T;
 };

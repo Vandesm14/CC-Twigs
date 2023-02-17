@@ -135,7 +135,7 @@ function handleIPMessage(event: ModemMessageEvent<IPMessage>) {
   }
 
   logs.push(
-    `passed ${IP.source(event.message)} to ${IP.destination(
+    `forwarded ${IP.source(event.message)} to ${IP.destination(
       event.message
     )} via ${via}`
   );
