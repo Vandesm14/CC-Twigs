@@ -155,11 +155,7 @@ function broadcastBGP(
   const filteredModems = modems.filter(
     ([name, modem]) => modem.isWireless() || name !== side
   );
-  filteredModems.forEach(([_name, modem]) => sendRawBGP(modem, message));
-}
-
-function sendRawBGP(modem: ModemPeripheral, message: BGPMessage) {
-  modem.transmit(BGP_CHANNEL, BGP_CHANNEL, message);
+  filteredModems.forEach(([_name, modem]) => modem.transmit(BGP_CHANNEL, BGP_CHANNEL, message));
 }
 
 function updateRoute(route: Omit<BGPRoute, 'ttl'>) {
