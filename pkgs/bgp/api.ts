@@ -1,196 +1,96 @@
-import { pretty, render } from 'cc.pretty';
-import { default as os } from 'cc/os';
-import {
-  ModemPeripheral,
-  default as peripheral,
-  PeripheralKind,
-  PeripheralName,
-} from 'cc/peripheral';
-import { BGP_CHANNEL, IP_PORT } from './constants';
-import { findShortestRoute } from './db';
-import { BGPMessage, IPMessage } from './types';
+import os from 'cc/os';
 
-/** The ID of the computer */
+/** The reserved channel for BGP communication. */
+export const BGP_CHANNEL = 0;
+/** The heartbeat interval in milliseconds.  */
+export const HEARTBEAT_INTERVAL = 5000;
+/** The time-to-live interval in milliseconds.  */
+export const TIME_TO_LIVE_INTERVAL = HEARTBEAT_INTERVAL + 2000;
+/** The BGP channel routing range. */
+export const BGP_CHANNEL_RANGE: [number, number] = [0, 127];
+/** The BGP routes table file path. */
+export const BGP_ROUTES_TABLE_PATH = '.mngr/data/bgp/route_table.json';
+
 const COMPUTER_ID = os.id();
 
-export interface State {
-  /** List of modem names */
-  modemNames: PeripheralName[];
+/** Contains functionality for {@linkcode BGPMessage}s. */
+export const BGP = {
+  /** Returns whether an unknown message is a {@linkcode BGPMessage}. */
+  isBGPMessage(this: void, message: unknown): message is BGPMessage {
+    return (
+      typeof message === 'object' &&
+      message !== null &&
+      'trace' in message &&
+      Array.isArray(message.trace)
+    );
+  },
 
-  /** Modem peripherals */
-  modems: ModemPeripheral[];
+  /** Returns the source computer. */
+  source(this: void, message: BGPMessage): number | undefined {
+    return message.trace[0];
+  },
 
-  /** List of modem names that are wireless */
-  wirelessModemNames: PeripheralName[];
-}
+  /** Returns the previously visited computer. */
+  previous(this: void, message: BGPMessage): number | undefined {
+    return message.trace[message.trace.length - 1];
+  },
 
-/** Creates useful compositions around modems such as getting all sides occupied by modems */
-export function getPeripheralState(): State {
-  const modems = peripheral.find(PeripheralKind.Modem);
-  const modemNames = peripheral
-    .attached()
-    .filter(({ kind }) => kind === PeripheralKind.Modem)
-    .map(({ name }) => name);
-  const wirelessModemNames = modemNames.filter((name) =>
-    (peripheral.wrap(name) as ModemPeripheral).isWireless()
-  );
-
-  return { modemNames, modems, wirelessModemNames };
-}
-
-/** Opens the BGP port on all modems */
-export function openPorts({ modems }: Pick<State, 'modems'>) {
-  modems.forEach((modem) => {
-    modem.open(BGP_CHANNEL);
-    modem.open(IP_PORT);
-  });
-}
-
-/** Displays a BGP message */
-export function formatIPMessage(message: IPMessage) {
-  return `Receeived IP Message:\n${render(pretty(message))}`;
-}
-
-/** A small wrapper to ensure type-safety of sending a BGP message */
-export function sendRawBGP(message: BGPMessage, modemSide: PeripheralName) {
-  const modem = peripheral.wrap(modemSide) as ModemPeripheral;
-  if (!modem) return;
-
-  modem.transmit(BGP_CHANNEL, BGP_CHANNEL, message);
-}
-
-/** A small wrapper to ensure type-safety of sending an IP message */
-export function sendRawIP(
-  message: IPMessage,
-  channel: number,
-  modemName: PeripheralName
-) {
-  const modem = peripheral.wrap(modemName) as ModemPeripheral;
-  if (!modem) return;
-
-  modem.transmit(channel, channel, message);
-}
-
-export interface sendIPProps {
-  /** If `true`, ignores BGP logic and broacasts message via all modems */
-  broadcast?: boolean;
+  /** Returns whether this computer has already seen the message. */
+  seen(this: void, message: BGPMessage, id = COMPUTER_ID): boolean {
+    return (
+      message.trace.indexOf(id) !== -1 &&
+      message.trace.indexOf(id) !== message.trace.length
+    );
+  },
 
   /**
-   * The channel to send the message on
-   * @default IP_PORT
+   * Returns the distance of an computer from itself.
+   *
+   * This will compensate for whether the computer is at the end of the trace.
    */
-  channel?: number;
-}
+  distance(this: void, message: BGPMessage, id: number): number {
+    if (id === COMPUTER_ID) return 0;
 
-/** Sends a carrier message to the destination accordingly */
-export function sendIP(
-  message: Omit<IPMessage, 'id' | 'trace'>,
-  opts?: { broadcast?: boolean; channel?: number }
-) {
-  const { to } = message;
-  const ipMessage: IPMessage = {
-    ...message,
-    trace: [COMPUTER_ID],
-  };
+    const inclusion = BGP.previous(message) === COMPUTER_ID ? 2 : 1;
+    return message.trace.length - message.trace.indexOf(id) - inclusion;
+  },
+};
 
-  let sides = peripheral
-    .attached()
-    .filter(({ kind }) => kind === PeripheralKind.Modem)
-    .map(({ name }) => name);
+/** Contains functionality for {@linkcode BaseMessage}s. */
+export const BASE = {
+  /** Returns whether an unknown message is a {@linkcode BaseMessage}. */
+  isBaseMessage(this: void, message: unknown): message is BaseMessage {
+    return (
+      typeof message === 'object' &&
+      message !== null &&
+      'destination' in message &&
+      typeof message.destination === 'number' &&
+      'trace' in message &&
+      Array.isArray(message.trace)
+    );
+  },
 
-  if (to === COMPUTER_ID) {
-    // TODO: actually handle sending to "localhost"
-    throw new Error(`Cannot send message to self`);
-  } else if (opts?.broadcast) {
-    print(`Sent message to ${to} via *`);
-  } else {
-    if (sides.length === 0) throw new Error(`No modems found`);
+  /** Returns the source computer. */
+  source(this: void, message: BaseMessage): number | undefined {
+    return message.trace[0];
+  },
 
-    const route = findShortestRoute(to);
-    if (!route) throw new Error(`Could not find a route to: ${to}`);
+  /** Returns the destination computer. */
+  destination(this: void, message: BaseMessage): number | undefined {
+    return message.destination;
+  },
+};
 
-    sides = [route.side];
-    ipMessage.trace = [COMPUTER_ID, route.via];
+/** A BGP propagation message. */
+export type BGPMessage = {
+  /** The trace of computers visited so far. */
+  trace: number[];
+};
 
-    print(`Sent message to ${to} via ${route.via}`);
-  }
-
-  sides.forEach((side) => {
-    sendRawIP(ipMessage, opts?.channel ?? IP_PORT, side);
-  });
-}
-
-export function trace(trace?: number[]) {
-  const storedTrace = trace ? [...trace] : [];
-
-  const obj = {
-    /** Gets the last item */
-    from() {
-      return storedTrace.slice(-1)[0];
-    },
-
-    /** Gets the first item */
-    origin() {
-      return storedTrace[0];
-    },
-
-    /**
-     * Gets the distance of a node from self
-     * [a, b, c, d, self]
-     * distacne(self) = 0 (self)
-     * distance(d)    = 1
-     * distance(a)    = 4
-     *
-     * If self isn't in the trace, it will compensate (BGP logic)
-     * [a, b, c, d]
-     * distacne(self) = 0 (self)
-     * distance(d)    = 1
-     * distance(a)    = 4
-     */
-    distance(id: number) {
-      if (id === COMPUTER_ID) return 0;
-      const selfIsAtEnd = obj.from() === COMPUTER_ID;
-
-      if (selfIsAtEnd) {
-        return storedTrace.length - storedTrace.indexOf(id) - 2;
-      } else {
-        return storedTrace.length - storedTrace.indexOf(id) - 1;
-      }
-    },
-
-    /** Checks if the node has seen the message (only if the id is within the array) */
-    hasSeen(id = COMPUTER_ID) {
-      return (
-        storedTrace.indexOf(id) !== -1 &&
-        storedTrace.indexOf(id) !== obj.size() - 1
-      );
-    },
-
-    /** Checks if the trace is empty */
-    isEmpty() {
-      return !(storedTrace.length > 0);
-    },
-
-    /** Adds the computerID to the end of the trace */
-    addSelf(ids?: number[]) {
-      return [...storedTrace, COMPUTER_ID, ...(ids ?? [])];
-    },
-
-    /** Adds an array of computerIDs to the end of the trace */
-    add(ids: number[]) {
-      return [...storedTrace, ...ids];
-    },
-
-    /** Gets the size of the trace */
-    size() {
-      return storedTrace.length;
-    },
-
-    /** Creates a Set from the trace */
-    toSet() {
-      return new Set(trace);
-    },
-  };
-
-  return obj;
-}
+/** A base message routable by BGP. */
+export type BaseMessage = {
+  /** The destination of the packet. */
+  destination: number;
+  /** The trace of computers visited so far. */
+  trace: number[];
+};

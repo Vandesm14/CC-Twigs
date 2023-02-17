@@ -8,13 +8,9 @@
     "README.md",
     "api.lua",
     "bgp.lua",
-    "constants.lua",
-    "db.lua",
-    "lib.lua",
     "pkg.json",
     "send.lua",
-    "tasks.md",
-    "types.lua"
+    "tasks.md"
   ],
   "bin": {
     "bgp": "bgp.lua",
