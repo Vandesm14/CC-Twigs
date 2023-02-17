@@ -239,3 +239,34 @@ export function fetchAllLocalPackages(remote = false): Package[] {
 
   return packages;
 }
+
+export function getFilesToUpdate(pkg: string) {
+  const local = fetchLocalPackage(pkg);
+  const remote = fetchPackage(pkg);
+
+  const files: string[] = [];
+
+  if (!local || !remote) {
+    throw new Error(`Failed to fetch local or remote package ${pkg}`);
+  }
+
+  const checksums = local.checksums;
+  const remoteChecksums = remote.checksums;
+
+  for (const [file, checksum] of Object.entries(checksums)) {
+    if (remoteChecksums[file] !== checksum) {
+      files.push(file);
+    }
+  }
+
+  // if the remote package has more files than the local package, we need to update
+  if (Object.keys(remoteChecksums).length > Object.keys(checksums).length) {
+    for (const file of Object.keys(remoteChecksums)) {
+      if (!checksums[file]) {
+        files.push(file);
+      }
+    }
+  }
+
+  return files;
+}
