@@ -45,9 +45,10 @@ function printUsage() {
 if (command === 'copy-bin') {
   copyAllBinFiles();
   print('Copied all bin files to .mngr/bin/*');
-}
 
-if (command === 'update') {
+  // @ts-expect-error
+  return;
+} else if (command === 'update') {
   const pkg = arg1;
 
   // If no argument, update all packages
@@ -111,6 +112,12 @@ if (command === 'update') {
 } else if (command === 'links') {
   const links = getLinkedBins().map((link) => `${link.pkg}/${link.bin}`);
   print(links.length > 0 ? links.join('\n') : 'No links found.');
+
+  // @ts-expect-error
+  return;
+} else if (command === 'list') {
+  const pkgs = listInstalledPackages();
+  print(`Installed packages: ${pkgs.join(', ')}`);
 
   // @ts-expect-error
   return;
@@ -216,9 +223,6 @@ if (arg1) {
     const pkg = arg1;
     removePackage(pkg);
     print(`Removed ${pkg}.`);
-  } else if (command === 'list') {
-    const pkgs = listInstalledPackages();
-    print(`Installed packages: ${pkgs.join(', ')}`);
   } else if (command === 'info') {
     const pkg = arg1;
 
