@@ -8,8 +8,11 @@
     "test.lua"
   ],
   "checksums": {
-    "pkg.json": "c268c7e32b23f09398b32ea50fd23038",
+    "pkg.json": "71e808ec88f39c0a11b233087ea2b193",
     "hello.lua": "10834dac27c1088db20c28392be3f0c0",
     "test.lua": "2fd3f761b2cfaf52952f2626b7561c25"
+  },
+  "bin": {
+    "test": "test.lua"
   }
 }
