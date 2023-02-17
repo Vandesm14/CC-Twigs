@@ -59,7 +59,7 @@ export const BGP = {
 /** Contains functionality for {@linkcode IPMessage}s. */
 export const IP = {
   /** Creates a {@linkcode IPMessage}. */
-  create(destination: number, via: number, source = COMPUTER_ID): IPMessage {
+  create(this: void, destination: number, via: number, source = COMPUTER_ID): IPMessage {
     return { destination, trace: [source, via] };
   },
 
@@ -92,6 +92,45 @@ export const IP = {
       message.trace.indexOf(id) !== message.trace.length - 1
     );
   },
+
+  /** The {@linkcode IPMessageEvent} kind. */
+  EVENT: "ip_message",
+
+  /** Creates an {@linkcode IPMessageEvent}. */
+  createEvent(this: void, message: IPMessage, channel: number, replyChannel: number): IPMessageEvent {
+    return { ...message, channel, replyChannel };
+  },
+
+  /** Returns whether an unknown event is a {@linkcode IPMessageEvent}. */
+  isIPMessageEvent(this: void, event: unknown): event is IPMessageEvent {
+    return IP.isIPMessage(event) && "channel" in event && typeof(event.channel) === "number" && "replyChannel" in event && typeof(event.replyChannel) === "number";
+  },
+};
+
+/** Contains functionality for {@linkcode UDPMessage}s. */
+export const UDP = {
+  /** The {@linkcode UDPMessageEvent} kind. */
+  EVENT: "udp_message",
+
+  /** Creates a {@linkcode UDPMessageEvent}. */
+  createEvent(this: void, message: UDPMessage, channel: number, replyChannel: number): UDPMessageEvent {
+    return { ...message, channel, replyChannel };
+  },
+
+  /** Returns whether an unknown event is a {@linkcode UDPMessageEvent}. */
+  isUDPMessageEvent(this: void, event: unknown): event is UDPMessageEvent {
+    return IP.isIPMessageEvent(event) && UDP.isUDPMessage(event);
+  },
+
+  /** Creates a {@linkcode UDPMessage}. */
+  create<T>(this: void, ipMessage: IPMessage, data: T): UDPMessage<T> {
+    return { ...ipMessage, data };
+  },
+
+  /** Returns whether an unknown message is a {@linkcode UDPMessage}. */
+  isUDPMessage(this: void, message: unknown): message is UDPMessage {
+    return IP.isIPMessage(message) && 'data' in message;
+  },
 };
 
 /** A BGP propagation message. */
@@ -112,4 +151,20 @@ export type IPMessage = {
 export type UDPMessage<T = unknown> = IPMessage & {
   /** The data of the message. */
   data: T;
+};
+
+/** An IP message event. */
+export type IPMessageEvent = IPMessage & {
+  /** The channel the message was received on. */
+  channel: number;
+  /** The channel to send reply messages via. */
+  replyChannel: number;
+};
+
+/** A UDP message event. */
+export type UDPMessageEvent = UDPMessage & {
+  /** The channel the message was received on. */
+  channel: number;
+  /** The channel to send reply messages via. */
+  replyChannel: number;
 };

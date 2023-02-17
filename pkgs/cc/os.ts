@@ -122,6 +122,29 @@ export function queueEvent<T extends Event<EventKind>>(
   }
 }
 
+/**
+ * Waits for a {@linkcode CustomEvent}.
+ *
+ * This calls {@linkcode coroutine.yield} internally.
+ *
+ * @param filter The {@linkcode EventKind} to wait for.
+ */
+export function customEvent<E extends string, T extends Record<PropertyKey, unknown>>(filter: E): CustomEvent<E, T> {
+  return os.pullEvent(filter) as unknown as CustomEvent<E, T>;
+}
+
+/**
+ * Queues a {@linkcode CustomEvent}.
+ *
+ * @param event The {@linkcode CustomEvent} to queue.
+ */
+export function queueCustomEvent<T extends CustomEvent<string, Record<PropertyKey, unknown>>>(
+  this: void,
+  event: T
+): void {
+  os.queueEvent(event[0], event[1]);
+}
+
 export default {
   sleep,
   sleepUntil,
@@ -134,6 +157,8 @@ export default {
   setLabel,
   event,
   queueEvent,
+  customEvent,
+  queueCustomEvent,
 };
 
 /** Represents a locale. */
@@ -161,6 +186,9 @@ export type AnyEvent =
   | PeripheralAttachEvent
   | PeripheralDetachEvent
   | TerminateEvent;
+
+/** Represents a custom event. */
+export type CustomEvent<E extends string, T extends Record<PropertyKey, unknown>> = [E, T];
 
 /**
  * Represents an event fired when a {@linkcode ModemPeripheral} receives a

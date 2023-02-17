@@ -112,8 +112,8 @@ function handleIPMessage(event: ModemMessageEvent<IPMessage>) {
 
   // the base message is for us
   if (event.message.destination === COMPUTER_ID) {
-    // TODO: accept the message event
     logs.push(`took ${pretty.render(pretty.pretty(event.message))}`);
+    os.queueCustomEvent([IP.EVENT, IP.createEvent(event.message, event.channel, event.replyChannel)]);
     return;
   }
 
