@@ -1,0 +1,19 @@
+{
+  "name": "net",
+  "main": "net.lua",
+  "deps": [
+    "bgp",
+    "cc"
+  ],
+  "files": [
+    "pkg.json",
+    "send.lua"
+  ],
+  "checksums": {
+    "pkg.json": "d10ec079ae1e3055058f1e21a542a258",
+    "send.lua": "a27909ab3a10c4e9a4f693236032ea7c"
+  },
+  "bin": {
+    "send-base": "send.lua"
+  }
+}

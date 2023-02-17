@@ -1,5 +1,5 @@
 import peripheral, { PeripheralKind } from 'cc/peripheral';
-import { BASE } from './api';
+import { BASE } from 'bgp/api';
 
 const args = [...$vararg];
 const destination_ = args[0];

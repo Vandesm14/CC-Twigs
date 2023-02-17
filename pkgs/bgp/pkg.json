@@ -9,19 +9,16 @@
     "api.lua",
     "bgp.lua",
     "pkg.json",
-    "send.lua",
     "tasks.md"
   ],
   "bin": {
-    "bgp": "bgp.lua",
-    "send-base": "send.lua"
+    "bgp": "bgp.lua"
   },
   "checksums": {
-    "pkg.json": "f67ba548a7dd133faeb3b98cf1184e71",
+    "pkg.json": "8f4d11671581affc37f3f76647bece69",
     "README.md": "0cd7e8e517a7d94efd38f1419ce4aad3",
     "api.lua": "3c7df1dc88f81b4d149e7cffe5bcff90",
     "bgp.lua": "fd8f688a2ce55c39e70efa55ed99ee3a",
-    "send.lua": "a27909ab3a10c4e9a4f693236032ea7c",
     "tasks.md": "d3c1be4ae0beb71b537b343b4cddb28d"
   }
 }
