@@ -129,7 +129,10 @@ export function queueEvent<T extends Event<EventKind>>(
  *
  * @param filter The {@linkcode EventKind} to wait for.
  */
-export function customEvent<E extends string, T extends Record<PropertyKey, unknown>>(filter: E): CustomEvent<E, T> {
+export function customEvent<
+  E extends string,
+  T extends Record<PropertyKey, unknown>
+>(filter: E): CustomEvent<E, T> {
   return os.pullEvent(filter) as unknown as CustomEvent<E, T>;
 }
 
@@ -138,10 +141,9 @@ export function customEvent<E extends string, T extends Record<PropertyKey, unkn
  *
  * @param event The {@linkcode CustomEvent} to queue.
  */
-export function queueCustomEvent<T extends CustomEvent<string, Record<PropertyKey, unknown>>>(
-  this: void,
-  event: T
-): void {
+export function queueCustomEvent<
+  T extends CustomEvent<string, Record<PropertyKey, unknown>>
+>(this: void, event: T): void {
   os.queueEvent(event[0], event[1]);
 }
 
@@ -188,7 +190,10 @@ export type AnyEvent =
   | TerminateEvent;
 
 /** Represents a custom event. */
-export type CustomEvent<E extends string, T extends Record<PropertyKey, unknown>> = [E, T];
+export type CustomEvent<
+  E extends string,
+  T extends Record<PropertyKey, unknown>
+> = [E, T];
 
 /**
  * Represents an event fired when a {@linkcode ModemPeripheral} receives a
