@@ -16,6 +16,7 @@ import {
   BGP_ROUTES_TABLE_PATH,
   HEARTBEAT_INTERVAL,
   TIME_TO_LIVE_INTERVAL,
+  NetEventKind,
 } from './api';
 
 const COMPUTER_ID = os.id();
@@ -113,7 +114,14 @@ function handleIPMessage(event: ModemMessageEvent<IPMessage>) {
   // the base message is for us
   if (event.message.destination === COMPUTER_ID) {
     logs.push(`took ${pretty.render(pretty.pretty(event.message))}`);
-    os.queueCustomEvent([IP.EVENT, IP.createEvent(event.message, event.channel, event.replyChannel)]);
+    os.queueCustomEvent([
+      NetEventKind.IP,
+      {
+        ...event.message,
+        channel: event.channel,
+        replyChannel: event.replyChannel,
+      },
+    ]);
     return;
   }
 
