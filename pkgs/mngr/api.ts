@@ -255,6 +255,8 @@ export function fetchAllLocalPackages(remote = false): Package[] {
 }
 
 export function getFilesToUpdate(pkg: string): string[] | undefined {
+  if (!isPkgInstalled(pkg)) return undefined;
+
   const local = fetchLocalPackage(pkg);
   const remote = fetchPackage(pkg);
 

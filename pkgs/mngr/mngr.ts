@@ -158,8 +158,8 @@ if (arg1) {
     const luaAliasCode = (pkg: string, file?: string) =>
       `
       local args = {...}
-      shell.run("mngr", "use-link", "${pkg}", "${file}", unpack(args))
-      shell.run(".mngr/links/${file}", unpack(args))`
+      shell.run("mngr", "use-link", "${pkg}", "${file}")
+      shell.run(".mngr/links/${file}", table.unpack(args))`
         .split('\n')
         .map((line) => line.trim())
         .join('\n')
