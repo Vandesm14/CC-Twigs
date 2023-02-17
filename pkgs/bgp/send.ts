@@ -11,6 +11,8 @@ const to = parseInt(destination);
 
 if (isNaN(to)) throw new Error('Destination is not a number');
 
+throw 'not implemented yet';
+
 // sendIP(
 //   {
 //     from: os.getComputerID(),
