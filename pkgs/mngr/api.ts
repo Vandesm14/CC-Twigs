@@ -226,3 +226,16 @@ export function getBinRelations(): Record<string, string> {
 
   return relations;
 }
+
+export function fetchAllLocalPackages(remote = false): Package[] {
+  const pkgs = listInstalledPackages();
+  const packages: Package[] = [];
+  for (const pkg of pkgs) {
+    const localPkg = remote ? fetchPackage(pkg) : fetchLocalPackage(pkg);
+    if (localPkg) {
+      packages.push(localPkg);
+    }
+  }
+
+  return packages;
+}

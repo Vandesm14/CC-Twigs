@@ -1,7 +1,7 @@
 import {
-  address,
   copyAllBinFiles,
   doInstallPackage,
+  fetchAllLocalPackages,
   fetchPackage,
   getBinRelations,
   getLinkedBins,
@@ -57,6 +57,51 @@ if (command === 'update') {
       ', '
     )}`
   );
+
+  // @ts-expect-error
+  return;
+} else if (command === 'check') {
+  const local = fetchAllLocalPackages();
+  const remote = fetchAllLocalPackages(true);
+
+  let needsUpdate: Record<string, number> = {};
+  let errors: Record<string, string> = {};
+
+  for (const pkg of local) {
+    const checksums = pkg.checksums;
+    const remotePkg = remote.find((p) => p.name === pkg.name);
+
+    if (remotePkg) {
+      const remoteChecksums = remotePkg.checksums;
+
+      for (const [file, checksum] of Object.entries(checksums)) {
+        if (remoteChecksums[file] !== checksum) {
+          needsUpdate[pkg.name] = needsUpdate[pkg.name] ?? 0;
+          needsUpdate[pkg.name]++;
+        }
+      }
+
+      // if the remote package has more files than the local package, we need to update
+      if (Object.keys(remoteChecksums).length > Object.keys(checksums).length) {
+        needsUpdate[pkg.name] = needsUpdate[pkg.name] ?? 0;
+        needsUpdate[pkg.name] += Math.abs(
+          Object.keys(remoteChecksums).length - Object.keys(checksums).length
+        );
+      }
+    } else {
+      errors[pkg.name] = 'No remote package found';
+    }
+  }
+
+  print(`${Object.keys(needsUpdate).length} packages have updates:`);
+  for (const [pkg, count] of Object.entries(needsUpdate)) {
+    print(`  ${pkg}: ${count} file${count > 1 ? 's' : ''}`);
+  }
+
+  print(`${Object.keys(errors).length} packages have errors:`);
+  for (const [pkg, error] of Object.entries(errors)) {
+    print(`  ${pkg}: ${error}`);
+  }
 
   // @ts-expect-error
   return;

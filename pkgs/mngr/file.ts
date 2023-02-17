@@ -1,5 +1,9 @@
 export function createFileIfNotExist(path: string, content = '') {
   if (fs.exists(path)) return;
+  writeFile(path, content);
+}
+
+export function writeFile(path: string, content: string) {
   const [file] = fs.open(path, 'w');
 
   if (!file) {

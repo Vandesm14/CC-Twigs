@@ -16,10 +16,10 @@
   },
   "checksums": {
     "README.md": "0227a41ae38e7b95ca37fa2b898c027c",
-    "api.lua": "e5b53cadecc91a34e553fb1b61a6776f",
-    "file.lua": "cbab6ab3366ecdce8abfeb1501a99e43",
+    "api.lua": "5f962e234936bb7db26eefd24fdda86a",
+    "file.lua": "993319efaa22d683e3d604229a58af9e",
     "install.lua": "9491cb6737a5281b24cf7bed751f8200",
-    "mngr.lua": "e3d0f98d6962daf53ccf8b445279fbd0",
+    "mngr.lua": "f228d8ce759d22888d2b553f3b698bac",
     "types.lua": "a21ea92f14dbdd0498cbd82598633b87"
   }
 }
