@@ -1,3 +1,4 @@
+import * as io from 'https://deno.land/std@0.177.0/io/mod.ts';
 import { assert } from 'https://deno.land/std@0.177.0/testing/asserts.ts';
 
 const existsSync = (path: string) => {
@@ -9,7 +10,29 @@ const existsSync = (path: string) => {
   }
 };
 
-const computers: Record<number, Deno.Process> = {};
+const stripAnsi = (str: string) =>
+  str.replace(/\x1b\[[0-9;]*m/g, '').replace(/\x1b\[[0-9;]*K/g, '');
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const computers: Record<
+  number,
+  Deno.Process<{
+    cmd: string[];
+    stdout: 'piped';
+    stdin: 'piped';
+  }>
+> = {};
+
+export function startComputer(id: number) {
+  const p = Deno.run({
+    cmd: ['craftos', '-d', '.craftos', '-i', id.toString(), '--cli'],
+    stdout: 'piped',
+    stdin: 'piped',
+  });
+
+  computers[id] = p;
+}
 
 export function exec(cmd: string): Deno.Process {
   console.log(`$ ${cmd}`);
@@ -32,12 +55,35 @@ export async function assertExec(cmd: string) {
   assert(code === 0);
 }
 
-export async function craftosRun(id: number, cmd: string, timeoutMs = 500) {
-  console.log(`${id}> ${cmd}`);
-  Deno.writeTextFileSync(`.craftos/computer/${id}/startup.lua`, cmd);
-  const p = exec(`craftos -d .craftos -i ${id} --headless`);
-  await sleep(timeoutMs);
-  p.close();
+export async function craftosRun(id: number, cmd: string) {
+  if (!computers[id]) {
+    startComputer(id);
+  }
+
+  console.log(`${id}: ${cmd}`);
+
+  const p = computers[id];
+  p.stdin.write(new TextEncoder().encode(`${cmd}\n`));
+
+  const r = io.readLines(p.stdout);
+  const lines: string[] = [];
+
+  await Promise.race([
+    (async () => {
+      for await (const line of r) {
+        lines.push(stripAnsi(line));
+        console.log(`${id}: ${stripAnsi(line)}`);
+      }
+    })(),
+    new Promise((resolve) => {
+      setTimeout(() => {
+        console.log('Timeout');
+        resolve(true);
+      }, 1000);
+    }),
+  ]);
+
+  Deno.writeTextFileSync(`${id}.log`, lines.join('\n'));
 }
 
 /** [key: ComputerID]: NetworkID[] */
@@ -55,14 +101,16 @@ const networkedComputers: Record<number, number[]> = {
     Network 5: 5, 6, 7
   */
 
-  0: [4],
+  // 0: [4],
+  // 1: [1],
+  // 2: [1, 2],
+  // 3: [2, 3],
+  // 4: [3, 4],
+  // 5: [4, 5],
+  // 6: [5],
+  // 7: [5],
   1: [1],
-  2: [1, 2],
-  3: [2, 3],
-  4: [3, 4],
-  5: [4, 5],
-  6: [5],
-  7: [5],
+  2: [1],
 };
 
 const ids: number[] = Object.keys(networkedComputers).map((id) => parseInt(id));
@@ -75,19 +123,15 @@ export async function setupNetworks(network = networkedComputers) {
     const idNum = parseInt(id);
     if (!commands[idNum])
       commands[idNum] = networks.map(
-        (network, i) => `shell.run("attach ${SIDES[i]} modem ${network}")`
+        (network, i) => `attach ${SIDES[i]} modem ${network}`
       );
   });
 
   await Promise.all(
     Object.entries(commands).map(([id, cmds]) =>
-      Promise.all(cmds.map((cmd) => craftosRun(parseInt(id), cmd, 1000)))
+      Promise.all(cmds.map((cmd) => craftosRun(parseInt(id), cmd)))
     )
   );
-}
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export async function setupCraftos() {
@@ -106,8 +150,7 @@ export async function setupMngr() {
     ids.map((id) =>
       craftosRun(
         id,
-        'shell.run("wget run http://mr.thedevbird.com:3000/pkgs/mngr/install.lua")',
-        1000
+        'wget run http://mr.thedevbird.com:3000/pkgs/mngr/install.lua'
       )
     )
   );
@@ -115,9 +158,7 @@ export async function setupMngr() {
 
 export async function runBGP() {
   await Promise.all(
-    ids.map((id) =>
-      craftosRun(id, 'shell.run(".mngr/bin/mngr run net/bgp")', 10_000)
-    )
+    ids.map((id) => craftosRun(id, '.mngr/bin/mngr run net/bgp'))
   );
 }
 
