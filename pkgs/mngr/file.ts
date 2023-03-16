@@ -14,6 +14,18 @@ export function writeFile(path: string, content: string) {
   file.close();
 }
 
+export function readFile(path: string): string {
+  const [file] = fs.open(path, 'r');
+  if (!file) {
+    throw new Error(`Could not read file ${path}`);
+  }
+
+  const data = file.readAll();
+  file.close();
+
+  return data;
+}
+
 export function readOrCreate(path: string, init: string): string {
   const [file] = fs.open(path, 'r');
   if (!file) {

@@ -1,7 +1,9 @@
 {
   "name": "turt",
   "main": "turt.ts",
-  "deps": [],
+  "deps": [
+    "mngr"
+  ],
   "files": [
     "README.md",
     "pkg.json",
@@ -12,9 +14,9 @@
     "test": "test.lua"
   },
   "checksums": {
-    "pkg.json": "03f2f104773228b64c68f8ee556fb71e",
+    "pkg.json": "ebfa3acc7aae7112fbabba608bc64362",
     "README.md": "be0ab46b9cf6223ce1fb15be62b61b6f",
-    "test.lua": "853aeaa635af6293dc20340f54ccbc46",
-    "turt.lua": "4e2c4b4213f196310263c05ad70fdd90"
+    "test.lua": "b19601a76fe5f40a000876e5b38ca9e4",
+    "turt.lua": "cd2576c874034e606d9ab091c3c04ceb"
   }
 }
