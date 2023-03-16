@@ -1,0 +1,15 @@
+{
+  "name": "turt",
+  "main": "turt.ts",
+  "deps": [],
+  "files": [
+    "README.md",
+    "pkg.json",
+    "turt.lua"
+  ],
+  "checksums": {
+    "pkg.json": "e7798bd36a67d73d390060e54e9fc47d",
+    "README.md": "be0ab46b9cf6223ce1fb15be62b61b6f",
+    "turt.lua": "97d047a5088a795dacc4d85969ecc496"
+  }
+}
