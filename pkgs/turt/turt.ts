@@ -1,7 +1,7 @@
 import { pretty_print } from 'cc.pretty';
 import { readOrCreate, writeFile } from 'mngr/file';
 
-export type CompassDirection = 'north' | 'east' | 'south' | 'west';
+export type CardinalDirection = 'north' | 'east' | 'south' | 'west';
 export type RelativeDirection = 'forward' | 'right' | 'backward' | 'left';
 export type CoordinateDirection = '-x' | '+x' | '-z' | '+z';
 
@@ -9,7 +9,19 @@ export type Position = {
   x: number;
   y: number;
   z: number;
-  heading: CompassDirection;
+  heading: CardinalDirection;
+};
+
+export const directions: {
+  cardinal: CardinalDirection[];
+  relative: RelativeDirection[];
+  turns: RelativeDirection[][];
+  coords: CoordinateDirection[];
+} = {
+  cardinal: ['north', 'east', 'south', 'west'],
+  relative: ['forward', 'right', 'backward', 'left'],
+  turns: [[], ['right'], ['right', 'right'], ['left']],
+  coords: ['-z', '+x', '+z', '-x'],
 };
 
 export function savePositionFile(position: Position) {
@@ -25,39 +37,27 @@ export function loadPositionFile(): Position {
   return textutils.unserializeJSON(file);
 }
 
-export function relativeToCompass(
-  facing: CompassDirection,
-  relative: RelativeDirection
-): CompassDirection {
-  const index = directions.compass.indexOf(facing);
-  const relativeIndex = directions.relative.indexOf(relative);
+export function relativeToCardinal(
+  base: CardinalDirection,
+  to: RelativeDirection
+): CardinalDirection {
+  const index = directions.cardinal.indexOf(base);
+  const relativeIndex = directions.relative.indexOf(to);
 
-  return directions.compass[(index + relativeIndex) % 4] as CompassDirection;
+  return directions.cardinal[(index + relativeIndex) % 4] as CardinalDirection;
 }
 
-export function compassToRelative(
-  facing: CompassDirection,
-  toFace: CompassDirection
+export function cardinalToRelative(
+  base: CardinalDirection,
+  to: CardinalDirection
 ): RelativeDirection {
-  const index = directions.compass.indexOf(facing);
-  const compassIndex = directions.compass.indexOf(toFace);
+  const index = directions.cardinal.indexOf(base);
+  const compassIndex = directions.cardinal.indexOf(to);
 
   return directions.relative[
     (compassIndex - index + 4) % 4
   ] as RelativeDirection;
 }
-
-export const directions: {
-  compass: CompassDirection[];
-  relative: RelativeDirection[];
-  turns: RelativeDirection[][];
-  coords: CoordinateDirection[];
-} = {
-  compass: ['north', 'east', 'south', 'west'],
-  relative: ['forward', 'right', 'backward', 'left'],
-  turns: [[], ['right'], ['right', 'right'], ['left']],
-  coords: ['-z', '+x', '+z', '-x'],
-};
 
 function repeat<T>(item: T, n: number): T[] {
   const items: T[] = [];
@@ -67,12 +67,13 @@ function repeat<T>(item: T, n: number): T[] {
   return items;
 }
 
-function transformPositionFacing(
+function transformPositionHeading(
   position: Position,
-  facing: CompassDirection,
+  facing: CardinalDirection,
   n = 1
 ) {
   const newPosition = { ...position };
+
   switch (facing) {
     case 'north':
       newPosition.z -= n;
@@ -91,23 +92,21 @@ function transformPositionFacing(
   return newPosition;
 }
 
-function transformHeading(heading: CompassDirection, look: number) {
-  const index = directions.compass.indexOf(heading);
-  return directions.compass[(index + look + 4) % 4] as CompassDirection;
+function transformHeading(
+  heading: CardinalDirection,
+  look: number
+): CardinalDirection {
+  const index = directions.cardinal.indexOf(heading);
+  return directions.cardinal[(index + look + 4) % 4] as CardinalDirection;
 }
 
 export class Turtle {
   private x: number;
   private y: number;
   private z: number;
-  private heading: CompassDirection;
+  private heading: CardinalDirection;
 
-  constructor(setup?: {
-    x: number;
-    y: number;
-    z: number;
-    heading: CompassDirection;
-  }) {
+  constructor(setup?: Position) {
     const fromFile = loadPositionFile();
 
     this.x = fromFile.x;
@@ -116,11 +115,11 @@ export class Turtle {
     this.heading = fromFile.heading;
   }
 
-  /** Face a cardinal direction (e.g. `north`, `south`, etc) */
-  face(direction: CompassDirection) {
+  /** Turn to face a {@linkcode CardinalDirection}. */
+  face(direction: CardinalDirection) {
     const turns =
       directions.turns[
-        directions.relative.indexOf(compassToRelative(this.heading, direction))
+        directions.relative.indexOf(cardinalToRelative(this.heading, direction))
       ];
     if (!turns) return;
 
@@ -129,7 +128,7 @@ export class Turtle {
     );
   }
 
-  /** Turn to a relative direction (e.g. `right`, `backward`) */
+  /** Turn to face a {@linkcode RelativeDirection}. */
   turn(direction: RelativeDirection) {
     const turns = directions.turns[directions.relative.indexOf(direction)];
     if (!turns) return;
@@ -139,19 +138,20 @@ export class Turtle {
     );
   }
 
-  /** Moves `n` steps in a relative direction */
-  move(n: number, direction: RelativeDirection, keepFace = true) {
-    const steps: Array<() => boolean> = [];
+  /** Moves `n` blocks in a {@linkcode RelativeDirection}. */
+  move(n: number, direction: RelativeDirection, keepHeading = true) {
+    const blocks: Array<() => boolean> = [];
+
     if (direction === 'forward') {
-      steps.push(...repeat(() => this.forward(), n));
+      blocks.push(...repeat(() => this.forward(), n));
     } else {
-      steps.push(() => {
+      blocks.push(() => {
         this.turn(direction);
         return true;
       });
-      steps.push(...repeat(() => this.forward(), n));
-      if (keepFace)
-        steps.push(() => {
+      blocks.push(...repeat(() => this.forward(), n));
+      if (keepHeading)
+        blocks.push(() => {
           this.turn(
             directions.relative[
               (directions.relative.indexOf(direction) + 2) % 4
@@ -161,33 +161,33 @@ export class Turtle {
         });
     }
 
-    for (const step of steps) {
-      const result = step();
+    for (const block of blocks) {
+      const result = block();
 
       if (result === false) throw new Error('Failed to move');
     }
   }
 
-  moveTo(x: number, y: number, z: number, heading?: CompassDirection) {
+  moveTo(x: number, y: number, z: number, heading?: CardinalDirection) {
     const xDiff = Math.abs(this.x - x);
     const zDiff = Math.abs(this.z - z);
 
     if (z > this.z) {
-      this.move(zDiff, compassToRelative(this.heading, 'south'), false);
+      this.move(zDiff, cardinalToRelative(this.heading, 'south'), false);
     } else if (z < this.z) {
-      this.move(zDiff, compassToRelative(this.heading, 'north'), false);
+      this.move(zDiff, cardinalToRelative(this.heading, 'north'), false);
     }
 
     if (x > this.x) {
-      this.move(xDiff, compassToRelative(this.heading, 'east'), false);
+      this.move(xDiff, cardinalToRelative(this.heading, 'east'), false);
     } else if (x < this.x) {
-      this.move(xDiff, compassToRelative(this.heading, 'west'), false);
+      this.move(xDiff, cardinalToRelative(this.heading, 'west'), false);
     }
 
     if (heading && heading !== this.heading) this.face(heading);
   }
 
-  /** Gets the current absolute position */
+  /** Gets the current {@linkcode Position}. */
   position(): Position {
     return {
       x: this.x,
@@ -208,8 +208,9 @@ export class Turtle {
     });
   }
 
+  /** Move one block forward. */
   forward() {
-    const newPosition = transformPositionFacing(this.position(), this.heading);
+    const newPosition = transformPositionHeading(this.position(), this.heading);
 
     const success = turtle.forward();
     if (success) {
@@ -222,8 +223,9 @@ export class Turtle {
     return success;
   }
 
+  /** Move one block backward. */
   back() {
-    const newPosition = transformPositionFacing(
+    const newPosition = transformPositionHeading(
       this.position(),
       transformHeading(this.heading, 2)
     );
@@ -239,6 +241,7 @@ export class Turtle {
     return success;
   }
 
+  /** Move one block up. */
   up() {
     const success = turtle.up();
     if (success) this.y++;
@@ -248,6 +251,7 @@ export class Turtle {
     return success;
   }
 
+  /** Move one block down. */
   down() {
     const success = turtle.down();
     if (success) this.y--;
@@ -257,6 +261,7 @@ export class Turtle {
     return success;
   }
 
+  /** Turn left. */
   turnLeft() {
     const success = turtle.turnLeft();
     if (success) this.heading = transformHeading(this.heading, -1);
@@ -266,6 +271,7 @@ export class Turtle {
     return success;
   }
 
+  /** Turn right. */
   turnRight() {
     const success = turtle.turnRight();
     if (success) this.heading = transformHeading(this.heading, 1);
