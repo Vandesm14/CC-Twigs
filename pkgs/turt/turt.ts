@@ -1,7 +1,7 @@
-type CompassDirection = 'north' | 'east' | 'south' | 'west';
-type RelativeDirection = 'forward' | 'right' | 'back' | 'left';
+export type CompassDirection = 'north' | 'east' | 'south' | 'west';
+export type RelativeDirection = 'forward' | 'right' | 'back' | 'left';
 
-type Position = {
+export type Position = {
   x: number;
   y: number;
   z: number;
@@ -18,7 +18,7 @@ export const directions: {
   turns: [[], ['right'], ['right', 'right'], ['left']],
 };
 
-export class Relative {
+export class Turtle {
   private x: number;
   private y: number;
   private z: number;
@@ -54,11 +54,14 @@ export class Relative {
     ] as RelativeDirection;
   }
 
+  /** Face a cardinal direction (e.g. `north`, `south`, etc) */
   face(direction: CompassDirection) {
     const turns =
       directions.turns[
         directions.relative.indexOf(this.compassToRelative(direction))
-      ]!;
+      ];
+    if (!turns) return;
+
     turns.forEach((turn) =>
       turn === 'left' ? turtle.turnLeft() : turtle.turnRight()
     );
@@ -66,14 +69,18 @@ export class Relative {
     this.heading = direction;
   }
 
+  /** Turn to a relative direction (e.g. `right`, `back`) */
   turn(direction: RelativeDirection) {
-    const turns = directions.turns[directions.relative.indexOf(direction)]!;
+    const turns = directions.turns[directions.relative.indexOf(direction)];
+    if (!turns) return;
+
     turns.forEach((turn) =>
       turn === 'left' ? turtle.turnLeft() : turtle.turnRight()
     );
     this.heading = this.relativeToCompass(direction);
   }
 
+  /** Gets the current absolute position */
   position(): Position {
     return {
       x: this.x,
