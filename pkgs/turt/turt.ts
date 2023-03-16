@@ -1,5 +1,6 @@
 export type CompassDirection = 'north' | 'east' | 'south' | 'west';
-export type RelativeDirection = 'forward' | 'right' | 'back' | 'left';
+export type RelativeDirection = 'forward' | 'right' | 'backward' | 'left';
+export type CoordinateDirection = '-x' | '+x' | '-z' | '+z';
 
 export type Position = {
   x: number;
@@ -12,11 +13,21 @@ export const directions: {
   compass: CompassDirection[];
   relative: RelativeDirection[];
   turns: RelativeDirection[][];
+  coords: CoordinateDirection[];
 } = {
   compass: ['north', 'east', 'south', 'west'],
-  relative: ['forward', 'right', 'back', 'left'],
+  relative: ['forward', 'right', 'backward', 'left'],
   turns: [[], ['right'], ['right', 'right'], ['left']],
+  coords: ['-z', '+x', '+z', '-x'],
 };
+
+function repeat<T>(item: T, n: number): T[] {
+  const items: T[] = [];
+  for (let i = 0; i < n; i++) {
+    items.push(item);
+  }
+  return items;
+}
 
 export class Turtle {
   private x: number;
@@ -69,7 +80,7 @@ export class Turtle {
     this.heading = direction;
   }
 
-  /** Turn to a relative direction (e.g. `right`, `back`) */
+  /** Turn to a relative direction (e.g. `right`, `backward`) */
   turn(direction: RelativeDirection) {
     const turns = directions.turns[directions.relative.indexOf(direction)];
     if (!turns) return;
@@ -78,6 +89,49 @@ export class Turtle {
       turn === 'left' ? turtle.turnLeft() : turtle.turnRight()
     );
     this.heading = this.relativeToCompass(direction);
+  }
+
+  /** Moves `n` steps in a relative direction */
+  move(n: number, direction: RelativeDirection) {
+    const facing = this.relativeToCompass(direction);
+    const steps: Array<() => boolean> = [];
+    if (direction === 'forward') {
+      steps.push(...repeat(() => turtle.forward(), n));
+    } else if (direction === 'backward') {
+      steps.push(...repeat(() => turtle.back(), n));
+    } else {
+      steps.push(() => {
+        this.turn(direction);
+        return true;
+      });
+      steps.push(...repeat(() => turtle.forward(), n));
+      steps.push(() => {
+        this.turn(
+          directions.relative[(directions.relative.indexOf(direction) + 2) % 4]!
+        );
+        return true;
+      });
+    }
+
+    for (const step of steps) {
+      const result = step();
+      if (result === false) throw new Error('Failed to move');
+    }
+
+    switch (facing) {
+      case 'north':
+        this.z -= n;
+        break;
+      case 'east':
+        this.x += n;
+        break;
+      case 'south':
+        this.z += n;
+        break;
+      case 'west':
+        this.x -= n;
+        break;
+    }
   }
 
   /** Gets the current absolute position */
