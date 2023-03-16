@@ -15,8 +15,8 @@
   },
   "checksums": {
     "pkg.json": "ebfa3acc7aae7112fbabba608bc64362",
-    "README.md": "be0ab46b9cf6223ce1fb15be62b61b6f",
+    "README.md": "cbd475cd6184f28c3cacd208b3fe5a6a",
     "test.lua": "b19601a76fe5f40a000876e5b38ca9e4",
-    "turt.lua": "cd2576c874034e606d9ab091c3c04ceb"
+    "turt.lua": "1b096647d9ee217960b093e53567ccd5"
   }
 }
