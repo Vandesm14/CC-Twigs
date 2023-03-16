@@ -17,7 +17,6 @@ export function savePositionFile(position: Position) {
 }
 
 export function loadPositionFile(): Position {
-  print('loading file...');
   const file = readOrCreate(
     'position.json',
     textutils.serializeJSON({ x: 0, y: 0, z: 0, heading: 'north' })
@@ -110,8 +109,6 @@ export class Turtle {
     heading: CompassDirection;
   }) {
     const fromFile = loadPositionFile();
-
-    print('after loading file');
 
     this.x = fromFile.x;
     this.y = fromFile.y;
