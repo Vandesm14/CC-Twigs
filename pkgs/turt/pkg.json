@@ -16,7 +16,7 @@
   "checksums": {
     "pkg.json": "ebfa3acc7aae7112fbabba608bc64362",
     "README.md": "cbd475cd6184f28c3cacd208b3fe5a6a",
-    "test.lua": "b19601a76fe5f40a000876e5b38ca9e4",
+    "test.lua": "6bff1d487c4e4ef61c2e682fdb203f64",
     "turt.lua": "1b096647d9ee217960b093e53567ccd5"
   }
 }
