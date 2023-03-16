@@ -92,25 +92,28 @@ export class Turtle {
   }
 
   /** Moves `n` steps in a relative direction */
-  move(n: number, direction: RelativeDirection) {
+  move(n: number, direction: RelativeDirection, keepFace = true) {
     const facing = this.relativeToCompass(direction);
     const steps: Array<() => boolean> = [];
     if (direction === 'forward') {
       steps.push(...repeat(() => turtle.forward(), n));
-    } else if (direction === 'backward') {
-      steps.push(...repeat(() => turtle.back(), n));
+      // } else if (direction === 'backward') {
+      //   steps.push(...repeat(() => turtle.back(), n));
     } else {
       steps.push(() => {
         this.turn(direction);
         return true;
       });
       steps.push(...repeat(() => turtle.forward(), n));
-      steps.push(() => {
-        this.turn(
-          directions.relative[(directions.relative.indexOf(direction) + 2) % 4]!
-        );
-        return true;
-      });
+      if (keepFace)
+        steps.push(() => {
+          this.turn(
+            directions.relative[
+              (directions.relative.indexOf(direction) + 2) % 4
+            ]!
+          );
+          return true;
+        });
     }
 
     for (const step of steps) {
@@ -131,6 +134,36 @@ export class Turtle {
       case 'west':
         this.x -= n;
         break;
+    }
+  }
+
+  moveTo(x: number, y: number, z: number, heading?: CompassDirection) {
+    const xDiff = this.x - x;
+    const zDiff = this.z - z;
+
+    print(`${x} - ${this.x} = ${xDiff}`);
+    print(`${z} - ${this.z} = ${zDiff}`);
+
+    if (z > this.z) {
+      print(`Moving ${Math.abs(zDiff)} steps south`);
+      this.move(Math.abs(zDiff), this.compassToRelative('south'), false);
+    } else if (z < this.z) {
+      print(`Moving ${Math.abs(zDiff)} steps north`);
+      this.move(Math.abs(zDiff), this.compassToRelative('north'), false);
+    }
+
+    if (x > this.x) {
+      print(`Moving ${Math.abs(xDiff)} steps east`);
+      this.move(Math.abs(xDiff), this.compassToRelative('east'), false);
+    } else if (x < this.x) {
+      print(`Moving ${Math.abs(xDiff)} steps west`);
+      this.move(Math.abs(xDiff), this.compassToRelative('west'), false);
+    }
+
+    if (heading && heading !== this.heading) {
+      this.face(heading);
+
+      print(`Turned to face ${heading}`);
     }
   }
 
