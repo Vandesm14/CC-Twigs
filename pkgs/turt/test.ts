@@ -1,14 +1,22 @@
-import { Turtle } from './turt';
+import { CardinalDirection, Turtle } from './turt';
+const args = [...$vararg];
 
-const turt = new Turtle();
+const tryNumberOr = (n: number | string, def: number) => {
+  const num = Number(n);
+  return isNaN(num) ? def : num;
+};
 
-turt.move(1, 'forward');
-turt.move(2, 'backward');
-turt.move(1, 'left');
-turt.move(2, 'right');
+const [x, y, z, heading] = args;
+const isValid = args.slice(0, 3).every((arg) => !isNaN(Number(arg)));
 
-turt.moveTo(0, 0, 0); // Origin
-turt.moveTo(-2, 0, 2); // Computers
-turt.moveTo(0, 0, 0); // Origin
-turt.moveTo(-8, 0, -11); // House
-turt.moveTo(0, 0, 0); // Origin
+const init = {
+  x: tryNumberOr(x ?? 0, 0),
+  y: tryNumberOr(y ?? 0, 0),
+  z: tryNumberOr(z ?? 0, 0),
+  heading: heading as CardinalDirection,
+};
+
+const turt = new Turtle(isValid ? init : undefined);
+
+turt.moveTo(-534, 101, -89);
+turt.moveTo(init.x, init.y, init.z);

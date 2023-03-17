@@ -109,10 +109,12 @@ export class Turtle {
   constructor(setup?: Position) {
     const fromFile = loadPositionFile();
 
-    this.x = fromFile.x;
-    this.y = fromFile.y;
-    this.z = fromFile.z;
-    this.heading = fromFile.heading;
+    this.x = setup?.x ?? fromFile.x;
+    this.y = setup?.y ?? fromFile.y;
+    this.z = setup?.z ?? fromFile.z;
+    this.heading = setup?.heading ?? fromFile.heading;
+
+    this.savePosition();
   }
 
   /** Turn to face a {@linkcode CardinalDirection}. */
@@ -139,11 +141,19 @@ export class Turtle {
   }
 
   /** Moves `n` blocks in a {@linkcode RelativeDirection}. */
-  move(n: number, direction: RelativeDirection, keepHeading = true) {
+  move(
+    n: number,
+    direction: RelativeDirection | 'up' | 'down',
+    keepHeading = true
+  ) {
     const blocks: Array<() => boolean> = [];
 
     if (direction === 'forward') {
       blocks.push(...repeat(() => this.forward(), n));
+    } else if (direction === 'up') {
+      blocks.push(...repeat(() => this.up(), n));
+    } else if (direction === 'down') {
+      blocks.push(...repeat(() => this.down(), n));
     } else {
       blocks.push(() => {
         this.turn(direction);
@@ -170,7 +180,14 @@ export class Turtle {
 
   moveTo(x: number, y: number, z: number, heading?: CardinalDirection) {
     const xDiff = Math.abs(this.x - x);
+    const yDiff = Math.abs(this.y - y);
     const zDiff = Math.abs(this.z - z);
+
+    if (y > this.y) {
+      this.move(yDiff, 'up', false);
+    } else if (y < this.y) {
+      this.move(yDiff, 'down', false);
+    }
 
     if (z > this.z) {
       this.move(zDiff, cardinalToRelative(this.heading, 'south'), false);
