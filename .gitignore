@@ -4,3 +4,4 @@ node_modules
 logs.json
 *.code-workspace
 pkgs/test/
+/playit*
