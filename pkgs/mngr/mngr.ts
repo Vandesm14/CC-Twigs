@@ -1,23 +1,18 @@
 import {
-  mirrorlist,
   copyAllBinFiles,
-  // doInstallPackage,
-  // doUpdatePackage,
-  // fetchAllLocalPackages,
-  // fetchPackage,
+  doInstallPackage,
+  doUpdatePackage,
+  fetchAllLocalPackages,
+  fetchPackage,
   getBinRelations,
-  // getFilesToUpdate,
+  getFilesToUpdate,
   getLinkedBins,
-  // installPackage,
+  installPackage,
   listInstalledPackages,
   removePackage,
-  Mirror,
-  // updateAndRunPackage,
+  updateAndRunPackage,
 } from './api';
 import { createFileIfNotExist } from './file';
-
-const MIRRORS = mirrorlist().map((url) => new Mirror(url));
-print(`There are ${MIRRORS.length} mirrors.`);
 
 const args = [...$vararg];
 const command = args[0];
@@ -65,15 +60,13 @@ if (command === 'update') {
 
   // filter out packages that don't need updating
   const pkgsToUpdate = pkgs.filter((pkg) => {
-    // const filesToUpdate = getFilesToUpdate(pkg);
-    const filesToUpdate = MIRRORS[0]?.needsUpdate(pkg);
+    const filesToUpdate = getFilesToUpdate(pkg);
     return filesToUpdate && filesToUpdate.length > 0;
   });
 
   if (pkgsToUpdate.length > 0) {
     print(`Updating ${pkgsToUpdate.length} packages...`);
-    // pkgsToUpdate.forEach((pkg) => doUpdatePackage(pkg, false));
-    pkgsToUpdate.forEach((pkg) => MIRRORS[0]?.update(pkg));
+    pkgsToUpdate.forEach((pkg) => doUpdatePackage(pkg, false));
     print(
       `Updated ${pkgsToUpdate.length} package${
         pkgsToUpdate.length ? 's' : ''
@@ -86,37 +79,35 @@ if (command === 'update') {
   // @ts-expect-error
   return;
 } else if (command === 'check') {
-  // const local = fetchAllLocalPackages();
+  const local = fetchAllLocalPackages();
 
-  // let needsUpdate: Record<string, number> = {};
-  // let errors: Record<string, string> = {};
+  let needsUpdate: Record<string, number> = {};
+  let errors: Record<string, string> = {};
 
-  // for (const pkg of local) {
-  //   try {
-  //     const filesToUpdate = getFilesToUpdate(pkg.name);
+  for (const pkg of local) {
+    try {
+      const filesToUpdate = getFilesToUpdate(pkg.name);
 
-  //     if (filesToUpdate && filesToUpdate.length > 0) {
-  //       needsUpdate[pkg.name] = filesToUpdate.length;
-  //     }
-  //   } catch (e) {
-  //     errors[pkg.name] = e as string;
-  //   }
-  // }
+      if (filesToUpdate && filesToUpdate.length > 0) {
+        needsUpdate[pkg.name] = filesToUpdate.length;
+      }
+    } catch (e) {
+      errors[pkg.name] = e as string;
+    }
+  }
 
-  // print(`${Object.keys(needsUpdate).length} packages have updates:`);
-  // for (const [pkg, count] of Object.entries(needsUpdate)) {
-  //   print(`  ${pkg}: ${count} file${count > 1 ? 's' : ''}`);
-  // }
+  print(`${Object.keys(needsUpdate).length} packages have updates:`);
+  for (const [pkg, count] of Object.entries(needsUpdate)) {
+    print(`  ${pkg}: ${count} file${count > 1 ? 's' : ''}`);
+  }
 
-  // print(`\n${Object.keys(errors).length} packages have errors:`);
-  // for (const [pkg, error] of Object.entries(errors)) {
-  //   print(`  ${pkg}: ${error}`);
-  // }
+  print(`\n${Object.keys(errors).length} packages have errors:`);
+  for (const [pkg, error] of Object.entries(errors)) {
+    print(`  ${pkg}: ${error}`);
+  }
 
-  // // @ts-expect-error
-  // return;
-
-  throw new Error('not implemented yet');
+  // @ts-expect-error
+  return;
 } else if (command === 'links') {
   const links = getLinkedBins().map((link) => `${link.pkg}/${link.bin}`);
   print(links.length > 0 ? links.join('\n') : 'No links found.');
@@ -132,18 +123,16 @@ if (command === 'update') {
 
 if (arg1) {
   if (command === 'run') {
-    // const pathSpec = arg1.split('/');
-    // const pkg = pathSpec[0];
-    // const bin = pathSpec.length > 1 ? pathSpec[1] : undefined;
+    const pathSpec = arg1.split('/');
+    const pkg = pathSpec[0];
+    const bin = pathSpec.length > 1 ? pathSpec[1] : undefined;
 
-    // if (!pkg) throw new Error('Invalid pathspec');
+    if (!pkg) throw new Error('Invalid pathspec');
 
-    // updateAndRunPackage(pkg, {
-    //   ...(bin ? { bin } : {}),
-    //   args: args.slice(2),
-    // });
-
-    throw new Error('not implemented yet');
+    updateAndRunPackage(pkg, {
+      ...(bin ? { bin } : {}),
+      args: args.slice(2),
+    });
   } else if (command === 'link') {
     const binRelations = getBinRelations();
     const binary = arg1;
@@ -164,8 +153,7 @@ if (arg1) {
     }
 
     // Installs the package, and aliases the binaries to run `mngr run <pkg> <bin>`
-    // doInstallPackage(pkg);
-    MIRRORS[0]?.install(pkg);
+    doInstallPackage(pkg);
 
     const luaAliasCode = (pkg: string, file?: string) =>
       `
@@ -199,8 +187,7 @@ if (arg1) {
     const pkg = arg1;
 
     // This is an "alias" for install just so we don't print anything
-    // installPackage(pkg, { quiet: true });
-    MIRRORS[0]?.install(pkg, { quiet: true });
+    installPackage(pkg, { quiet: true });
   } else if (command === 'unlink') {
     const binary = arg1;
 
@@ -213,8 +200,7 @@ if (arg1) {
       return;
     }
 
-    // installPackage(pkg);
-    MIRRORS[0]?.install(pkg);
+    installPackage(pkg);
 
     const path = `.mngr/links/${binary}.lua`;
     if (fs.exists(path)) {
@@ -225,8 +211,7 @@ if (arg1) {
     }
   } else if (command === 'install') {
     const pkg = arg1;
-    // doInstallPackage(pkg);
-    MIRRORS[0]?.install(pkg);
+    doInstallPackage(pkg);
   } else if (command === 'remove') {
     const pkg = arg1;
     removePackage(pkg);
@@ -237,8 +222,7 @@ if (arg1) {
   } else if (command === 'info') {
     const pkg = arg1;
 
-    // const { deps, files } = fetchPackage(pkg);
-    const { deps, files } = MIRRORS[0]?.fetch(pkg)!;
+    const { deps, files } = fetchPackage(pkg);
 
     const obj = {
       Package: pkg,
