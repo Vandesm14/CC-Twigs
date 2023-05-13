@@ -1,4 +1,3 @@
-import { pretty_print } from 'cc.pretty';
 import { readOrCreate, writeFile } from 'mngr/file';
 
 export type CardinalDirection = 'north' | 'east' | 'south' | 'west';
@@ -215,8 +214,6 @@ export class Turtle {
   }
 
   savePosition() {
-    pretty_print(this.position());
-
     savePositionFile({
       x: this.x,
       y: this.y,

@@ -6,17 +6,20 @@
   ],
   "files": [
     "README.md",
+    "bin.lua",
     "pkg.json",
     "test.lua",
     "turt.lua"
   ],
   "bin": {
-    "test": "test.lua"
+    "test": "test.lua",
+    "turt": "bin.lua"
   },
   "checksums": {
-    "pkg.json": "ebfa3acc7aae7112fbabba608bc64362",
+    "pkg.json": "42d1cca758371ea340146ac61685c789",
     "README.md": "f21f1981579505ae44183119b6856312",
+    "bin.lua": "0732ff7419896eeef217969c0ef2249e",
     "test.lua": "3697e0b28ee3de4ab953d235e1627753",
-    "turt.lua": "11fe0707ece4dfc568c4e5d86427f1e8"
+    "turt.lua": "50ad14b9548dff5cb4af2daf1bc12324"
   }
 }
