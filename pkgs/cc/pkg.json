@@ -1,17 +1,23 @@
 {
-  "name": "cc",
-  "main": "cc.lua",
+  "checksums": {
+    "pkg.json": "ad1be1644157a4f8c9feb91c583e6326",
+    "os.lua": "ce6a74f5703817c19cf7436ed3e2fa78",
+    "os.ts": "ecf8138e32f4a6f2a511a462ddfd09c6",
+    "parallel.lua": "1916fd8a9a7b4d93c740849a8c1abb4b",
+    "parallel.ts": "ba2f34196e0bf2d0db0cc985a0bc73de",
+    "peripheral.lua": "fbb3396400028c1fee66831c2f511c95",
+    "peripheral.ts": "e9354ea153253b2cfb9943879b02935a"
+  },
   "deps": [],
   "files": [
     "os.lua",
+    "os.ts",
     "parallel.lua",
+    "parallel.ts",
     "peripheral.lua",
+    "peripheral.ts",
     "pkg.json"
   ],
-  "checksums": {
-    "pkg.json": "2aab6bad5b2a8132dd38d0df89050915",
-    "os.lua": "ce6a74f5703817c19cf7436ed3e2fa78",
-    "parallel.lua": "1916fd8a9a7b4d93c740849a8c1abb4b",
-    "peripheral.lua": "fbb3396400028c1fee66831c2f511c95"
-  }
+  "main": "cc.lua",
+  "name": "cc"
 }

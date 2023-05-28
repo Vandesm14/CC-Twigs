@@ -1,15 +1,19 @@
 {
-  "name": "debug",
-  "main": "debug.lua",
+  "checksums": {
+    "pkg.json": "bc337f23abcaf2c12bbeb05f8217a577",
+    "debug.lua": "a973a49f41be0d0897efe2e1ce1cca53",
+    "debug.ts": "6bd452237b5151d667773c49c7158d45",
+    "log.lua": "0374321058a2517d611dce025a5ec3cb",
+    "log.ts": "761d1487adf1d2299e74f40bb224219d"
+  },
   "deps": [],
   "files": [
     "debug.lua",
+    "debug.ts",
     "log.lua",
+    "log.ts",
     "pkg.json"
   ],
-  "checksums": {
-    "pkg.json": "661a3b406db5e78a38dc8fd280bbc335",
-    "debug.lua": "a973a49f41be0d0897efe2e1ce1cca53",
-    "log.lua": "0374321058a2517d611dce025a5ec3cb"
-  }
+  "main": "debug.lua",
+  "name": "debug"
 }

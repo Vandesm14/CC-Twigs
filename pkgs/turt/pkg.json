@@ -1,25 +1,31 @@
 {
-  "name": "turt",
-  "main": "turt.ts",
+  "bin": {
+    "test": "test.lua",
+    "turt": "bin.lua"
+  },
+  "checksums": {
+    "pkg.json": "262bc595e10857bd3e1c201dcb6a0b65",
+    "README.md": "f21f1981579505ae44183119b6856312",
+    "bin.lua": "0732ff7419896eeef217969c0ef2249e",
+    "bin.ts": "c610d378f7809f0188048d77a60793ab",
+    "test.lua": "3697e0b28ee3de4ab953d235e1627753",
+    "test.ts": "2f3e3bb422431b42650527f5fa402fe4",
+    "turt.lua": "50ad14b9548dff5cb4af2daf1bc12324",
+    "turt.ts": "6375549c82d82d3a6a605143770e4ebd"
+  },
   "deps": [
     "mngr"
   ],
   "files": [
     "README.md",
     "bin.lua",
+    "bin.ts",
     "pkg.json",
     "test.lua",
-    "turt.lua"
+    "test.ts",
+    "turt.lua",
+    "turt.ts"
   ],
-  "bin": {
-    "test": "test.lua",
-    "turt": "bin.lua"
-  },
-  "checksums": {
-    "pkg.json": "42d1cca758371ea340146ac61685c789",
-    "README.md": "f21f1981579505ae44183119b6856312",
-    "bin.lua": "0732ff7419896eeef217969c0ef2249e",
-    "test.lua": "3697e0b28ee3de4ab953d235e1627753",
-    "turt.lua": "50ad14b9548dff5cb4af2daf1bc12324"
-  }
+  "main": "turt.ts",
+  "name": "turt"
 }

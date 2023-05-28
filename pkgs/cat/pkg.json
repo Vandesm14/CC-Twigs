@@ -1,16 +1,18 @@
 {
-  "name": "cat",
-  "main": "cat.lua",
-  "deps": [],
-  "files": [
-    "cat.lua",
-    "pkg.json"
-  ],
   "bin": {
     "cat": "cat.lua"
   },
   "checksums": {
-    "pkg.json": "722493b91c46da4ca3fad4ee92d7a022",
-    "cat.lua": "425d372de361da39ff2a505e10db3b09"
-  }
+    "pkg.json": "e43e2bf46ab39010ba02a33f2bce446b",
+    "cat.lua": "425d372de361da39ff2a505e10db3b09",
+    "cat.ts": "7bbceb1a5dc603ebf978e0b21f883ced"
+  },
+  "deps": [],
+  "files": [
+    "cat.lua",
+    "cat.ts",
+    "pkg.json"
+  ],
+  "main": "cat.lua",
+  "name": "cat"
 }

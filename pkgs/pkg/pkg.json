@@ -1,0 +1,19 @@
+{
+  "bin": {
+    "bin": "bin.lua"
+  },
+  "checksums": {
+    "pkg.json": "63e076d0265a9b9736830698e32ba925",
+    "pkg.lua": "e0aeeed99a68dcdd49af09eb05554277",
+    "pkg.ts": "d41d8cd98f00b204e9800998ecf8427e",
+    "todo.md": "dc9dfdce6bf9a26c9c77e006fa93f1ed"
+  },
+  "deps": [],
+  "files": [
+    "pkg.json",
+    "pkg.lua",
+    "pkg.ts",
+    "todo.md"
+  ],
+  "name": "pkg"
+}

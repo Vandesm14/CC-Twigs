@@ -64,21 +64,18 @@ names.forEach((name) => {
   }
 
   const existingJSON = Deno.readTextFileSync(`./pkgs/${name}/pkg.json`);
-  const pkgJSON: Package = JSON.parse(existingJSON);
+  let pkgJSON: Package = JSON.parse(existingJSON);
   pkgJSON.name ??= name;
-  pkgJSON.main ??= `${name}.lua`;
   pkgJSON.deps = needs.sort();
   pkgJSON.files = files
-    .filter((file) => !file.endsWith('.ts'))
     .map((file) => file.replace(`pkgs/${name}/`, ''))
     .sort();
 
   pkgJSON.checksums = {};
 
-  pkgJSON.checksums['pkg.json'] = (() => {
-    const content = JSON.stringify(pkgJSON, null, 2);
-    return checksum(content);
-  })();
+  // We set the checksum for the pkg.json first, to prevent it from changing each build
+  // (self referental checksums aren't fun)
+  pkgJSON.checksums['pkg.json'] = checksum(JSON.stringify(pkgJSON, null, 2));
 
   pkgJSON.files.forEach((file) => {
     // Don't include the pkg.json file in the checksums
@@ -86,6 +83,14 @@ names.forEach((name) => {
 
     pkgJSON.checksums[file] = getFileChecksum(name, file);
   });
+
+  // Sort the pkg.json keys alphabetically
+  pkgJSON = Object.fromEntries(Object.entries(pkgJSON).sort((a, b) => {
+    if (a[0] < b[0]) return -1;
+    if (a[0] > b[0]) return 1;
+
+    return 0;
+  })) as Package;
 
   Deno.writeTextFileSync(
     `./pkgs/${name}/pkg.json`,

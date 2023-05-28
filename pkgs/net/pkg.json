@@ -1,29 +1,37 @@
 {
-  "name": "bgp",
-  "main": "bgp.lua",
+  "bin": {
+    "bgp": "bgp.lua",
+    "send-base": "send.lua"
+  },
+  "checksums": {
+    "pkg.json": "3bd8288dd8af35ad62b338c46952e81a",
+    "README.md": "0cd7e8e517a7d94efd38f1419ce4aad3",
+    "api.lua": "acfe7df553330d225ef300e1b1cb85d3",
+    "api.ts": "5fbd2d10df0066f1d9731997d1b692b7",
+    "bgp.lua": "d0813f94608a379bd1a28939b27db8ac",
+    "bgp.ts": "afc29443181695d43860f1e074b66888",
+    "ip.lua": "e0aeeed99a68dcdd49af09eb05554277",
+    "ip.ts": "2803ea3908bd510eeea8944823d9ec7f",
+    "send.lua": "687789b024f491b2204650093daaf4b1",
+    "send.ts": "852b0d145c76edb8580ed37e6e2f9d43",
+    "tasks.md": "d3c1be4ae0beb71b537b343b4cddb28d"
+  },
   "deps": [
     "cc"
   ],
   "files": [
     "README.md",
     "api.lua",
+    "api.ts",
     "bgp.lua",
+    "bgp.ts",
     "ip.lua",
+    "ip.ts",
     "pkg.json",
     "send.lua",
+    "send.ts",
     "tasks.md"
   ],
-  "bin": {
-    "bgp": "bgp.lua",
-    "send-base": "send.lua"
-  },
-  "checksums": {
-    "pkg.json": "a4e4b5ad724016e4aeeb7d4cf1fe1ec7",
-    "README.md": "0cd7e8e517a7d94efd38f1419ce4aad3",
-    "api.lua": "acfe7df553330d225ef300e1b1cb85d3",
-    "bgp.lua": "d0813f94608a379bd1a28939b27db8ac",
-    "ip.lua": "e0aeeed99a68dcdd49af09eb05554277",
-    "send.lua": "687789b024f491b2204650093daaf4b1",
-    "tasks.md": "d3c1be4ae0beb71b537b343b4cddb28d"
-  }
+  "main": "bgp.lua",
+  "name": "bgp"
 }
