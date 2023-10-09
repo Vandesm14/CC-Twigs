@@ -2,7 +2,7 @@
   "main": "main.ts",
   "scripts": {
     "start": "deno run --allow-all server/mod.ts pkgs",
-    "build": "tstl && yarn post-build",
+    "build": "tstl && npm run post-build",
     "post-build": "deno run --allow-all server/postBuild.ts",
     "format": "prettier --write \"**/*.ts\"",
     "format:check": "prettier --check \"**/*.ts\""
