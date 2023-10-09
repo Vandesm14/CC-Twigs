@@ -4,7 +4,14 @@ A simple package manager for ComputerCraft.
 
 ## Installation
 
-You can run the command below to install `mngr`.
+First, if you aren't using the default mirror (`http://mr.thedevbird.com:3000/pkgs`), you can configure a different mirror by setting the `mngr.address` setting.
+
+```sh
+# Make sure to include `/pkgs` in the end of the URL
+set mngr.address https://mngr.mirror.com/pkgs
+```
+
+Once you have configured your mirror, or you are using the default mirror, you can run the command below to install `mngr`.
 
 ```sh
 wget run http://mr.thedevbird.com:3000/pkgs/mngr/install.lua
