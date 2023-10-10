@@ -1,17 +1,16 @@
 {
   "name": "net",
   "main": "net.lua",
-  "deps": [
-    "bgp",
-    "cc"
-  ],
+  "deps": [],
   "files": [
     "pkg.json",
-    "send.lua"
+    "send.lua",
+    "softlink.lua"
   ],
   "checksums": {
-    "pkg.json": "d10ec079ae1e3055058f1e21a542a258",
-    "send.lua": "a27909ab3a10c4e9a4f693236032ea7c"
+    "pkg.json": "9123ad722d85e5df8f80ba24f5beecf6",
+    "send.lua": "f92c349ef04664960d2e3b27894d1e8c",
+    "softlink.lua": "fcb55131dedf91f568b3c8b4dad4d836"
   },
   "bin": {
     "send-base": "send.lua"
