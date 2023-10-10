@@ -18,7 +18,7 @@
   },
   "checksums": {
     "pkg.json": "6fa83cb33056bc5e7993664abdb0dd0f",
-    "README.md": "7574980d1ab3a3087a3f89f28afee2ea",
+    "README.md": "b76894772ced58205860c929e3b53d50",
     "api.lua": "7f4c8ff20a53024e467735a06abe674f",
     "file.lua": "993319efaa22d683e3d604229a58af9e",
     "install.lua": "40a0305e90fee2c0b95a76e548998610",
