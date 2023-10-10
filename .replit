@@ -7,7 +7,7 @@ language = "nodejs"
   [packager.features]
   enabledForHosting = false
   packageSearch = true
-  guessImports = true
+  guessImports = false
 
 [nix]
 channel = "stable-22_11"
