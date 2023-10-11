@@ -39,8 +39,6 @@ mngr install <package>
 
 ### Updating a package
 
-<!-- TODO: force-update a package and its dependencies -->
-
 To update a package, run the command below.
 
 ```sh
