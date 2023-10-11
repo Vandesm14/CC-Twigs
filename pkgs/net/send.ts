@@ -1,12 +1,12 @@
-import softlink from "./softlink";
+// import softlink from "./softlink";
 
-const args = [...$vararg];
-const data = tostring(args[0]);
-const destinations = args.slice(1).map(Number);
+// const args = [...$vararg];
+// const data = tostring(args[0]);
+// const destinations = args.slice(1).map(Number);
 
-const modem = peripheral.find("modem")[0]! as ModemPeripheral;
+// const modem = peripheral.find("modem")[0]! as ModemPeripheral;
 
-softlink.send(modem, { destinations, data });
+// softlink.send(modem, { destinations, data });
 
 // import peripheral, { PeripheralKind } from 'cc/peripheral';
 // import { BASE } from 'bgp/api';
