@@ -63,7 +63,7 @@ names.forEach((name) => {
     let newLuaFile = luaFile.replace(/(?<=require\(")pkgs\./g, '');
 
     // Remove all instances of an existing package.path
-    newLuaFile = newLuaFile.replaceAll(packagePathRegex, '');
+    newLuaFile = newLuaFile.replace(packagePathRegex, '');
 
     // Change package path to include the .mngr/lib/ folder
     newLuaFile = `${packagePathString}\n${newLuaFile}`;

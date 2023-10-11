@@ -15,7 +15,7 @@
     "bgp.lua": "a21ea92f14dbdd0498cbd82598633b87",
     "floodnet.lua": "e0aeeed99a68dcdd49af09eb05554277",
     "send.lua": "e0aeeed99a68dcdd49af09eb05554277",
-    "softlink.lua": "5d6b3bbf9ded5368de567d10708a03f3",
+    "softlink.lua": "2da3322d173e33a3c968604f0877f0b8",
     "softlink_api.lua": "4d2335b2e938e9eb1a04c52380c1940a"
   },
   "bin": {
