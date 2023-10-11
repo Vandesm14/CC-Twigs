@@ -30,6 +30,9 @@ function dedupe<T>(array: T[]) {
   return Array.from(new Set(array));
 }
 
+const packagePathString = `package.path = "/.mngr/lib/?.lua;" .. package.path`;
+const packagePathRegex = /(package\.path)(.+)(\n*)/;
+
 names.forEach((name) => {
   // Get all the .lua files in the package
   const lua = walkSync(`./pkgs/${name}`, {
@@ -59,8 +62,11 @@ names.forEach((name) => {
     // Match: `require("pkgs.")` and remove the `pkgs.`
     let newLuaFile = luaFile.replace(/(?<=require\(")pkgs\./g, '');
 
+    // Remove all instances of an existing package.path
+    newLuaFile = newLuaFile.replaceAll(packagePathRegex, '');
+
     // Change package path to include the .mngr/lib/ folder
-    newLuaFile = `package.path = "/.mngr/lib/?.lua;" .. package.path\n${newLuaFile}`;
+    newLuaFile = `${packagePathString}\n${newLuaFile}`;
 
     Deno.writeTextFileSync(luaName, newLuaFile);
   });
