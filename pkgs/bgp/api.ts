@@ -88,7 +88,9 @@ export const BASE = {
   /** Returns whether this computer has already seen the message. */
   seen(this: void, message: BaseMessage, id = COMPUTER_ID): boolean {
     return (
+      // Message contains our ID
       message.trace.indexOf(id) !== -1 &&
+      // We are not the current hop (last item in the trace)
       message.trace.indexOf(id) !== message.trace.length - 1
     );
   },

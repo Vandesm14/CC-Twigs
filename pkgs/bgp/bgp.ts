@@ -104,9 +104,13 @@ function handleBGPMessage(event: ModemMessageEvent<BGPMessage>) {
 }
 
 function handleBaseMessage(event: ModemMessageEvent<BaseMessage>) {
+  // Drop the message if...
   if (
+    // If we have seen the message (we are in the trace and not at the end)
     BASE.seen(event.message) ||
+    // If the trace is invalid
     event.message.trace.length < 2 ||
+    // If we are not the next hop
     event.message.trace.slice(-1)[0] !== COMPUTER_ID
   ) {
     logs.push(`dropped ${pretty.render(pretty.pretty(event.message))}`);

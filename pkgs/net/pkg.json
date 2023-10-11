@@ -3,14 +3,20 @@
   "main": "net.lua",
   "deps": [],
   "files": [
+    "bgp.lua",
+    "floodnet.lua",
     "pkg.json",
     "send.lua",
-    "softlink.lua"
+    "softlink.lua",
+    "softlink_api.lua"
   ],
   "checksums": {
-    "pkg.json": "9123ad722d85e5df8f80ba24f5beecf6",
-    "send.lua": "f92c349ef04664960d2e3b27894d1e8c",
-    "softlink.lua": "fcb55131dedf91f568b3c8b4dad4d836"
+    "pkg.json": "fa99792a8e264a26241733f6afa6cb56",
+    "bgp.lua": "b2535f723e053fa5ab27ec1dc27b91bd",
+    "floodnet.lua": "79cea7cd39117f154cf129e2b004c932",
+    "send.lua": "b2535f723e053fa5ab27ec1dc27b91bd",
+    "softlink.lua": "2da3322d173e33a3c968604f0877f0b8",
+    "softlink_api.lua": "4d2335b2e938e9eb1a04c52380c1940a"
   },
   "bin": {
     "send-base": "send.lua"
