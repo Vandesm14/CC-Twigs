@@ -1,6 +1,7 @@
 run = "pnpm start"
 compile = "pnpm build"
 hidden = [".config", "package-lock.json", "tsconfig.json"]
+modules = ["lua-5.2:v2-20230623-0b7a606"]
 
 [packager]
 language = "nodejs"
