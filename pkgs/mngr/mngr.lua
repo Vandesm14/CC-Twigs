@@ -16,10 +16,18 @@ if subcommand == "in" or subcommand == "install" then
         return
       end
 
-      if not api.pkg.installPackage(url, package) then
+      local installs = api.pkg.installPackage(url, package)
+
+      if type(installs) == "nil"  then
         print("Unable to install package " .. package .. ".")
       else
-        print("Installed package " .. package .. ".")
+        for j, installed in ipairs(installs) do
+          if j == 1 then
+            print("Installed package " .. package .. ".")
+          else
+            print("  Installed dependency package " .. installed .. ".")
+          end
+        end
       end
     end
   end

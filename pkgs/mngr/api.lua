@@ -40,11 +40,14 @@ end
 ---
 --- @param baseUrl string
 --- @param package string
---- @return boolean
+--- @return string[]|nil dependencies
 function api.pkg.installPackage(baseUrl, package)
+  --- @type string[]
+  local installed = {package}
+
   local files = api.http.getPackageFiles(baseUrl, package)
 
-  if type(files) == "nil" then return false end
+  if type(files) == "nil" then return end
 
   local packageDir = api.dir.base .. "/" .. package
 
@@ -55,34 +58,41 @@ function api.pkg.installPackage(baseUrl, package)
     local packageFilePath = packageDir .. "/" .. file
     local content = api.http.getPackageFileContent(baseUrl, package, file)
 
-    if type(content) == "nil" then return false end
+    if type(content) == "nil" then return end
 
     local f = fs.open(packageFilePath, "w")
 
-    if type(f) == "nil" then return false end
+    if type(f) == "nil" then return end
     f.write(content)
     f.close()
 
     local deps = api.http.getPackageFileDependencies(baseUrl, package, file)
 
-    if (type(deps) == "nil") then return false end
+    if (type(deps) == "nil") then return end
 
     for _, dep in ipairs(deps) do
       local found = false
-      for _, installed in ipairs(api.pkg.installedPackages()) do
-        if installed == dep then
+      for _, installedPackage in ipairs(api.pkg.installedPackages()) do
+        if installedPackage == dep then
           found = true
           break
         end
       end
 
       if not found then
-        api.pkg.installPackage(baseUrl, dep)
+        local installedDeps = api.pkg.installPackage(baseUrl, dep)
+
+        if not installedDeps then return end
+
+        installed = table.pack(
+          table.unpack(installed),
+          table.unpack(installedDeps)
+        )
       end
     end
   end
 
-  return true
+  return installed
 end
 
 --- Uninstall a package.
