@@ -62,6 +62,24 @@ function api.pkg.installPackage(baseUrl, package)
     if type(f) == "nil" then return false end
     f.write(content)
     f.close()
+
+    local deps = api.http.getPackageFileDependencies(baseUrl, package, file)
+
+    if (type(deps) == "nil") then return false end
+
+    for _, dep in ipairs(deps) do
+      local found = false
+      for _, installed in ipairs(api.pkg.installedPackages()) do
+        if installed == dep then
+          found = true
+          break
+        end
+      end
+
+      if not found then
+        api.pkg.installPackage(baseUrl, dep)
+      end
+    end
   end
 
   return true
@@ -154,6 +172,29 @@ function api.http.getPackageFileContent(baseUrl, package, file)
   return content
 end
 
+--- Get the package dependencies of a package file.
+---
+--- @param baseUrl string
+--- @param package string
+--- @param file string
+function api.http.getPackageFileDependencies(baseUrl, package, file)
+  local response = http.get(baseUrl .. "/" .. package .. "/" .. file .. "/deps", nil, false)
+
+  if type(response) == "nil" then return end
+
+  --- @type string[]
+  local deps = {}
+
+  local line = response.readLine()
+  while not (type(line) == "nil") do
+    deps[#deps + 1] = line
+    line = response.readLine()
+  end
+
+  response.close()
+  return deps
+end
+
 --- Setup completions for the current shell.
 function api.shell.setupCompletions()
   shell.setCompletionFunction(".mngr/mngr/mngr.lua", function(_, i, curr, prevs)
@@ -161,7 +202,7 @@ function api.shell.setupCompletions()
     prevs = prevs or {}
 
     if i == 1 then
-      local subcommands = { "in ", "un ", "install ", "uninstall ", "up", "update", "run ", "completions", "startup" }
+      local subcommands = { "in ", "un ", "install ", "uninstall ", "up", "update", "list", "run ", "completions", "startup" }
       --- @type string[]
       local matches = {}
 
