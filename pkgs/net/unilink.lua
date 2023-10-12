@@ -3,7 +3,8 @@ local render, pretty = pretty.render, pretty.pretty
 
 --- A data link (OSI layer 2) protocol.
 ---
---- Unilink is an unreliable and unencrypted protocol
+--- Unilink is an unreliable and unencrypted protocol that supports unicast
+--- modem-to-modem data frame communication.
 local unilink = {
   --- The unique Unilink protocol ID.
   pid = 1035,

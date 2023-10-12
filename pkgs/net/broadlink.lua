@@ -3,7 +3,8 @@ local render, pretty = pretty.render, pretty.pretty
 
 --- A data link (OSI layer 2) protocol.
 ---
---- Broadlink is an unreliable and unencrypted protocol
+--- Broadlink is an unreliable and unencrypted protocol that supports broadcast
+--- modem-to-modem data frame communication.
 local broadlink = {
   --- The unique Broadlink protocol ID.
   pid = 1036,
