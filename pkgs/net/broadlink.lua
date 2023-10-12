@@ -7,7 +7,7 @@ local broadlink = {
     pid = 1036,
 }
 
---- Sends a unicast frame.
+--- Sends a broadlink frame.
 ---
 --- @generic T : table
 --- @param data T

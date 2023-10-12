@@ -7,7 +7,7 @@ local unilink = {
     pid = 1035,
 }
 
---- Sends a unicast frame.
+--- Sends a unilink frame.
 ---
 --- @generic T : table
 --- @param destination integer
