@@ -61,6 +61,19 @@ elseif subcommand == "up" or subcommand == "update" then
       print("Updated package " .. package .. ".")
     end
   end
+elseif subcommand == "list" then
+  local strings = require("cc.strings")
+  local api = require("mngr.api")
+
+  local _, cursorY = term.getCursorPos()
+
+  local list = table.concat(api.pkg.installedPackages(), ", ")
+  local lines = strings.wrap(list)
+
+  for i, line in ipairs(lines) do
+    term.write(line)
+    term.setCursorPos(1, cursorY + i)
+  end
 elseif subcommand == "run" then
   local api = require("mngr.api")
 
@@ -195,6 +208,7 @@ else
   print("  in,   install <...package>")
   print("  un, uninstall <...package>")
   print("  up,    update")
+  print("           list")
   print("            run <package> <file>")
   print("    completions")
   print("        startup")
