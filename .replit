@@ -1,33 +1,24 @@
-run = "pnpm start"
-compile = "pnpm build"
-hidden = [".config", "package-lock.json", "tsconfig.json"]
-modules = ["lua-5.2:v2-20230623-0b7a606"]
+run = ["deno", "task", "serve"]
 
-[packager]
-language = "nodejs"
-  [packager.features]
-  enabledForHosting = false
-  packageSearch = true
-  guessImports = false
+hidden = [".deno"]
 
-[nix]
-channel = "stable-22_11"
+entrypoint = "index.ts"
+
+[languages.deno]
+pattern = "**/*.{ts,js}"
+[languages.deno.languageServer]
+start = ["deno", "lsp"]
+[languages.deno.languageServer.initializationOptions]
+enable = true
+lint = true
 
 [env]
-XDG_CONFIG_HOME = "$REPL_HOME/.config"
-PATH = "$REPL_HOME/node_modules/.bin:$REPL_HOME/.config/npm/node_global/bin"
-npm_config_prefix = "$REPL_HOME/.config/npm/node_global"
+DENO_DIR = "/home/runner/${REPL_SLUG}/.deno"
 
-[gitHubImport]
-requiredFiles = [".replit", "replit.nix", ".config"]
-
-[languages]
-  [languages.typescript]
-  pattern = "**/{*.ts,*.js,*.tsx,*.jsx,*.json}"
-    [languages.typescript.languageServer]
-    start = "typescript-language-server --stdio"
+[nix]
+channel = "stable-23_05"
 
 [deployment]
-run = ["sh", "-c", "npm start"]
+run = ["deno", "task", "serve"]
 deploymentTarget = "cloudrun"
 ignorePorts = false

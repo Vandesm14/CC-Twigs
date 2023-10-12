@@ -1,0 +1,9 @@
+{
+  "tasks": {
+    "serve": "deno run --allow-read --allow-net --allow-sys server/main.ts"
+  },
+  "fmt": {
+    "exclude": [".luarc", "pkgs"],
+    "singleQuote": true
+  }
+}

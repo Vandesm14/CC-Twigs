@@ -1,0 +1,3 @@
+[submodule ".luarc/addons/cc-tweaked"]
+	path = .luarc/addons/cc-tweaked
+	url = https://gitlab.com/carsakiller/cc-tweaked-documentation
