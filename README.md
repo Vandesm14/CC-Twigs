@@ -34,6 +34,8 @@ You can request data from the server using the folloing HTTP requests:
 - `GET /` — Responds with newline-separated package names.
 - `GET /package` — Responds with newline-separated package files.
 - `GET /package/file` — Responds with the content of the package file.
+- `GET /package/file/deps` — Responds with newline-separated package file
+  dependency package names.
 
 These may respond with a `404` if the package or file does not exist.
 
@@ -44,7 +46,8 @@ server. To install mngr, follow the steps below on a ComputerCraft computer:
 
 1. Set the `mngr.url` setting to the package server URL —
    `set mngr.url http://localhost:3000`.
-2. Download and run the mngr install file via HTTP — `wget run http://localhost:3000/mngr/install.lua`.
+2. Download and run the mngr install file via HTTP —
+   `wget run http://localhost:3000/mngr/install.lua`.
 3. Run mngr to see the available commands — `mngr`.
 
 [Deno]: https://deno.land
