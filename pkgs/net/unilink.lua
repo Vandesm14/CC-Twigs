@@ -26,7 +26,7 @@ function unilink.daemon()
     --- @type unknown, computerSide?, unknown, unknown, unknown
     local _, side, _, _, payload = os.pullEvent("modem_message")
 
-    -- 1. If all of the following are true?
+    -- 1. If all of the following are true.
     if
         type(payload) == "table"
         -- - PID is the unilink PID.
@@ -38,17 +38,17 @@ function unilink.daemon()
         -- - Data is a table.
         and type(payload[4]) == "table"
     then
-        -- a. Then payload is a valid unilink frame.
+        -- 2. Then payload is a valid unilink frame.
 
         --- @type any, number, number, table
         local _, source, destination, data = table.unpack(payload)
 
-        -- 2. If...
-        -- a. The source is this computer.
+        -- 3. If The source is this computer.
         if source == os.getComputerID() then
-            -- i. Then this unilink frame should be sent from this computer.
+            -- 4. Then this unilink frame should be sent from this computer via
+            --    all connected modems, except the one it was received on.
             for _, name in ipairs(peripheral.getNames()) do
-                if not (name == side) and peripheral.getType(name) == "modem" then
+                if name ~= side and peripheral.getType(name) == "modem" then
                     peripheral.wrap(name).transmit(
                         unilink.pid,
                         unilink.pid,
@@ -56,9 +56,9 @@ function unilink.daemon()
                     )
                 end
             end
-        -- b. The destination is this computer.
         elseif destination == os.getComputerID() then
-            -- i. Then this unilink frame is for this computer.
+            -- 5. Otherwise, the unilink frame should be received by this
+            --    computer.
             os.queueEvent(
                 "modem_message",
                 side,
@@ -71,4 +71,13 @@ function unilink.daemon()
     end
 end
 
-return unilink
+
+if not package.loaded["net.unilink"] then
+    -- This file was run as an executable.
+    while true do
+        unilink.daemon()
+    end
+else
+    -- This file was loaded as a library.
+    return unilink
+end
