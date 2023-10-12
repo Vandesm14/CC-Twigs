@@ -316,6 +316,32 @@ if not package.loaded["mngr.mngr"] then
       term.write(line)
       term.setCursorPos(1, cursorY + i)
     end
+  elseif subcommand == "rn" or subcommand == "run" then
+    --- @type string|nil, string|nil
+    local package, file = arg[2], arg[3]
+
+    local found = false
+    for _, installedPackage in ipairs(mngr.getInstalledPackages()) do
+      if installedPackage == package then
+        local packageDir = mngr.getPackageDir(installedPackage)
+
+        for _, installledPackageFile in ipairs(fs.list(packageDir)) do
+          if installledPackageFile == file .. ".lua" then
+            found = true
+            break
+          end
+        end
+        break
+      end
+    end
+
+    if not found then
+      printError("Unknown package.file '" .. package .. "." .. file .. "'.")
+      return
+    end
+
+    local filePath = fs.combine(mngr.getPackageDir(package), file .. ".lua")
+    shell.run(filePath, table.unpack(arg, 4))
   else
     -- Show usage.
     print("Usage: ".. arg[0] .. " <subcommand>")
@@ -325,6 +351,7 @@ if not package.loaded["mngr.mngr"] then
     print("  un, uninstall <...package>")
     print("  up,    update")
     print("  ls,      list")
+    print("  rn,       run <package> <file>")
   end
 else
   -- This file was loaded as a library.
