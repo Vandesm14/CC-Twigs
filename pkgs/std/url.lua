@@ -54,7 +54,7 @@ function urlib.parse(url)
   end
 
   --- @type integer|nil, integer|nil, string|nil
-  local _, pathEnd, path = url:find("^/?([%a%d%-%.%/]*)$")
+  local _, pathEnd, path = url:find("^/?([%a%d%-%.%@%#%/]*)$")
   if pathEnd == nil or path == nil then return end
   url = url:sub(pathEnd + 1)
 
