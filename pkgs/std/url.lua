@@ -12,8 +12,8 @@ local urlib = {}
 --- @return string|nil url
 function urlib.create(scheme, host, port, path)
   if
-    host:find("^[%a%d%.%-]+$") == 1
-    and (port == nil or (port >= 0 and port <= 65535))
+      host:find("^[%a%d%.%-]+$") == 1
+      and (port == nil or (port >= 0 and port <= 65535))
   then
     local portString = ""
     if port ~= nil then
@@ -49,8 +49,6 @@ function urlib.parse(url)
   local port = tonumber(port_)
   if portEnd ~= nil and port ~= nil then
     url = url:sub(portEnd + 1)
-  elseif url:find("^:") == nil then
-    return
   end
 
   --- @type integer|nil, integer|nil, string|nil

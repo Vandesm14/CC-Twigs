@@ -9,8 +9,8 @@
 --- @return string|nil url
 local function createUrl(scheme, host, port, path)
   if
-    host:find("^[%a%d%.%-]+$") == 1
-    and (port == nil or (port >= 0 and port <= 65535))
+      host:find("^[%a%d%.%-]+$") == 1
+      and (port == nil or (port >= 0 and port <= 65535))
   then
     local portString = ""
     if port ~= nil then
@@ -46,12 +46,10 @@ local function parseUrl(url)
   local port = tonumber(port_)
   if portEnd ~= nil and port ~= nil then
     url = url:sub(portEnd + 1)
-  elseif url:find("^:") == nil then
-    return
   end
 
   --- @type integer|nil, integer|nil, string|nil
-  local _, pathEnd, path = url:find("^/?([%a%d%-%.%/]*)$")
+  local _, pathEnd, path = url:find("^/?([%a%d%-%.%@%#%/]*)$")
   if pathEnd == nil or path == nil then return end
   url = url:sub(pathEnd + 1)
 
@@ -97,10 +95,10 @@ end
 -- These should be the bare-minimum and be kept in sync with the imports that
 -- 'mngr.lua' depends on.
 if not (
-  shell.run("wget", combineUrl(url, "mngr", "mngr.lua"), "/.mngr/mngr/mngr.lua")
-  and shell.run("wget", combineUrl(url, "std", "url.lua"), "/.mngr/std/url.lua")
-  and shell.run("wget", combineUrl(url, "std", "tfs.lua"), "/.mngr/std/tfs.lua")
-) then
+      shell.run("wget", combineUrl(url, "mngr", "mngr.lua"), "/.mngr/mngr/mngr.lua")
+      and shell.run("wget", combineUrl(url, "std", "url.lua"), "/.mngr/std/url.lua")
+      and shell.run("wget", combineUrl(url, "std", "tfs.lua"), "/.mngr/std/tfs.lua")
+    ) then
   printError("Unable to wget all dependencies.")
 
   if fs.isDir("/.mngr") then
