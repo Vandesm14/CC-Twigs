@@ -26,7 +26,7 @@ searchnet.daemon.routes = {}
 --- @generic T
 --- @param table T[]
 --- @return T[]
-function reverse(table)
+local function reverse(table)
   local newTable = {}
   for i = #table, 1, -1 do
     newTable[#newTable + 1] = table[i]
@@ -112,6 +112,7 @@ function searchnet.daemon.receivePing()
       else
         -- Else, relay the package
         -- Send the packet to all sides
+        --- @diagnostic disable-next-line: redefined-local
         for _, side in ipairs(peripheral.getNames()) do
           if peripheral.getType(side) == "modem" then
             broadlink.transmit(side, packet)
@@ -191,6 +192,7 @@ end
 --- @return path integer[]|nil
 function searchnet.search(destination)
   os.queueEvent(searchnet.event.search, destination)
+  --- @diagnostic disable-next-line: param-type-mismatch
   local _, path = os.pullEvent(searchnet.event.found)
   return path
 end
