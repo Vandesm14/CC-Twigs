@@ -1,5 +1,6 @@
 local unilink = require("net.unilink")
 local broadlink = require("net.broadlink")
+local follownet = require("net.follownet")
 
 local exit = false
 
@@ -23,7 +24,7 @@ local function closeChannels()
 end
 
 --- @type (fun(): boolean)[]
-local daemons = {closeChannels, unilink.daemon, broadlink.daemon}
+local daemons = {closeChannels, unilink.daemon, broadlink.daemon, follownet.daemon}
 
 while not exit do
   --- @type (fun(): nil)[]
