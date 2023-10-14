@@ -1,3 +1,5 @@
+local pretty = require("cc.pretty")
+
 --- A data link layer protocol (OSI layer 2).
 ---
 --- Unilink is an unreliable broadcast protocol for transfer of data frames
@@ -77,22 +79,22 @@ function unilink.daemon()
           data,
         })
 
-        print("UL SEND:", side, data)
+        print("UL SEND:", side, pretty.render(pretty.pretty(data)))
         return false
       else
         -- 1.2.2.1. ...Drop the data frame.
-        print("UL DROP", side, data)
+        print("UL DROP", side, pretty.render(pretty.pretty(data)))
         return false
       end
     elseif destination == os.getComputerID() then
       -- 1.3.1. ...Queue an Unilink event.
       os.queueEvent(unilink.event, side, source, data)
 
-      print("UL RECV:", side, source, data)
+      print("UL RECV:", side, source, pretty.render(pretty.pretty(data)))
       return false
     else
       -- 1.4.1. ...Drop the data frame.
-      print("UL DROP", side, data)
+      print("UL DROP", side, pretty.render(pretty.pretty(data)))
       return false
     end
   else

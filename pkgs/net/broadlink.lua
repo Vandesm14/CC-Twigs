@@ -1,3 +1,5 @@
+local pretty = require("cc.pretty")
+
 --- A data link layer protocol (OSI layer 2).
 ---
 --- Broadlink is an unreliable broadcast protocol for transfer of data frames
@@ -73,18 +75,18 @@ function broadlink.daemon()
           data,
         })
 
-        print("BL SEND:", side, data)
+        print("BL SEND:", side, pretty.render(pretty.pretty(data)))
         return false
       else
         -- 1.2.2.1. ...Drop the data frame.
-        print("BL DROP", side, data)
+        print("BL DROP", side, pretty.render(pretty.pretty(data)))
         return false
       end
     else
       -- 1.3.1. ...Queue a Broadlink event.
       os.queueEvent(broadlink.event, side, source, data)
 
-      print("BL RECV:", side, source, data)
+      print("BL RECV:", side, source, pretty.render(pretty.pretty(data)))
       return false
     end
   else
