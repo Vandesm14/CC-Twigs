@@ -74,12 +74,12 @@ function broadlink.daemon()
           data,
         })
 
-        print("BL SEND:", data)
+        print("BL SEND:", side, data)
         return false
       end
       -- 1.2.2.1. ...Drop the data frame.
 
-      print("BL DROP", data)
+      print("BL DROP", side, data)
       return false
     else
       -- 1.3.1. ...Queue a Broadlink event.

@@ -83,7 +83,7 @@ function unilink.daemon()
       end
       -- 1.2.2.1. ...Drop the data frame.
 
-      print("UL DROP", data)
+      print("UL DROP", side, data)
       return false
     elseif destination == os.getComputerID() then
       -- 1.3.1. ...Queue an Unilink event.
@@ -94,7 +94,7 @@ function unilink.daemon()
     end
     -- 1.4.1. ...Drop the data frame.
 
-    print("UL DROP", data)
+    print("UL DROP", side, data)
     return false
   else
     -- 2.1. ...Re-queue the event since it was not Unilink related.
