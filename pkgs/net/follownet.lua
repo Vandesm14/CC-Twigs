@@ -66,7 +66,7 @@ function follownet.daemon()
       -- 1.2.1. ...Queue a Follownet event.
       os.queueEvent(follownet.event, side, source, data)
 
-      print("FN RECV:", side, source, data)
+      print("FN RECV:", side, source, pretty.render(pretty.pretty(data)))
       return false
     elseif #path > 0 and nextId == os.getComputerID() then
       -- 1.3.1. ...Re-transmit the packet of the nextId via all modem.
@@ -75,14 +75,20 @@ function follownet.daemon()
         if peripheral.getType(side) == "modem" then
           broadlink.transmit(side, { follownet.id, path, data })
 
-          print("FN SEND:", side, source, data)
+          print("FN SEND:", side, source, pretty.render(pretty.pretty(data)))
         end
       end
 
       return false
     else
       -- 1.4.1. ...Drop the packet.
-      print("FN DROP", side, data)
+      print(
+        "FN DROP",
+        side,
+        nextId,
+        pretty.render(pretty.pretty(path)),
+        pretty.render(pretty.pretty(data))
+      )
       return false
     end
   else
