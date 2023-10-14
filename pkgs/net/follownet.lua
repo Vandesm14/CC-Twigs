@@ -1,3 +1,4 @@
+local pretty = require("cc.pretty")
 local broadlink = require("net.broadlink")
 
 --- A network layer protocol (OSI layer 3).
@@ -19,6 +20,12 @@ follownet.event = "follownet"
 --- @param path integer[]
 --- @param data T
 function follownet.transmit(path, data)
+  for i = 1, #path / 2 do
+    local temp = path[(#path + 1) - i]
+    path[(#path + 1) - i] = path[i]
+    path[i] = temp
+  end
+
   for _, side in ipairs(peripheral.getNames()) do
     if peripheral.getType(side) == "modem" then
       broadlink.transmit(side, { follownet.id, path, data })
@@ -57,7 +64,7 @@ function follownet.daemon()
     -- 1.1. ...Extract the path and data.
     --- @type table, table
     local path, data = packet[2], packet[3]
-    local nextId = table.remove(path, 1)
+    local nextId = table.remove(path, #path)
 
     -- 1.2. If the packet is for this computer...
     -- 1.3. If the packet is to be re-transmitted...
