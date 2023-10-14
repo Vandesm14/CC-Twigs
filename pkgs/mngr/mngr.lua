@@ -341,7 +341,15 @@ if not package.loaded["mngr.mngr"] then
     end
 
     local filePath = fs.combine(mngr.getPackageDir(package), file .. ".lua")
+
+    print(">", filePath, table.unpack(arg, 4))
     shell.run(filePath, table.unpack(arg, 4))
+  elseif subcommand == "rrn" or subcommand == "rrun" then
+  --- @type string|nil, string|nil
+  local package, file = arg[2], arg[3]
+
+    shell.run("mngr", "up")
+    shell.run("mngr", "run", package, file, table.unpack(arg, 4))
   else
     -- Show usage.
     print("Usage: ".. arg[0] .. " <subcommand>")
@@ -352,6 +360,7 @@ if not package.loaded["mngr.mngr"] then
     print("  up,    update")
     print("  ls,      list")
     print("  rn,       run <package> <file>")
+    print("  rrn,     rrun <package> <file>")
   end
 else
   -- This file was loaded as a library.
