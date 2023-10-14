@@ -78,9 +78,7 @@ function searchnet.daemon.receivePing()
     end
 
     -- If we haven't seen the message message, relay it
-    if
-        not alreadySeen
-    then
+    if not alreadySeen then
       -- Append our ID to the trace
       trace[#trace + 1] = os.getComputerID()
 
