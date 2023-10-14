@@ -1,12 +1,17 @@
 local broadlink = require('net.broadlink')
--- local follownet = require("net.follownet")
+local follownet = require("net.follownet")
+local pretty = require("cc.pretty")
 
 local searchnet = {}
 
 --- The Searchnet protocol ID that appears as the first item in the packet data.
 searchnet.id = 179
+
+searchnet.event = {}
+
 --- The event name for received Searchnet packets.
-searchnet.event = 'searchnet'
+searchnet.event.found = 'searchnet_found'
+searchnet.event.search = "searchnet_search"
 
 --- This contains everything related to the Searchnet daemon.
 searchnet.daemon = {}
@@ -16,22 +21,38 @@ searchnet.daemon.queue = {}
 --- @type table<number, number[]>
 searchnet.daemon.routes = {}
 
--- Handles a possible Searchnet ping.
---
--- This pauses execution on the current thread.
---
--- @return boolean deprioritize
+--- Reverses a table
+---
+--- @generic T
+--- @param table T[]
+--- @return T[]
+function reverse(table)
+  local newTable = {}
+  for i = #table, 1, -1 do
+    newTable[#newTable + 1] = table[i]
+  end
+
+  return newTable
+end
+
+--- Handles a possible Searchnet ping.
+---
+--- This pauses execution on the current thread.
+---
+--- @return boolean deprioritize
 function searchnet.daemon.daemon()
   searchnet.daemon.deprioritize = false
 
   parallel.waitForAny(
     searchnet.daemon.receivePing,
-    searchnet.daemon.receiveReply
+    searchnet.daemon.receiveReply,
+    searchnet.daemon.receiveSearch
   )
 
   return searchnet.daemon.deprioritize
 end
 
+--- Receives a Searchnet ping.
 function searchnet.daemon.receivePing()
   local side, source, packet = broadlink.receive()
   local revert = function() os.queueEvent(broadlink.event, side, source, packet) end
@@ -49,14 +70,19 @@ function searchnet.daemon.receivePing()
     --- @type number, number[]
     local destination, trace = packet[2], packet[3]
 
+    local alreadySeen = false
+    for _, id in ipairs(trace) do
+      if id == os.getComputerID() then
+        alreadySeen = true
+      end
+    end
+
     -- If we haven't seen the message message, relay it
     if
-        not trace[os.getComputerId()]
+      not alreadySeen
     then
-      local trace = packet[3]
-
       -- Append our ID to the trace
-      trace[#trace + 1] = os.getComputerId()
+      trace[#trace + 1] = os.getComputerID()
 
       -- Update the trace in the packet
       packet = {
@@ -66,9 +92,21 @@ function searchnet.daemon.receivePing()
       }
 
       -- If we are the destination, send it back to the origin
-      if destination == os.getComputerId() then
+      if destination == os.getComputerID() then
+        -- Remove the origin from the beginning of the trace
+        table.remove(trace, 1)
+        -- Reverse the trace since we want to go backwards
+        local reversed = reverse(trace)
+
         -- TODO: transmit via Follownet
-        follownet.transmit()
+        follownet.transmit(
+          reversed,
+          {
+            packet[1],
+            packet[2],
+            trace
+          }
+        )
 
         print("SN FLLW")
       else
@@ -83,6 +121,8 @@ function searchnet.daemon.receivePing()
         print("SN RELAY")
       end
     end
+
+    print("SN SEEN")
   else
     revert()
 
@@ -91,7 +131,7 @@ function searchnet.daemon.receivePing()
   end
 end
 
--- Receives a reply from a destination, which is a follownet packet.
+--- Receives a reply from a destination, which is a follownet packet.
 function searchnet.daemon.receiveReply()
   local side, source, packet = follownet.receive()
   local revert = function() os.queueEvent(follownet.event, side, source, packet) end
@@ -106,15 +146,18 @@ function searchnet.daemon.receiveReply()
       -- Trace (includes origin as first entry)
       and type(packet[3]) == "table"
   then
-    -- If we are awaiting a reply from this destination, handle it
-    if searchnet.daemondata.queue[destination] then
-      searchnet.daemondata.queue[destination] = false
+    local destination, trace = packet[2], packet[3]
 
-      searchnet.daemondata.routes[destination] = trace
+    -- If we are awaiting a reply from this destination, handle it
+    if searchnet.daemon.queue[destination] then
+      searchnet.daemon.queue[destination] = false
+
+      searchnet.daemon.routes[destination] = trace
+
+      os.queueEvent(searchnet.event.found, trace)
     else
       -- Drop the packet.
       print("SN DROP")
-      return false
     end
   else
     revert()
@@ -124,23 +167,30 @@ function searchnet.daemon.receiveReply()
   end
 end
 
--- Broadcasts a Searchnet ping
---
--- @param destination number
-function searchnet.search(destination)
+--- Receives an event to start a search.
+function searchnet.daemon.receiveSearch()
+  --- @diagnostic disable-next-line: param-type-mismatch
+  local _, destination = os.pullEvent(searchnet.event.search)
+
+  searchnet.daemon.queue[destination] = true
+
   for _, side in ipairs(peripheral.getNames()) do
     broadlink.transmit(side, {
       searchnet.id,
       destination,
-      { os.getComputerId() }
+      { os.getComputerID() }
     })
   end
 end
 
-function searchnet.receive()
-  --- @diagnostic disable-next-line: param-type-mismatch
-  local _, route = os.pullEvent(searchnet.event)
-  return route
+--- Attemps to find a path to the destination.
+---
+--- @param destination number
+--- @return path integer[]|nil
+function searchnet.search(destination)
+  os.queueEvent(searchnet.event.search, destination)
+  local _, path = os.pullEvent(searchnet.event.found)
+  return path
 end
 
 return searchnet

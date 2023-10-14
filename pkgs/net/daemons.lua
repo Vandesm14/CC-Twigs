@@ -5,7 +5,7 @@ local searchnet = require("net.searchnet")
 
 local exit = false
 
-for _, modem in ipairs({peripheral.find("modem")}) do
+for _, modem in ipairs({ peripheral.find("modem") }) do
   --- @cast modem Modem
   modem.open(unilink.channel)
   modem.open(broadlink.channel)
@@ -15,17 +15,18 @@ local function closeChannels()
   os.pullEventRaw("terminate")
   exit = true
 
-  for _, modem in ipairs({peripheral.find("modem")}) do
+  for _, modem in ipairs({ peripheral.find("modem") }) do
     --- @cast modem Modem
     modem.close(unilink.channel)
     modem.close(broadlink.channel)
   end
 
-  os.queueEvent("terminate")
+  print("Press any key to exit...")
+  os.pullEvent("key")
 end
 
 --- @type (fun(): boolean)[]
-local daemons = {closeChannels, unilink.daemon, broadlink.daemon, follownet.daemon, searchnet.daemon.daemon}
+local daemons = { closeChannels, unilink.daemon, broadlink.daemon, follownet.daemon, searchnet.daemon.daemon }
 
 while not exit do
   --- @type (fun(): nil)[]
