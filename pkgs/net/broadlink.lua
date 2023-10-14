@@ -45,7 +45,6 @@ end
 function broadlink.daemon()
   --- @type event, computerSide, integer, integer, table, integer
   local event, side, channel, replyChannel, frame, distance = os.pullEvent("modem_message")
-  local revert = function() os.queueEvent(event, side, channel, replyChannel, frame, distance) end
 
   -- 1. If frame is a valid Broadlink data frame...
   -- 2. Otherwise...
@@ -90,7 +89,7 @@ function broadlink.daemon()
     end
   else
     -- 2.1. ...Re-queue the event since it was not Broadlink related.
-    revert()
+    os.queueEvent(event, side, channel, replyChannel, frame, distance)
 
     print("BL OTHR")
     return true

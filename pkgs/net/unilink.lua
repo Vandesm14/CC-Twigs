@@ -46,7 +46,6 @@ end
 function unilink.daemon()
   --- @type event, computerSide, integer, integer, table, integer
   local event, side, channel, replyChannel, frame, distance = os.pullEvent("modem_message")
-  local revert = function() os.queueEvent(event, side, channel, replyChannel, frame, distance) end
 
   -- 1. If frame is a valid Unilink data frame...
   -- 2. Otherwise...
@@ -91,14 +90,14 @@ function unilink.daemon()
 
       print("UL RECV:", side, source, data)
       return false
+    else
+      -- 1.4.1. ...Drop the data frame.
+      print("UL DROP", side, data)
+      return false
     end
-    -- 1.4.1. ...Drop the data frame.
-
-    print("UL DROP", side, data)
-    return false
   else
     -- 2.1. ...Re-queue the event since it was not Unilink related.
-    revert()
+    os.queueEvent(event, side, channel, replyChannel, frame, distance)
 
     print("UL OTHR")
     return true
