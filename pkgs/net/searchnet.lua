@@ -91,12 +91,12 @@ function searchnet.daemon.receivePing()
 
       -- If we are the destination, send it back to the origin
       if destination == os.getComputerID() then
-        -- Remove the origin from the beginning of the trace
-        table.remove(trace, 1)
         -- Reverse the trace since we want to go backwards
         local reversed = reverse(trace)
+        -- Remove the origin from the beginning of the trace
+        table.remove(reversed, 1)
 
-        -- TODO: transmit via Follownet
+        -- transmit via Follownet
         follownet.transmit(
           reversed,
           {
