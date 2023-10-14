@@ -14,7 +14,7 @@ follownet.id = 2479
 --- The event name for received Follownet packets.
 follownet.event = "follownet"
 
---- Sends an Follownet data frame.
+--- Sends a Follownet data frame.
 ---
 --- @generic T: table
 --- @param path integer[]
@@ -33,7 +33,7 @@ function follownet.transmit(path, data)
   end
 end
 
---- Receives an Follownet data frame.
+--- Receives a Follownet data frame.
 ---
 --- This pauses execution on the current thread.
 ---
