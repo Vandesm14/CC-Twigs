@@ -80,11 +80,11 @@ function unilink.daemon()
 
         print("UL SEND:", side, data)
         return false
+      else
+        -- 1.2.2.1. ...Drop the data frame.
+        print("UL DROP", side, data)
+        return false
       end
-      -- 1.2.2.1. ...Drop the data frame.
-
-      print("UL DROP", side, data)
-      return false
     elseif destination == os.getComputerID() then
       -- 1.3.1. ...Queue an Unilink event.
       os.queueEvent(unilink.event, side, source, data)
