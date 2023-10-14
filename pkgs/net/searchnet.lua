@@ -79,7 +79,7 @@ function searchnet.daemon.receivePing()
 
     -- If we haven't seen the message message, relay it
     if
-      not alreadySeen
+        not alreadySeen
     then
       -- Append our ID to the trace
       trace[#trace + 1] = os.getComputerID()
@@ -108,7 +108,7 @@ function searchnet.daemon.receivePing()
           }
         )
 
-        print("SN FLLW")
+        print("SN FLLW:", pretty.render(pretty.pretty(trace)))
       else
         -- Else, relay the package
         -- Send the packet to all sides
@@ -118,11 +118,11 @@ function searchnet.daemon.receivePing()
           end
         end
 
-        print("SN RELAY")
+        print("SN RELAY:", side, destination)
       end
     end
 
-    print("SN SEEN")
+    print("SN SEEN:", side, destination)
   else
     revert()
 
@@ -155,6 +155,8 @@ function searchnet.daemon.receiveReply()
       searchnet.daemon.routes[destination] = trace
 
       os.queueEvent(searchnet.event.found, trace)
+
+      print("SN FIND:", pretty.render(pretty.pretty(trace)))
     else
       -- Drop the packet.
       print("SN DROP")
