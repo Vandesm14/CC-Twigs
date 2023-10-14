@@ -83,9 +83,9 @@ function broadlink.daemon()
       return false
     else
       -- 1.3.1. ...Queue a Broadlink event.
-      os.queueEvent(broadlink.event, source, data)
+      os.queueEvent(broadlink.event, side, source, data)
 
-      print("BL RECV:", source, data)
+      print("BL RECV:", side, source, data)
       return false
     end
   else
