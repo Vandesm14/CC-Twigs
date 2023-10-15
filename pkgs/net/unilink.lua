@@ -83,7 +83,7 @@ function unilink.daemon(event, log)
           })
 
           if log then
-            print("UL SEND:", side, pretty.render(pretty.pretty(data)))
+            print("UL SEND:", side, destination, pretty.render(pretty.pretty(data)))
           end
           return true
         else
