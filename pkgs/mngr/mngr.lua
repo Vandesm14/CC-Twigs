@@ -1,5 +1,3 @@
-local strings = require("cc.strings")
-
 --- Provides package manager APIs.
 local mngr = {}
 
