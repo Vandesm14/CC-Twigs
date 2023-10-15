@@ -21,23 +21,6 @@ if destination == nil then
   return
 end
 
--- Run the daemons for Searchnet
-local foundNet = false
-
-for _, package in ipairs(mngr.getInstalledPackages()) do
-  if package == "net" then
-    foundNet = true
-    break
-  end
-end
-
-if not foundNet then
-  printError("Be sure to install the 'net' package.")
-  return
-end
-
-multishell.launch(_ENV, "/.mngr/net/daemons.lua")
-
 --- @type integer[] | nil
 local route = searchnet.search(destination)
 
