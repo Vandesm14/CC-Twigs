@@ -208,6 +208,7 @@ function searchnet.daemon.receiveSearch(event, log)
     end
 
     return true
+    -- TODO: elseif event[1] == "timer" then
   else
     return false
   end
@@ -215,10 +216,11 @@ end
 
 --- Attemps to find a path to the destination.
 ---
---- @param destination number
---- @return path integer[]|nil
+--- @param destination integer
+--- @return integer[]|nil path
 function searchnet.search(destination)
   os.queueEvent(searchnet.event.search, destination)
+  -- TODO: add a TTL arg and wait for a timeout
   --- @diagnostic disable-next-line: param-type-mismatch
   local _, path = os.pullEvent(searchnet.event.found)
   return path
