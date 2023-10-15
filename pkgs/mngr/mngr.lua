@@ -125,11 +125,11 @@ if not package.loaded["mngr.mngr"] then
   fs.move(tempDir, mngrDir)
   fs.delete(tempDir)
 
-  print("Done.")
-
   shell.setPath( shell.path() .. ":/.mngr/mngr")
 
   if not fs.exists("/startup/mngr.lua") then
+    print("Creating '/startup/mngr.lua'...")
+
     local file = fs.open("/startup/mngr.lua", "w")
     if not file then
       printError("Unable to create '/startup/mngr.lua' file.")
@@ -139,4 +139,6 @@ if not package.loaded["mngr.mngr"] then
     file.writeLine("shell.setPath( shell.path() .. \":\" .. \"/.mngr/mngr\")")
     file.close()
   end
+
+  print("Done.")
 end
