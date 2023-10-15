@@ -43,58 +43,67 @@ end
 ---
 --- This pauses execution on the current thread.
 ---
---- @return boolean deprioritise
-function broadlink.daemon()
-  --- @type event, computerSide, integer, integer, table, integer
-  local event, side, channel, replyChannel, frame, distance = os.pullEvent("modem_message")
+--- @param event table
+--- @param log boolean
+--- @return boolean consumedEvent
+function broadlink.daemon(event, log)
+  if event[1] == "modem_message" then
+    --- @type event, computerSide, integer, integer, table, integer
+    local _, side, channel, _, frame, _ = table.unpack(event)
 
-  -- 1. If frame is a valid Broadlink data frame...
-  -- 2. Otherwise...
-  if
-    channel == broadlink.channel
-    and type(frame) == "table"
-    and type(frame[1]) == "number"
-    and type(frame[2]) == "table"
-  then
-    -- 1.1. ...Extract the source and data.
-    --- @type integer, table
-    local source, data = frame[1], frame[2]
+    -- 1. If frame is a valid Broadlink data frame...
+    -- 2. Otherwise...
+    if
+        channel == broadlink.channel
+        and type(frame) == "table"
+        and type(frame[1]) == "number"
+        and type(frame[2]) == "table"
+    then
+      -- 1.1. ...Extract the source and data.
+      --- @type integer, table
+      local source, data = frame[1], frame[2]
 
-    -- 1.2. If the source is this computer...
-    -- 1.3. Otherwise the destination is this computer...
-    if source == os.getComputerID() then
-      -- 1.2.1. ...If the specified side is a modem...
-      -- 1.2.2. ...Otherwise...
-      if peripheral.getType(side) == "modem" then
-        -- 1.2.1.1. ...Transmit the data frame.
-        local modem = peripheral.wrap(side)
+      -- 1.2. If the source is this computer...
+      -- 1.3. Otherwise the destination is this computer...
+      if source == os.getComputerID() then
+        -- 1.2.1. ...If the specified side is a modem...
+        -- 1.2.2. ...Otherwise...
+        if peripheral.getType(side) == "modem" then
+          -- 1.2.1.1. ...Transmit the data frame.
+          local modem = peripheral.wrap(side)
 
-        --- @cast modem Modem
-        modem.transmit(broadlink.channel, broadlink.channel, {
-          source,
-          data,
-        })
+          --- @cast modem Modem
+          modem.transmit(broadlink.channel, broadlink.channel, {
+            source,
+            data,
+          })
 
-        print("BL SEND:", side, pretty.render(pretty.pretty(data)))
-        return false
+          if log then
+            print("BL SEND:", side, pretty.render(pretty.pretty(data)))
+          end
+          return true
+        else
+          -- 1.2.2.1. ...Drop the data frame.
+          if log then
+            print("BL DROP", side, pretty.render(pretty.pretty(data)))
+          end
+          return true
+        end
       else
-        -- 1.2.2.1. ...Drop the data frame.
-        print("BL DROP", side, pretty.render(pretty.pretty(data)))
-        return false
+        -- 1.3.1. ...Queue a Broadlink event.
+        os.queueEvent(broadlink.event, side, source, data)
+
+        if log then
+          print("BL RECV:", side, source, pretty.render(pretty.pretty(data)))
+        end
+        return true
       end
     else
-      -- 1.3.1. ...Queue a Broadlink event.
-      os.queueEvent(broadlink.event, side, source, data)
-
-      print("BL RECV:", side, source, pretty.render(pretty.pretty(data)))
+      -- 2.1. ...Re-queue the event since it was not Unilink related.
       return false
     end
   else
-    -- 2.1. ...Re-queue the event since it was not Broadlink related.
-    os.queueEvent(event, side, channel, replyChannel, frame, distance)
-
-    print("BL OTHR")
-    return true
+    return false
   end
 end
 

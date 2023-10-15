@@ -44,65 +44,76 @@ end
 ---
 --- This pauses execution on the current thread.
 ---
---- @return boolean deprioritise
-function unilink.daemon()
-  --- @type event, computerSide, integer, integer, table, integer
-  local event, side, channel, replyChannel, frame, distance = os.pullEvent("modem_message")
+--- @param event table
+--- @param log boolean
+--- @return boolean consumedEvent
+function unilink.daemon(event, log)
+  if event[1] == "modem_message" then
+    --- @type event, computerSide, integer, integer, table, integer
+    local _, side, channel, _, frame, _ = table.unpack(event)
 
-  -- 1. If frame is a valid Unilink data frame...
-  -- 2. Otherwise...
-  if
-    channel == unilink.channel
-    and type(frame) == "table"
-    and type(frame[1]) == "number"
-    and type(frame[2]) == "number"
-    and type(frame[3]) == "table"
-  then
-    -- 1.1. ...Extract the source and data.
-    --- @type integer, integer, table
-    local source, destination, data = frame[1], frame[2], frame[3]
+    -- 1. If frame is a valid Unilink data frame...
+    -- 2. Otherwise...
+    if
+        channel == unilink.channel
+        and type(frame) == "table"
+        and type(frame[1]) == "number"
+        and type(frame[2]) == "number"
+        and type(frame[3]) == "table"
+    then
+      -- 1.1. ...Extract the source and data.
+      --- @type integer, integer, table
+      local source, destination, data = frame[1], frame[2], frame[3]
 
-    -- 1.2. If the source is this computer...
-    -- 1.3. If the destination is this computer...
-    -- 1.4. Otherwise...
-    if source == os.getComputerID() then
-      -- 1.2.1. ...If the specified side is a modem...
-      -- 1.2.2. ...Otherwise...
-      if peripheral.getType(side) == "modem" then
-        -- 1.2.1.1. ...Transmit the data frame.
-        local modem = peripheral.wrap(side)
+      -- 1.2. If the source is this computer...
+      -- 1.3. If the destination is this computer...
+      -- 1.4. Otherwise...
+      if source == os.getComputerID() then
+        -- 1.2.1. ...If the specified side is a modem...
+        -- 1.2.2. ...Otherwise...
+        if peripheral.getType(side) == "modem" then
+          -- 1.2.1.1. ...Transmit the data frame.
+          local modem = peripheral.wrap(side)
 
-        --- @cast modem Modem
-        modem.transmit(unilink.channel, unilink.channel, {
-          source,
-          destination,
-          data,
-        })
+          --- @cast modem Modem
+          modem.transmit(unilink.channel, unilink.channel, {
+            source,
+            destination,
+            data,
+          })
 
-        print("UL SEND:", side, pretty.render(pretty.pretty(data)))
-        return false
+          if log then
+            print("UL SEND:", side, pretty.render(pretty.pretty(data)))
+          end
+          return true
+        else
+          -- 1.2.2.1. ...Drop the data frame.
+          if log then
+            print("UL DROP", side, pretty.render(pretty.pretty(data)))
+          end
+          return true
+        end
+      elseif destination == os.getComputerID() then
+        -- 1.3.1. ...Queue an Unilink event.
+        os.queueEvent(unilink.event, side, source, data)
+
+        if log then
+          print("UL RECV:", side, source, pretty.render(pretty.pretty(data)))
+        end
+        return true
       else
-        -- 1.2.2.1. ...Drop the data frame.
-        print("UL DROP", side, pretty.render(pretty.pretty(data)))
-        return false
+        -- 1.4.1. ...Drop the data frame.
+        if log then
+          print("UL DROP", side, pretty.render(pretty.pretty(data)))
+        end
+        return true
       end
-    elseif destination == os.getComputerID() then
-      -- 1.3.1. ...Queue an Unilink event.
-      os.queueEvent(unilink.event, side, source, data)
-
-      print("UL RECV:", side, source, pretty.render(pretty.pretty(data)))
-      return false
     else
-      -- 1.4.1. ...Drop the data frame.
-      print("UL DROP", side, pretty.render(pretty.pretty(data)))
+      -- 2.1. ...Re-queue the event since it was not Unilink related.
       return false
     end
   else
-    -- 2.1. ...Re-queue the event since it was not Unilink related.
-    os.queueEvent(event, side, channel, replyChannel, frame, distance)
-
-    print("UL OTHR")
-    return true
+    return false
   end
 end
 

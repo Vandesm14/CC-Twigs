@@ -1,4 +1,5 @@
 local pretty = require("cc.pretty")
+
 local broadlink = require("net.broadlink")
 
 --- A network layer protocol (OSI layer 3).
@@ -50,60 +51,69 @@ end
 ---
 --- This pauses execution on the current thread.
 ---
---- @return boolean deprioritise
-function follownet.daemon()
-  local side, source, packet = broadlink.receive()
+--- @param event table
+--- @param log boolean
+--- @return boolean consumedEvent
+function follownet.daemon(event, log)
+  if event[1] == broadlink.event then
+    local _, side, source, packet = table.unpack(event)
 
-  -- 1. If packet is a valid Follownet packet...
-  -- 2. Otherwise...
-  if
-    packet[1] == follownet.id
-    and type(packet[2]) == "table"
-    and type(packet[3]) == "table"
-  then
-    -- 1.1. ...Extract the path and data.
-    --- @type table, table
-    local path, data = packet[2], packet[3]
-    local nextId = table.remove(path, #path)
+    -- 1. If packet is a valid Follownet packet...
+    -- 2. Otherwise...
+    if
+        packet[1] == follownet.id
+        and type(packet[2]) == "table"
+        and type(packet[3]) == "table"
+    then
+      -- 1.1. ...Extract the path and data.
+      --- @type table, table
+      local path, data = packet[2], packet[3]
+      local nextId = table.remove(path, #path)
 
-    -- 1.2. If the packet is for this computer...
-    -- 1.3. If the packet is to be re-transmitted...
-    -- 1.4. Otherwise...
-    if #path == 0 and nextId == os.getComputerID() then
-      -- 1.2.1. ...Queue a Follownet event.
-      os.queueEvent(follownet.event, side, source, data)
+      -- 1.2. If the packet is for this computer...
+      -- 1.3. If the packet is to be re-transmitted...
+      -- 1.4. Otherwise...
+      if #path == 0 and nextId == os.getComputerID() then
+        -- 1.2.1. ...Queue a Follownet event.
+        os.queueEvent(follownet.event, side, source, data)
 
-      print("FN RECV:", side, source, pretty.render(pretty.pretty(data)))
-      return false
-    elseif #path > 0 and nextId == os.getComputerID() then
-      -- 1.3.1. ...Re-transmit the packet of the nextId via all modem.
-      --- @diagnostic disable-next-line: redefined-local
-      for _, side in ipairs(peripheral.getNames()) do
-        if peripheral.getType(side) == "modem" then
-          broadlink.transmit(side, { follownet.id, path, data })
-
-          print("FN SEND:", side, source, pretty.render(pretty.pretty(data)))
+        if log then
+          print("FN RECV:", side, source, pretty.render(pretty.pretty(data)))
         end
-      end
+        return true
+      elseif #path > 0 and nextId == os.getComputerID() then
+        -- 1.3.1. ...Re-transmit the packet of the nextId via all modem.
+        --- @diagnostic disable-next-line: redefined-local
+        for _, side in ipairs(peripheral.getNames()) do
+          if peripheral.getType(side) == "modem" then
+            broadlink.transmit(side, { follownet.id, path, data })
 
-      return false
+            if log then
+              print("FN SEND:", side, source, pretty.render(pretty.pretty(data)))
+            end
+          end
+        end
+
+        return true
+      else
+        -- 1.4.1. ...Drop the packet.
+        if log then
+          print(
+            "FN DROP",
+            side,
+            nextId,
+            pretty.render(pretty.pretty(path)),
+            pretty.render(pretty.pretty(data))
+          )
+        end
+        return true
+      end
     else
-      -- 1.4.1. ...Drop the packet.
-      print(
-        "FN DROP",
-        side,
-        nextId,
-        pretty.render(pretty.pretty(path)),
-        pretty.render(pretty.pretty(data))
-      )
+      -- 2.1. ...Re-queue the event since it was not Follownet related.
       return false
     end
   else
-    -- 2.1. ...Re-queue the event since it was not Follownet related.
-    os.queueEvent(broadlink.event, side, source, packet)
-
-    print("FN OTHR")
-    return true
+    return false
   end
 end
 
