@@ -22,7 +22,7 @@ local daemons = {
   searchnet.daemon.daemon,
 }
 --- @type boolean[]
-local logs = { true, false, false, false }
+local logs = { false, false, true, false }
 
 for _, modem in ipairs({ peripheral.find("modem") }) do
   --- @cast modem Modem
