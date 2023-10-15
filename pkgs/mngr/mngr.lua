@@ -119,7 +119,7 @@ if not package.loaded["mngr.mngr"] then
     end
   end
 
-  print("Committing from '" .. tempDir .. "' to '" .. mngrDir .. "'...")
+  print("Committing '" .. tempDir .. "' to '" .. mngrDir .. "'...")
 
   fs.delete(mngrDir)
   fs.move(tempDir, mngrDir)
