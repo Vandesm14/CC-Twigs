@@ -3,6 +3,7 @@ local server = require("wherehouse.server")
 
 local usage = "Usage: " .. arg[0] .. " <order|ls>"
 local command = arg[1]
+local query = arg[2]
 
 if command == nil then
   printError(usage)
@@ -24,12 +25,13 @@ elseif command == "ls" then
     if type_ == "list" then
       print("Items:")
       for name, count in pairs(data) do
-        print(name .. ": " .. count)
-      end
-    elseif type_ == "order" then
-      print("Found:")
-      for name, count in pairs(data) do
-        print(name .. ": " .. count)
+        if query ~= nil and type(query) == "string" then
+          if string.find(name, query) ~= nil then
+            print(name .. ": " .. count)
+          end
+        else
+          print(name .. ": " .. count)
+        end
       end
     end
   end
