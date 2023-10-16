@@ -29,9 +29,9 @@ end
 --- Receives a reply from a destination, which is a Wherehouse packet.
 ---
 --- @param event table
---- @param log boolean
+--- @param logs string[]
 --- @return boolean consumedEvent
-function protocol.daemon(event, log)
+function protocol.schedule(event, logs)
   if event[1] == follownet.event then
     local _, _, _, packet = table.unpack(event)
     local pid, path, type_, order = table.unpack(packet)
@@ -51,7 +51,6 @@ function protocol.daemon(event, log)
           --- @cast chest Inventory
 
           if chest ~= nil then
-            print("Scanning:", peripheral.getName(chest))
             countItems(chest, items)
           end
         end
@@ -69,7 +68,7 @@ function protocol.daemon(event, log)
 
         -- The distribution chest MUST be a single chest
         -- and the storage chests MUST be double chests
-        local distributionChest = peripheral.find("minecraft:chest", function(_, chest) return chest.size() == 27 end)
+        local distributionChest = peripheral.find("minecraft:barrel", function(_, chest) return chest.size() == 27 end)
         --- @cast distributionChest Inventory|nil
 
         if distributionChest == nil then

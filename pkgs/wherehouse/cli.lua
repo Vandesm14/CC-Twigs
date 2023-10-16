@@ -23,15 +23,11 @@ elseif command == "ls" then
   then
     if type_ == "list" then
       print("Items:")
-      table.sort(data, function(a, b) return a[2] < b[2] end)
-
       for name, count in pairs(data) do
         print(name .. ": " .. count)
       end
     elseif type_ == "order" then
       print("Found:")
-      table.sort(data, function(a, b) return a[2] < b[2] end)
-
       for name, count in pairs(data) do
         print(name .. ": " .. count)
       end
