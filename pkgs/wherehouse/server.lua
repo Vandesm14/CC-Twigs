@@ -88,13 +88,16 @@ while true do
               -- If the order wants this item, and we don't have enough
               if order[item.name] ~= nil and myItems[item.name] ~= nil and order[item.name] > myItems[item.name] then
                 -- Find how many items we need to gather
-                local count = order[item.name] - myItems[item.name]
+                local need = order[item.name] - myItems[item.name]
+                local have = item.count
+
+                local take = math.min(need, have)
 
                 -- Move the items into our distribution chest
-                distributionChest.pullItems(peripheral.getName(chest), slot, count)
+                distributionChest.pullItems(peripheral.getName(chest), slot, take)
 
                 -- Add this action to our running totals
-                myItems[item.name] = myItems[item.name] + count
+                myItems[item.name] = myItems[item.name] + take
               end
             end
           end
