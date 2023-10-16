@@ -66,10 +66,11 @@ function protocol.schedule(event, logs)
         --- @type table<string, integer>
         local myItems = {}
 
-        -- The distribution chest MUST be a single chest
-        -- and the storage chests MUST be double chests
-        local distributionChest = peripheral.find("minecraft:barrel", function(_, chest) return chest.size() == 27 end)
-        --- @cast distributionChest Inventory|nil
+        --- The distribution chest MUST be a single chest
+        --- and the storage chests MUST be double chests
+        --- @diagnostic disable-next-line: param-type-mismatch
+        local distributionChest = peripheral.find("minecraft:barrel")
+        --- @cast distributionChest Inventory
 
         if distributionChest == nil then
           printError("No distribution chest found.")
@@ -82,27 +83,44 @@ function protocol.schedule(event, logs)
         end
 
         -- Scan each chest for items, until we hit the end-stop
-        for _, chest in ipairs({ peripheral.find("minecraft:chest", function(_, chest) return chest.size() ~= 27 end) }) do
+        --- @diagnostic disable-next-line: param-type-mismatch
+        for _, chest in ipairs({ peripheral.find("minecraft:chest", function(_, chest) return chest.size() == 54 end) }) do
           --- @cast chest Inventory
+          local chestName = peripheral.getName(chest)
 
-          -- If there is a chest, check for items
-          if chest then
-            -- Run through each item
-            for slot, item in pairs(chest.list()) do
-              if item then
-                -- If the order wants this item, and we don't have enough
-                if order[item.name] ~= nil and myItems[item.name] ~= nil and order[item.name] > myItems[item.name] then
-                  -- Find how many items we need to gather
-                  local need = order[item.name] - myItems[item.name]
-                  local have = item.count
+          print("Found chest '" .. chestName .. "'...")
 
-                  local take = math.min(need, have)
+          -- Check for items. Run through each item
+          for slot, item in pairs(chest.list()) do
+            if item ~= nil then
+              -- If the order wants this item...
+              if order[item.name] ~= nil then
+                local need = order[item.name] - myItems[item.name]
 
+                -- ...and we don't have enough
+                if need > 0 then
                   -- Move the items into our distribution chest
-                  distributionChest.pullItems(peripheral.getName(chest), slot, take)
+                  local success, got = pcall(
+                    distributionChest.pullItems,
+                    chestName,
+                    slot,
+                    need
+                  )
 
-                  -- Add this action to our running totals
-                  myItems[item.name] = myItems[item.name] + take
+                  if success then
+                    -- Add this action to our running totals
+                    myItems[item.name] = myItems[item.name] + got
+                    print(
+                      "  Got",
+                      tostring(got),
+                      item.name .. ", need",
+                      tostring(need - got),
+                      "more."
+                    )
+                  else
+                    printError("  Unable to pull from it.")
+                    break
+                  end
                 end
               end
             end
