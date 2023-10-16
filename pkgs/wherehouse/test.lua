@@ -4,7 +4,7 @@ local follownet = require("net.follownet")
 local protocol = {}
 protocol.pid = 3524
 
-follownet.transmit({ 0 }, { 3524, { os.getComputerID() }, "list" })
+follownet.transmit({ 0 }, { 3524, { os.getComputerID() }, "order", { ["minecraft:lapis_block"] = 5 } })
 
 local _, _, packet = follownet.receive()
 local pid, path, type_, data = table.unpack(packet)

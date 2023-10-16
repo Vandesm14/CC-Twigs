@@ -28,7 +28,7 @@ end
 
 while true do
   local _, _, packet = follownet.receive()
-  local pid, path, type_, _ = table.unpack(packet)
+  local pid, path, type_, order = table.unpack(packet)
 
   if
       pid == protocol.pid
@@ -50,38 +50,66 @@ while true do
         end
       end
 
+      -- Relay back to the client
       follownet.transmit(path, {
         protocol.pid,
         path,
         type_,
         items
       })
-    elseif type_ == "order" then
+    elseif type_ == "order" and type(order) == "table" then
       --- @type table<string, integer>
       local myItems = {}
-      --- @type table<string, integer>
-      local order = {}
+
+      -- The distribution chest MUST be a single chest
+      -- and the storage chests MUST be double chests
+      local distributionChest = peripheral.find("minecraft:chest", function(_, chest) return chest.size() == 27 end)
+      --- @cast distributionChest Inventory|nil
+
+      if distributionChest == nil then
+        printError("No distribution chest found.")
+        return
+      end
 
       -- Add 0's for all the order items
-      for name, _ in ipairs(order) do
+      for name, _ in pairs(order) do
         myItems[name] = 0
       end
 
       -- Scan each chest for items, until we hit the end-stop
-      for _, chest in ipairs({ peripheral.find("minecraft:chest") }) do
+      for _, chest in ipairs({ peripheral.find("minecraft:chest", function(_, chest) return chest.size() ~= 27 end) }) do
         --- @cast chest Inventory
 
         -- If there is a chest, check for items
         if chest then
           -- Run through each item
-          for _, item in ipairs(chest.list()) do
-            -- If the order wants this item, and we don't have enough
-            if order[item.name] and order[item.name] > myItems[item.name] then
-              -- chest.pullItems()
+          for slot, item in pairs(chest.list()) do
+            if item then
+              -- If the order wants this item, and we don't have enough
+              if order[item.name] ~= nil and myItems[item.name] ~= nil and order[item.name] > myItems[item.name] then
+                -- Find how many items we need to gather
+                local count = order[item.name] - myItems[item.name]
+
+                -- Move the items into our distribution chest
+                distributionChest.pullItems(peripheral.getName(chest), slot, count)
+
+                -- Add this action to our running totals
+                myItems[item.name] = myItems[item.name] + count
+              end
             end
           end
         end
       end
+
+      -- Relay back to the client
+      follownet.transmit(
+        path, {
+          protocol.pid,
+          path,
+          type_,
+          myItems,
+        }
+      )
     end
   end
 end
