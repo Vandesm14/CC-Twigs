@@ -1,4 +1,3 @@
-local mngr = require("mngr.mngr")
 local searchnet = require("net.searchnet")
 
 local usage = "Usage: " .. arg[0] .. " <destination>"
