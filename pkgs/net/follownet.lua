@@ -80,7 +80,7 @@ function follownet.schedule(event, logs)
         logs[#logs + 1] = "FN RECV:" .. side .. source .. pretty.render(pretty.pretty(data))
         return true
       elseif #path > 0 and nextId == os.getComputerID() then
-        -- 1.3.1. ...Re-transmit the packet of the nextId via all modem.
+        -- 1.3.1. ...Re-transmit the packet to the nextId via all modem.
         --- @diagnostic disable-next-line: redefined-local
         for _, side in ipairs(peripheral.getNames()) do
           if peripheral.getType(side) == "modem" then
