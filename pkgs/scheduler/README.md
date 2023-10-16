@@ -19,7 +19,7 @@ $ .mngr/scheduler/cli start net.broadlink
 $ .mngr/scheduler/cli start net.follownet
 $ .mngr/scheduler/cli start net.searchnet
 
-$ .mngr/net-tools/tracenet 4
+$ .mngr/net-tools/traceroute 4
 > # An example programme that uses the started schedules.
 
 $ .mngr/scheduler/cli logs net.searchnet
