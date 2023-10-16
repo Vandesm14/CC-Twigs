@@ -52,9 +52,9 @@ end
 --- This pauses execution on the current thread.
 ---
 --- @param event table
---- @param log boolean
+--- @param logs string[]
 --- @return boolean consumedEvent
-function follownet.daemon(event, log)
+function follownet.schedule(event, logs)
   if event[1] == broadlink.event then
     local _, side, source, packet = table.unpack(event)
 
@@ -77,9 +77,7 @@ function follownet.daemon(event, log)
         -- 1.2.1. ...Queue a Follownet event.
         os.queueEvent(follownet.event, side, source, data)
 
-        if log then
-          print("FN RECV:", side, source, pretty.render(pretty.pretty(data)))
-        end
+        logs[#logs + 1] = "FN RECV:" .. side .. source .. pretty.render(pretty.pretty(data))
         return true
       elseif #path > 0 and nextId == os.getComputerID() then
         -- 1.3.1. ...Re-transmit the packet of the nextId via all modem.
@@ -88,24 +86,14 @@ function follownet.daemon(event, log)
           if peripheral.getType(side) == "modem" then
             broadlink.transmit(side, { follownet.id, path, data })
 
-            if log then
-              print("FN SEND:", side, source, pretty.render(pretty.pretty(data)))
-            end
+            logs[#logs + 1] = "FN SEND:" .. side .. source .. pretty.render(pretty.pretty(data))
           end
         end
 
         return true
       else
         -- 1.4.1. ...Drop the packet.
-        if log then
-          print(
-            "FN DROP",
-            side,
-            nextId,
-            pretty.render(pretty.pretty(path)),
-            pretty.render(pretty.pretty(data))
-          )
-        end
+        logs[#logs + 1] = "FN DROP" .. side .. nextId .. pretty.render(pretty.pretty(path)) .. pretty.render(pretty.pretty(data))
         return true
       end
     else

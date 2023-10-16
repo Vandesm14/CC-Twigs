@@ -15,9 +15,9 @@ searchnet.event.found = 'searchnet_found'
 searchnet.event.search = "searchnet_search"
 
 --- This contains everything related to the Searchnet daemon.
-searchnet.daemon = {}
+searchnet.scheduleStuff = {}
 --- @type table<number, boolean | nil>
-searchnet.daemon.queue = {}
+searchnet.scheduleStuff.queue = {}
 
 --- Reverses a table
 ---
@@ -38,20 +38,20 @@ end
 --- This pauses execution on the current thread.
 ---
 --- @param event table
---- @param log boolean
+--- @param logs string[]
 --- @return boolean consumedEvent
-function searchnet.daemon.daemon(event, log)
-  return searchnet.daemon.receivePing(event, log)
-      or searchnet.daemon.receiveReply(event, log)
-      or searchnet.daemon.receiveSearch(event, log)
+function searchnet.schedule(event, logs)
+  return searchnet.scheduleStuff.receivePing(event, logs)
+      or searchnet.scheduleStuff.receiveReply(event, logs)
+      or searchnet.scheduleStuff.receiveSearch(event, logs)
 end
 
 --- Receives a Searchnet ping.
 ---
 --- @param event table
---- @param log boolean
+--- @param logs string[]
 --- @return boolean consumedEvent
-function searchnet.daemon.receivePing(event, log)
+function searchnet.scheduleStuff.receivePing(event, logs)
   if event[1] == broadlink.event then
     local _, side, _, packet = table.unpack(event)
 
@@ -105,9 +105,7 @@ function searchnet.daemon.receivePing(event, log)
             }
           )
 
-          if log then
-            print("SN FLLW:", reversed[#reversed])
-          end
+            logs[#logs + 1] = "SN FLLW:" .. reversed[#reversed]
         else
           -- Else, relay the package
           -- Send the packet to all sides
@@ -118,14 +116,10 @@ function searchnet.daemon.receivePing(event, log)
             end
           end
 
-          if log then
-            print("SN RELAY:", side, destination)
-          end
+            logs[#logs + 1] = "SN RELAY:" .. side .. destination
         end
       else
-        if log then
-          print("SN SEEN:", side, destination)
-        end
+          logs[#logs + 1] = "SN SEEN:" .. side .. destination
       end
 
       return true
@@ -140,9 +134,9 @@ end
 --- Receives a reply from a destination, which is a follownet packet.
 ---
 --- @param event table
---- @param log boolean
+--- @param logs string[]
 --- @return boolean consumedEvent
-function searchnet.daemon.receiveReply(event, log)
+function searchnet.scheduleStuff.receiveReply(event, logs)
   if event[1] == follownet.event then
     local _, _, _, packet = table.unpack(event)
 
@@ -159,27 +153,21 @@ function searchnet.daemon.receiveReply(event, log)
       local destination, trace = packet[2], packet[3]
 
       -- If we are awaiting a reply from this destination, handle it
-      if searchnet.daemon.queue[destination] then
+      if searchnet.scheduleStuff.queue[destination] then
         -- Remove the destination from the watch queue
-        searchnet.daemon.queue[destination] = false
+        searchnet.scheduleStuff.queue[destination] = false
 
         os.queueEvent(searchnet.event.found, trace)
 
-        if log then
-          print("SN FIND:", pretty.render(pretty.pretty(trace)))
-        end
+        logs[#logs + 1] = "SN FIND:" .. pretty.render(pretty.pretty(trace))
         return true
       else
         -- Drop the packet.
-        if log then
-          print("SN DROP")
-        end
+        logs[#logs + 1] = "SN DROP"
         return true
       end
     else
-      if log then
-        print("SN OTHR")
-      end
+      logs[#logs + 1] = "SN OTHR"
       return false
     end
   else
@@ -190,14 +178,14 @@ end
 --- Receives an event to start a search.
 ---
 --- @param event table
---- @param log boolean
+--- @param logs string[]
 --- @return boolean consumedEvent
-function searchnet.daemon.receiveSearch(event, log)
+function searchnet.scheduleStuff.receiveSearch(event, logs)
   if event[1] == searchnet.event.search then
     --- @diagnostic disable-next-line: param-type-mismatch
     local _, destination = table.unpack(event)
 
-    searchnet.daemon.queue[destination] = true
+    searchnet.scheduleStuff.queue[destination] = true
 
     for _, side in ipairs(peripheral.getNames()) do
       broadlink.transmit(side, {

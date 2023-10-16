@@ -44,9 +44,9 @@ end
 --- This pauses execution on the current thread.
 ---
 --- @param event table
---- @param log boolean
+--- @param logs string[]
 --- @return boolean consumedEvent
-function broadlink.daemon(event, log)
+function broadlink.schedule(event, logs)
   if event[1] == "modem_message" then
     --- @type event, computerSide, integer, integer, table, integer
     local _, side, channel, _, frame, _ = table.unpack(event)
@@ -78,24 +78,18 @@ function broadlink.daemon(event, log)
             data,
           })
 
-          if log then
-            print("BL SEND:", side, pretty.render(pretty.pretty(data)))
-          end
+          logs[#logs + 1] = "BL SEND: " .. side .. pretty.render(pretty.pretty(data))
           return true
         else
           -- 1.2.2.1. ...Drop the data frame.
-          if log then
-            print("BL DROP", side, pretty.render(pretty.pretty(data)))
-          end
+          logs[#logs + 1] = "BL DROP " .. side .. pretty.render(pretty.pretty(data))
           return true
         end
       else
         -- 1.3.1. ...Queue a Broadlink event.
         os.queueEvent(broadlink.event, side, source, data)
 
-        if log then
-          print("BL RECV:", side, source, pretty.render(pretty.pretty(data)))
-        end
+        logs[#logs + 1] = "BL RECV: " .. side .. source .. pretty.render(pretty.pretty(data))
         return true
       end
     else

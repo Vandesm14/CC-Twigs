@@ -45,9 +45,9 @@ end
 --- This pauses execution on the current thread.
 ---
 --- @param event table
---- @param log boolean
+--- @param logs string[]
 --- @return boolean consumedEvent
-function unilink.daemon(event, log)
+function unilink.schedule(event, logs)
   if event[1] == "modem_message" then
     --- @type event, computerSide, integer, integer, table, integer
     local _, side, channel, _, frame, _ = table.unpack(event)
@@ -82,30 +82,22 @@ function unilink.daemon(event, log)
             data,
           })
 
-          if log then
-            print("UL SEND:", side, destination, pretty.render(pretty.pretty(data)))
-          end
+          logs[#logs + 1] = "UL SEND:" .. side .. destination .. pretty.render(pretty.pretty(data))
           return true
         else
           -- 1.2.2.1. ...Drop the data frame.
-          if log then
-            print("UL DROP", side, pretty.render(pretty.pretty(data)))
-          end
+          logs[#logs + 1] = "UL DROP" .. side .. pretty.render(pretty.pretty(data))
           return true
         end
       elseif destination == os.getComputerID() then
         -- 1.3.1. ...Queue an Unilink event.
         os.queueEvent(unilink.event, side, source, data)
 
-        if log then
-          print("UL RECV:", side, source, pretty.render(pretty.pretty(data)))
-        end
+        logs[#logs + 1] = "UL RECV:" .. side .. source .. pretty.render(pretty.pretty(data))
         return true
       else
         -- 1.4.1. ...Drop the data frame.
-        if log then
-          print("UL DROP", side, pretty.render(pretty.pretty(data)))
-        end
+        logs[#logs + 1] = "UL DROP" .. side .. pretty.render(pretty.pretty(data))
         return true
       end
     else
