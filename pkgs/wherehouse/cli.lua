@@ -153,10 +153,15 @@ elseif command == "order" then
   for _, chest in ipairs({ peripheral.find("minecraft:chest", function(_, chest) return chest.size() == 54 end) }) do
     --- @cast chest Inventory
     local chestName = peripheral.getName(chest)
-    print("Found chest '" .. chestName .. "'...")
+    print("Checking chest '" .. chestName .. "'...")
 
     -- Check for items. Run through each item
     for slot, item in pairs(chest.list()) do
+      -- If we have all we need, skip
+      if myItems[item.name] == order[item.name] then
+        break
+      end
+
       if item ~= nil then
         -- If the order wants this item...
         if order[item.name] ~= nil then
