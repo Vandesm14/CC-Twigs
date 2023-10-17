@@ -78,18 +78,21 @@ function broadlink.schedule(event, logs)
             data,
           })
 
-          logs[#logs + 1] = "BL SEND: " .. side .. pretty.render(pretty.pretty(data))
+
+          -- TODO: trim the table to prevent super long log times for large data
+          --       `pretty.render(pretty.pretty(data))`
+          logs[#logs + 1] = table.concat({ "BL SEND:", side }, " ")
           return true
         else
           -- 1.2.2.1. ...Drop the data frame.
-          logs[#logs + 1] = "BL DROP " .. side .. pretty.render(pretty.pretty(data))
+          logs[#logs + 1] = table.concat({ "BL DROP", side }, " ")
           return true
         end
       else
         -- 1.3.1. ...Queue a Broadlink event.
         os.queueEvent(broadlink.event, side, source, data)
 
-        logs[#logs + 1] = "BL RECV: " .. side .. source .. pretty.render(pretty.pretty(data))
+        logs[#logs + 1] = table.concat({ "BL RECV:", side, source }, " ")
         return true
       end
     else

@@ -21,6 +21,8 @@ follownet.event = "follownet"
 --- @param path integer[]
 --- @param data T
 function follownet.transmit(path, data)
+  path = { table.unpack(path) }
+
   for i = 1, #path / 2 do
     local temp = path[(#path + 1) - i]
     path[(#path + 1) - i] = path[i]
@@ -77,7 +79,8 @@ function follownet.schedule(event, logs)
         -- 1.2.1. ...Queue a Follownet event.
         os.queueEvent(follownet.event, side, source, data)
 
-        logs[#logs + 1] = "FN RECV:" .. side .. source .. pretty.render(pretty.pretty(data))
+        -- pretty.render(pretty.pretty(data))
+        logs[#logs + 1] = table.concat({ "FN RECV:", side, source }, " ")
         return true
       elseif #path > 0 and nextId == os.getComputerID() then
         -- 1.3.1. ...Re-transmit the packet to the nextId via all modem.
@@ -86,14 +89,18 @@ function follownet.schedule(event, logs)
           if peripheral.getType(side) == "modem" then
             broadlink.transmit(side, { follownet.id, path, data })
 
-            logs[#logs + 1] = "FN SEND:" .. side .. source .. pretty.render(pretty.pretty(data))
+            -- TODO: trim the table to prevent super long log times for large data
+            --       `pretty.render(pretty.pretty(data))`
+            logs[#logs + 1] = table.concat({ "FN SEND:", side, source }, " ")
           end
         end
 
         return true
       else
         -- 1.4.1. ...Drop the packet.
-        logs[#logs + 1] = "FN DROP" .. side .. nextId .. pretty.render(pretty.pretty(path)) .. pretty.render(pretty.pretty(data))
+        -- pretty.render(pretty.pretty(data))
+        logs[#logs + 1] = table.concat(
+          { "FN DROP:", side, nextId }, " ")
         return true
       end
     else

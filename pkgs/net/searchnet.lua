@@ -105,7 +105,7 @@ function searchnet.scheduleStuff.receivePing(event, logs)
             }
           )
 
-            logs[#logs + 1] = "SN FLLW:" .. reversed[#reversed]
+          logs[#logs + 1] = table.concat({ "SN FLLW:", reversed[#reversed] }, " ")
         else
           -- Else, relay the package
           -- Send the packet to all sides
@@ -116,10 +116,10 @@ function searchnet.scheduleStuff.receivePing(event, logs)
             end
           end
 
-            logs[#logs + 1] = "SN RELAY:" .. side .. destination
+          logs[#logs + 1] = table.concat({ "SN RELAY:", side, destination }, " ")
         end
       else
-          logs[#logs + 1] = "SN SEEN:" .. side .. destination
+        logs[#logs + 1] = table.concat({ "SN SEEN:", side, destination }, " ")
       end
 
       return true
@@ -157,9 +157,13 @@ function searchnet.scheduleStuff.receiveReply(event, logs)
         -- Remove the destination from the watch queue
         searchnet.scheduleStuff.queue[destination] = false
 
+        -- Remove the origin from the list
+        table.remove(trace, 1)
+
+        -- Queue the event so others can see
         os.queueEvent(searchnet.event.found, trace)
 
-        logs[#logs + 1] = "SN FIND:" .. pretty.render(pretty.pretty(trace))
+        logs[#logs + 1] = table.concat({ "SN FIND:", pretty.render(pretty.pretty(trace)) }, " ")
         return true
       else
         -- Drop the packet.

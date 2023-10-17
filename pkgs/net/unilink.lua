@@ -82,22 +82,26 @@ function unilink.schedule(event, logs)
             data,
           })
 
-          logs[#logs + 1] = "UL SEND:" .. side .. destination .. pretty.render(pretty.pretty(data))
+          -- pretty.render(pretty.pretty(data))
+          logs[#logs + 1] = table.concat({ "UL SEND:", side, destination }, " ")
           return true
         else
           -- 1.2.2.1. ...Drop the data frame.
-          logs[#logs + 1] = "UL DROP" .. side .. pretty.render(pretty.pretty(data))
+          -- pretty.render(pretty.pretty(data))
+          logs[#logs + 1] = table.concat({ "UL DROP", side }, " ")
           return true
         end
       elseif destination == os.getComputerID() then
         -- 1.3.1. ...Queue an Unilink event.
         os.queueEvent(unilink.event, side, source, data)
 
-        logs[#logs + 1] = "UL RECV:" .. side .. source .. pretty.render(pretty.pretty(data))
+        -- pretty.render(pretty.pretty(data))
+        logs[#logs + 1] = table.concat({ "UL RECV:", side, source }, " ")
         return true
       else
         -- 1.4.1. ...Drop the data frame.
-        logs[#logs + 1] = "UL DROP" .. side .. pretty.render(pretty.pretty(data))
+        -- pretty.render(pretty.pretty(data))
+        logs[#logs + 1] = table.concat({ "UL DROP", side }, " ")
         return true
       end
     else
