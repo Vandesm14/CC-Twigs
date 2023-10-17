@@ -25,6 +25,8 @@ local route = searchnet.search(destination)
 
 if route ~= nil then
   print("Route to " .. tostring(destination) .. ":")
+  -- Add ourselves to the path for user friendliness
+  table.insert(route, 1, os.getComputerID())
   print(table.concat(route, " -> "))
 else
   printError("No route to " .. tostring(destination) .. ".")
