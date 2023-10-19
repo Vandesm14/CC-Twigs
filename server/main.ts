@@ -1,149 +1,61 @@
-/**
- * Serves the Lua packages for mngr.
- *
- * @module
- */
+import { oak, path } from './deps.ts';
 
-import { fs, oak, path } from './deps.ts';
-
-/** The root dir path that contains the packages. */
-const ROOT_PACKAGES_DIR_PATH = 'pkgs/';
-/** Valid package file extensions. */
-const PACKAGE_FILE_EXTS = ['.lua'];
-/** A RegExp that matches `require("...")`. */
-const REQUIRE_REGEXP = /(?<=require\(("|')).*(?=("|')\))/g;
+const PORT = 6680;
+const PKGS_DIR_PATH = 'pkgs';
 
 const router = new oak.Router();
 
-router
-  /// Respond with newline-separated package names.
-  .get('/', async (context) => {
-    const names = await getPackages();
-    context.response.body = names.join('\n');
-  })
-  /// Respond with newline-separated package files.
-  .get('/:package', async (context) => {
-    const names = await getPackageFiles(context.params.package);
+// TODO: The proper implementation could look more like below, and provide
+//       endpoints to query the binaries and libraries better.
 
-    if (typeof names !== 'undefined') {
-      context.response.body = names.join('\n');
-    } else {
-      context.response.status = oak.Status.NotFound;
-    }
-  })
-  /// Respond with the content of the package file.
-  .get('/:package/:file', async (context) => {
-    const content = await readPackageFileContent(
-      context.params.package,
-      context.params.file,
-    );
+// router.get('/:lib{.:file}', (context) => {
+//   console.log('LIB:', context.params);
+//   context.response.status = oak.Status.NotImplemented;
+// });
 
-    if (typeof content !== 'undefined') {
-      context.response.body = content;
-    } else {
-      context.response.status = oak.Status.NotFound;
-    }
-  })
-  /// Respond with newline-separated package dependencies of the package file.
-  .get('/:package/:file/deps', async (context) => {
-    const content = await readPackageFileContent(
-      context.params.package,
-      context.params.file,
-    );
-    const packages = await getPackages();
+// router.get('/:bin', (context) => {
+//   console.log('BIN:', context.params);
+//   context.response.status = oak.Status.NotImplemented;
+// });
 
-    if (typeof content === 'undefined' || typeof packages === 'undefined') {
-      context.response.status = oak.Status.NotFound;
-      return;
-    }
+router.get('/', async (context) => {
+  const files: PkgFile[] = [];
 
-    const matches = [...content.matchAll(REQUIRE_REGEXP)];
-    const matchesDedupe = [...new Set(matches.map((m) => m[0]))];
-    const matchesDedupeSplit = matchesDedupe.map((m) => m.split('.'));
-
-    for (let i = matchesDedupeSplit.length - 1; i >= 0; i--) {
-      const [package_, file] = matchesDedupeSplit[i];
-
-      if (
-        typeof package_ !== 'undefined' &&
-        typeof file !== 'undefined' &&
-        package_ !== context.params.package &&
-        packages.includes(package_)
+  for await (const binFile of Deno.readDir(PKGS_DIR_PATH)) {
+    if (binFile.isFile) {
+      files.push({ type: 'bin', name: binFile.name });
+    } else if (binFile.isDirectory) {
+      for await (
+        const libFile of Deno.readDir(path.join(PKGS_DIR_PATH, binFile.name))
       ) {
-        const files = await getPackageFiles(package_);
-
-        if (typeof files !== 'undefined' && files.includes(file + '.lua')) {
-          continue;
+        if (libFile.isFile) {
+          files.push({
+            type: 'lib',
+            name: path.join(binFile.name, libFile.name),
+          });
         }
       }
-
-      matchesDedupeSplit.splice(i, 1);
     }
+  }
 
-    context.response.body = matchesDedupeSplit.map(([p, _]) => p).join('\n');
-  });
+  context.response.body = files;
+});
+
+router.get('/(.+)', async (context) => {
+  try {
+    await context.send({ root: PKGS_DIR_PATH });
+  } catch {
+    context.response.status = oak.Status.NotFound;
+  }
+});
 
 const app = new oak.Application();
 
 app.use(router.routes());
 app.use(router.allowedMethods());
 
-await app.listen({ port: 3000 });
+await app.listen({ port: PORT });
 
-async function getPackages(): Promise<string[]> {
-  const names: string[] = [];
-
-  for await (
-    const entry of fs.walk(ROOT_PACKAGES_DIR_PATH, {
-      maxDepth: 1,
-      includeFiles: false,
-      followSymlinks: true,
-    })
-  ) {
-    if (entry.path !== ROOT_PACKAGES_DIR_PATH) {
-      names.push(entry.name);
-    }
-  }
-
-  return names;
-}
-
-async function getPackageFiles(
-  package_: string,
-): Promise<string[] | undefined> {
-  const dirPath = path.join(ROOT_PACKAGES_DIR_PATH, package_);
-
-  if (await fs.exists(dirPath, { isDirectory: true, isReadable: true })) {
-    const names: string[] = [];
-
-    for await (
-      const entry of fs.walk(dirPath, {
-        maxDepth: 1,
-        includeDirs: false,
-        followSymlinks: true,
-        exts: PACKAGE_FILE_EXTS,
-      })
-    ) {
-      names.push(entry.name);
-    }
-
-    return names;
-  }
-}
-
-async function readPackageFileContent(
-  package_: string,
-  file: string,
-): Promise<string | undefined> {
-  const dirPath = path.join(ROOT_PACKAGES_DIR_PATH, package_);
-  const filePath = path.join(dirPath, file);
-
-  if (
-    PACKAGE_FILE_EXTS.includes(path.extname(filePath)) &&
-    await fs.exists(dirPath, { isDirectory: true, isReadable: true }) &&
-    await fs.exists(filePath, { isFile: true, isReadable: true })
-  ) {
-    return await Deno.readTextFile('server/prepend.lua') + '\n' +
-      await Deno.readTextFile(filePath);
-  }
-}
+type PkgFile = BinFile | LibFile;
+type BinFile = { type: 'bin'; name: string };
+type LibFile = { type: 'lib'; name: string };
