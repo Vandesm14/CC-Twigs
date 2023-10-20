@@ -1,5 +1,9 @@
 local pretty = require("cc.pretty")
 
+--- Unilink is a data-link layer (OSI layer 2) protocol.
+---
+--- This is an unreliable protocol. It only supports unicast transfer of
+--- data-frames between hosts directly connected to a modem.
 local unilink = {}
 
 --- The unique ID for a Unilink data-frame.
