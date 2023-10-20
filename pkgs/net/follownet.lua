@@ -1,6 +1,11 @@
 local pretty = require("cc.pretty")
 local unilink = require("net.unilink")
 
+--- Follownet is a network layer (OSI layer 3) protocol.
+---
+--- This is an unreliable protocol. It only attempts to forward packets to the
+--- next host in the route via Unilink. Host discovery is not provided as part
+--- of the protocol.
 local follownet = {}
 
 -- TODO: Also contruct the route back to the source whilst transmitting.
