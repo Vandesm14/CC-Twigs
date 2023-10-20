@@ -115,32 +115,6 @@ function unilink.handle()
         pretty.render(pretty.pretty(destination))
       )
     end
-
-    -- --- @type UnilinkAddr, UnilinkAddr, table
-    -- local source, destination, data = table.unpack(frame, 2)
-    -- local modem = peripheral.wrap(name)
-    -- --- @cast modem Modem|nil
-
-    -- if
-    --   destination.id == os.getComputerID()
-    --   and name == destination.name
-    --   and modem ~= nil
-    --   and peripheral.hasType(modem, "modem")
-    --   and destination.isWireless == modem.isWireless()
-    -- then
-    --   os.queueEvent(unilink.event, source, destination, data)
-    --   print(
-    --     "RECV",
-    --     pretty.render(pretty.pretty(source)),
-    --     pretty.render(pretty.pretty(destination))
-    --   )
-    -- else
-    --   print(
-    --     "DROP",
-    --     pretty.render(pretty.pretty(source)),
-    --     pretty.render(pretty.pretty(destination))
-    --   )
-    -- end
   end
 end
 
