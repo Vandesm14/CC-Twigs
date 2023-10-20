@@ -1,9 +1,5 @@
---- @alias pkgFile binFile|libFile
---- @alias binFile { type: "bin", name: string }
---- @alias libFile { type: "lib", name: string }
-
 --- @param rootUrl string
---- @return pkgFile[]|nil
+--- @return { bins: string[], libs: table<string, string[]> }|nil
 local function fetchPackages(rootUrl)
   if not http.checkURL(rootUrl) then return end
 
@@ -54,18 +50,13 @@ local tempDir = "/" .. fs.combine("/.temp", mngrDir)
 --- @type string|nil
 local rootUrl = settings.get("mngr.url")
 
-if type(rootUrl) ~= "string" then
+if type(rootUrl) ~= "string" or not http.checkURL(rootUrl) then
   printError("Expected setting 'mngr.url' to be a valid URL.")
   return
 end
 
-if not http.checkURL(rootUrl) then
-  printError("Invalid URL '" .. rootUrl .. "' in setting 'mngr.url'.")
-  return
-end
-
 if not pcall(fs.makeDir, tempDir) then
-  printError("Unable to create directory '" .. tempDir .. "'.")
+  printError("Unable to create temporary directory.")
   return
 end
 
@@ -75,69 +66,99 @@ if packages == nil then
   return
 end
 
-for _, package in ipairs(packages) do
-  if package.type == "bin" then
-    local filePath = "/" .. fs.combine(tempDir, package.name)
-    local fileContent = fetchFile(rootUrl, package.name)
+for lib, files in pairs(packages.libs) do
+  print("Downloading library '" .. lib .. "'...")
 
-    if not fileContent then
-      printError("Unable to fetch file content for '" .. package.name .. "'.")
+  for _, file in ipairs(files) do
+    local urlFilePath = fs.combine(lib, file)
+    local filePath = "/" .. fs.combine(tempDir, urlFilePath)
+
+    local fileContent = fetchFile(rootUrl, urlFilePath)
+    if fileContent == nil then
+      printError("  Unable to download file.")
       return
     end
 
-    local fileSuccess, file = pcall(fs.open, filePath, "w")
-
-    if not fileSuccess or file == nil then
-      printError("Unable to create file '" .. filePath .. "'.")
+    local fileOpened, fileHandle = pcall(fs.open, filePath, "w")
+    if not fileOpened or fileHandle == nil then
+      printError("  Unable to create file.")
       return
     end
 
-    file.write(fileContent)
-    file.flush()
-    file.close()
+    fileHandle.write(fileContent)
+    fileHandle.flush()
+    fileHandle.close()
 
-    print("Downloaded binary '" .. package.name .. "'.")
-  elseif package.type == "lib" then
-    local fileDir = "/" .. fs.combine(tempDir, fs.getDir(package.name))
-    local fileContent = fetchFile(rootUrl, package.name)
-
-    if not fileContent then
-      printError("Unable to fetch file content for '" .. package.name .. "'.")
-      return
-    end
-
-    if not pcall(fs.makeDir, fileDir) then
-      printError("Unable to create directory '" .. fileDir .. "'.")
-      return
-    end
-
-    local filePath = "/" .. fs.combine(fileDir, fs.getName(package.name))
-    local fileSuccess, file = pcall(fs.open, filePath, "w")
-
-    if not fileSuccess or file == nil then
-      printError("Unable to create file '" .. filePath .. "'.")
-      return
-    end
-
-    file.write(fileContent)
-    file.flush()
-    file.close()
-
-    print("Downloaded library '" .. package.name .. "'.")
+    print("  Downloaded file '" .. urlFilePath .. "'.")
   end
+
+  print("Downloaded library '" .. lib .. "'.")
 end
 
+for _, bin in ipairs(packages.bins) do
+  print("Downloading binary '" .. bin .. "'...")
+
+  local filePath = "/" .. fs.combine(tempDir, bin)
+
+  local fileContent = fetchFile(rootUrl, bin)
+  if fileContent == nil then
+    printError("  Unable to download file.")
+    return
+  end
+
+  local fileOpened, fileHandle = pcall(fs.open, filePath, "w")
+  if not fileOpened or fileHandle == nil then
+    printError("  Unable to create file.")
+    return
+  end
+
+  fileHandle.write(fileContent)
+  fileHandle.flush()
+  fileHandle.close()
+
+  print("Downloaded binary '" .. bin .. "'.")
+end
+
+print("Committing...")
+
 if not pcall(fs.delete, mngrDir) then
-  printError("Unable to delete directory '" .. mngrDir .. "'.")
+  printError("  Unable to delete old mngr directory.")
   return
 end
 
 if not pcall(fs.move, tempDir, mngrDir) then
-  printError("Unable to move directory '" .. tempDir .. "' to '" .. mngrDir .. "'.")
+  printError("  Unable to replace mngr directory.")
   return
 end
 
 if not pcall(fs.delete, tempDir) then
-  printError("Unable to delete directory '" .. tempDir .. "'.")
+  printError("  Unable to delete temporary directory.")
   return
+end
+
+print("Committed.")
+
+if not fs.exists("/startup/mngr.lua") then
+  print("Setting up startup...")
+  shell.setPath(shell.path() .. ":" .. mngrDir)
+
+  if not fs.isDir("/startup") then
+    if not pcall(fs.makeDir, tempDir) then
+      printError("  Unable to create startup directory.")
+      return
+    end
+  end
+
+  local fileOpened, fileHandle = pcall(fs.open, "/startup/mngr.lua", "w")
+  if not fileOpened or fileHandle == nil then
+    printError("  Unable to create startup file.")
+    return
+  end
+
+  fileHandle.writeLine("shell.setPath(shell.path() .. \":" .. mngrDir .. "\")")
+
+  fileHandle.flush()
+  fileHandle.close()
+
+  print("Startup setup.")
 end

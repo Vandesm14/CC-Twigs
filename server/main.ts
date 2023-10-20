@@ -5,40 +5,37 @@ const PKGS_DIR_PATH = 'pkgs';
 
 const router = new oak.Router();
 
-// TODO: The proper implementation could look more like below, and provide
-//       endpoints to query the binaries and libraries better.
-
-// router.get('/:lib{.:file}', (context) => {
-//   console.log('LIB:', context.params);
-//   context.response.status = oak.Status.NotImplemented;
-// });
-
-// router.get('/:bin', (context) => {
-//   console.log('BIN:', context.params);
-//   context.response.status = oak.Status.NotImplemented;
-// });
-
 router.get('/', async (context) => {
-  const files: PkgFile[] = [];
+  const packages: { libs: Record<string, string[]>; bins: string[] } = {
+    libs: {},
+    bins: [],
+  };
 
-  for await (const binFile of Deno.readDir(PKGS_DIR_PATH)) {
-    if (binFile.isFile) {
-      files.push({ type: 'bin', name: binFile.name });
-    } else if (binFile.isDirectory) {
-      for await (
-        const libFile of Deno.readDir(path.join(PKGS_DIR_PATH, binFile.name))
-      ) {
-        if (libFile.isFile) {
-          files.push({
-            type: 'lib',
-            name: path.join(binFile.name, libFile.name),
-          });
+  for await (const walk of Deno.readDir(PKGS_DIR_PATH)) {
+    const extension = path.extname(walk.name);
+    const name = path.basename(walk.name);
+
+    if (walk.isFile && extension === '.lua') {
+      packages.bins.push(name);
+    } else if (walk.isDirectory) {
+      const lib = name;
+
+      for await (const walk of Deno.readDir(path.join(PKGS_DIR_PATH, lib))) {
+        const extension = path.extname(walk.name);
+        const name = path.basename(walk.name);
+
+        if (walk.isFile && extension === '.lua') {
+          if (typeof (packages.libs[lib]) === 'undefined') {
+            packages.libs[lib] = [];
+          }
+
+          packages.libs[lib].push(name);
         }
       }
     }
   }
 
-  context.response.body = files;
+  context.response.body = packages;
 });
 
 router.get('/(.+)', async (context) => {
@@ -55,7 +52,3 @@ app.use(router.routes());
 app.use(router.allowedMethods());
 
 await app.listen({ port: PORT });
-
-type PkgFile = BinFile | LibFile;
-type BinFile = { type: 'bin'; name: string };
-type LibFile = { type: 'lib'; name: string };

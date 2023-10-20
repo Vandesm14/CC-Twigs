@@ -2,7 +2,7 @@
 
 This contains both a package manager and packages for ComputerCraft.
 
-## What is a Package?
+<!-- ## What is a Package?
 
 Each package is a directory, where the name of the directory is the package
 name. Package directories contain files which are associated with that package.
@@ -50,4 +50,4 @@ server. To install mngr, follow the steps below on a ComputerCraft computer:
    `wget run http://localhost:3000/mngr/install.lua`.
 3. Run mngr to see the available commands — `mngr`.
 
-[Deno]: https://deno.land
+[Deno]: https://deno.land -->
