@@ -75,6 +75,8 @@ function broadlink.handle()
       end
 		else
 			local modem = peripheral.wrap(name)
+			--- @cast modem Modem
+
 			local destination = {
 				id = os.getComputerID(),
 				name = name,
