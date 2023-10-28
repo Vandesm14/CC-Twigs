@@ -11,7 +11,7 @@ local follownet = {}
 -- TODO: Also contruct the route back to the source whilst transmitting.
 
 --- The unique ID for a Follownet packet.
-follownet.pid = 1035
+follownet.pid = 2479
 --- The unique name for a Follownet packet receive event.
 follownet.event = "follownet"
 
