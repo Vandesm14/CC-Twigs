@@ -18,7 +18,7 @@ broadlink.event = "broadlink"
 function broadlink.transmit(source, data)
 	os.queueEvent(
 		"modem_message",
-		nil,
+		source.name,
 		broadlink.pid,
 		broadlink.pid,
 		{ broadlink.pid, source, data }

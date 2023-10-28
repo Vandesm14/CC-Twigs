@@ -26,7 +26,7 @@ unilink.event = "unilink"
 function unilink.transmit(source, destination, data)
   os.queueEvent(
     "modem_message",
-    nil,
+    source.name,
     unilink.pid,
     unilink.pid,
     { unilink.pid, source, destination, data }
@@ -59,7 +59,30 @@ function unilink.handle()
     --- @type UnilinkAddr, UnilinkAddr, table
     local source, destination, data = table.unpack(frame, 2)
 
-    if source.id == os.getComputerID() then
+    if destination.id == os.getComputerID() then
+      local modem = peripheral.wrap(destination.name)
+      --- @cast modem Modem|nil
+
+      if
+        modem ~= nil
+        and peripheral.hasType(modem, "modem")
+        and destination.name == name
+        and destination.isWireless == modem.isWireless()
+      then
+        os.queueEvent(unilink.event, source, destination, data)
+        print(
+          "RECV",
+          pretty.render(pretty.pretty(source)),
+          pretty.render(pretty.pretty(destination))
+        )
+      else
+        print(
+          "DROP",
+          pretty.render(pretty.pretty(source)),
+          pretty.render(pretty.pretty(destination))
+        )
+      end
+    elseif source.id == os.getComputerID() then
       local modem = peripheral.wrap(source.name)
       --- @cast modem Modem|nil
 
@@ -88,29 +111,6 @@ function unilink.handle()
             pretty.render(pretty.pretty(destination))
           )
         end
-      end
-    elseif destination.id == os.getComputerID() then
-      local modem = peripheral.wrap(destination.name)
-      --- @cast modem Modem|nil
-
-      if
-        modem ~= nil
-        and peripheral.hasType(modem, "modem")
-        and destination.name == name
-        and destination.isWireless == modem.isWireless()
-      then
-        os.queueEvent(unilink.event, source, destination, data)
-        print(
-          "RECV",
-          pretty.render(pretty.pretty(source)),
-          pretty.render(pretty.pretty(destination))
-        )
-      else
-        print(
-          "DROP",
-          pretty.render(pretty.pretty(source)),
-          pretty.render(pretty.pretty(destination))
-        )
       end
     else
       print(
