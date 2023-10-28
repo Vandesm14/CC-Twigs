@@ -8,8 +8,6 @@ local unilink = require("net.unilink")
 --- of the protocol.
 local follownet = {}
 
--- TODO: Also contruct the route back to the source whilst transmitting.
-
 --- The unique ID for a Follownet packet.
 follownet.pid = 2479
 --- The unique name for a Follownet packet receive event.
@@ -24,9 +22,16 @@ follownet.event = "follownet"
 function follownet.transmit(route, data)
   --- @type UnilinkAddr|nil, UnilinkAddr|nil
   local source, destination = table.remove(route, 1), table.remove(route, 1)
+	--- @type UnilinkAddr[]
+  local returnRoute = { destination, source }
 
   if source ~= nil and destination ~= nil then
-    unilink.transmit(source, destination, { follownet.pid, route, data })
+    unilink.transmit(source, destination, {
+    	follownet.pid,
+    	route,
+    	returnRoute,
+    	data,
+    })
   end
 end
 
@@ -34,32 +39,41 @@ end
 ---
 --- Pauses execution on the current thread.
 ---
---- @return "unilink" event
+--- @return "follownet" event
+--- @return UnilinkAddr[] returnRoute
 --- @return table data
 function follownet.receive()
   --- @diagnostic disable-next-line: param-type-mismatch, return-type-mismatch
   return os.pullEvent(follownet.event)
 end
 
---- Handles the next Unilink event.
+--- Handles the next Follownet event.
 ---
---- If the Unilink event is not related to Follownet, then it's dropped.
+--- If the Follownet event is not related to Follownet, then it's dropped.
 ---
 --- Pauses execution on the current thread.
 function follownet.handle()
   local _, _, _, packet = unilink.receive()
 
   if packet[1] == follownet.pid then
-    --- @type UnilinkAddr[], table
-    local route, data = table.unpack(packet, 2)
+    --- @type UnilinkAddr[], UnilinkAddr[], table
+    local route, returnRoute, data = table.unpack(packet, 2)
     --- @type UnilinkAddr|nil, UnilinkAddr|nil
     local source, destination = table.remove(route, 1), table.remove(route, 1)
 
+    table.insert(returnRoute, 1, source)
+    table.insert(returnRoute, 1, destination)
+
     if source ~= nil and destination ~= nil then
-      unilink.transmit(source, destination, { follownet.pid, route, data })
+      unilink.transmit(source, destination, {
+      	follownet.pid,
+      	route,
+      	returnRoute,
+      	data,
+      })
       print("SEND", pretty.render(pretty.pretty(route)))
     elseif source == nil and destination == nil then
-      os.queueEvent(follownet.event, data)
+      os.queueEvent(follownet.event, returnRoute, data)
       print("RECV")
     else
       print("DROP")
