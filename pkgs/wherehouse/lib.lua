@@ -1,10 +1,8 @@
-local pretty = require "cc.pretty"
-
 local lib = {}
 
 --- @param chest Inventory
 --- @return string|nil
-local function getName(chest)
+function lib.getName(chest)
   -- Run through each item in the chest
   for slot, item in pairs(chest.list()) do
     local name, count = item.name, item.count
@@ -48,7 +46,7 @@ function lib.scanItems()
     --- @cast chest Inventory
 
     if chest ~= nil then
-      local name = getName(chest)
+      local name = lib.getName(chest)
       if name ~= nil then
         table.insert(chests, {
           name = name,
@@ -59,7 +57,7 @@ function lib.scanItems()
     end
   end
 
-  pretty.pretty_print(chests)
+  return chests
 end
 
 return lib

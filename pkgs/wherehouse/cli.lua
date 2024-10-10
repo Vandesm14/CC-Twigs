@@ -1,19 +1,12 @@
+local pretty = require "cc.pretty"
 local lib = require "wherehouse.lib"
 
---- @param chest Inventory
+--- @param items itemList
 --- @param table table
-local function countItems(chest, table)
+local function countItems(items, table)
   -- Run through each item in the chest
-  for slot, item in pairs(chest.list()) do
+  for _, item in pairs(items) do
     local name, count = item.name, item.count
-    -- local nbt = chest.getItemDetail(slot)
-
-    -- if nbt ~= nil then
-    --   if nbt.name == "minecraft:name_tag" then
-    --     print(nbt.displayName)
-    --   end
-    -- end
-
     -- Update or set the entry
     if table[name] ~= nil then
       table[name] = table[name] + count
@@ -32,9 +25,23 @@ if command == nil then
   printError("Command must be provided.")
   return
 elseif command == "ls" then
-  -- local query = arg[2]
+  local query = arg[2]
 
-  lib.scanItems()
+  local chests = lib.scanItems()
+  
+  for _, chest in pairs(chests) do
+    print("")
+    print("Chest " .. chest.name .. ":")
+    for _, item in pairs(chest.items) do
+      if query ~= nil and type(query) == "string" then
+        if string.find(item.name, query) ~= nil then
+          print(item.name .. ": " .. item.count)
+        end
+      else
+        print(item.name .. ": " .. item.count)
+      end
+    end
+  end
 elseif command == "pull" then
   local query = arg[2]
 
@@ -50,7 +57,7 @@ elseif command == "pull" then
   end
 
   local items = {}
-  countItems(distributionChest, items)
+  countItems(distributionChest.list(), items)
   local myItems = {}
   for key, val in pairs(items) do
     myItems[key] = val
@@ -63,7 +70,7 @@ elseif command == "pull" then
     --- @diagnostic disable-next-line: param-type-mismatch
     for _, chest in ipairs({ peripheral.find("minecraft:chest") }) do
       --- @cast chest Inventory
-      local chestName = peripheral.getName(chest)
+      local chestName = lib.getName(chest)
 
       -- Move the stack into the chest
       local success, got = pcall(
