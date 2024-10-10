@@ -1,3 +1,5 @@
+local lib = require "wherehouse.lib"
+
 --- @param chest Inventory
 --- @param table table
 local function countItems(chest, table)
@@ -30,33 +32,9 @@ if command == nil then
   printError("Command must be provided.")
   return
 elseif command == "ls" then
-  local query = arg[2]
+  -- local query = arg[2]
 
-  local items = {}
-  local total = 0
-
-  -- Scan each chest for items, until we hit the end-stop
-  --- @diagnostic disable-next-line: param-type-mismatch
-  for _, chest in ipairs({ peripheral.find("minecraft:chest") }) do
-    --- @cast chest Inventory
-
-    if chest ~= nil then
-      total = total + 1
-      countItems(chest, items)
-    end
-  end
-
-  print(total .. " total chests.")
-  print("Items:")
-  for name, count in pairs(items) do
-    if query ~= nil and type(query) == "string" then
-      if string.find(name, query) ~= nil then
-        print(name .. ": " .. count)
-      end
-    else
-      print(name .. ": " .. count)
-    end
-  end
+  lib.scanItems()
 elseif command == "pull" then
   local query = arg[2]
 
