@@ -2,8 +2,15 @@
 --- @param table table
 local function countItems(chest, table)
   -- Run through each item in the chest
-  for _, item in pairs(chest.list()) do
+  for slot, item in pairs(chest.list()) do
     local name, count = item.name, item.count
+    -- local nbt = chest.getItemDetail(slot)
+
+    -- if nbt ~= nil then
+    --   if nbt.name == "minecraft:name_tag" then
+    --     print(nbt.displayName)
+    --   end
+    -- end
 
     -- Update or set the entry
     if table[name] ~= nil then
