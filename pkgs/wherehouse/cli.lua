@@ -26,6 +26,7 @@ elseif command == "ls" then
   local query = arg[2]
 
   local items = {}
+  local total = 0
 
   -- Scan each chest for items, until we hit the end-stop
   --- @diagnostic disable-next-line: param-type-mismatch
@@ -33,10 +34,12 @@ elseif command == "ls" then
     --- @cast chest Inventory
 
     if chest ~= nil then
+      total = total + 1
       countItems(chest, items)
     end
   end
 
+  print(total .. " total chests.")
   print("Items:")
   for name, count in pairs(items) do
     if query ~= nil and type(query) == "string" then
