@@ -8,35 +8,49 @@ local function getColor(tags)
   end
 end
 
-local ignore = 0
-local yield = 0
 
-local wait = false
-local isObstruction = false
+--- @class Walker
+--- @field ignore number
+--- @field yield number
+--- @field wait boolean
+local Walker = {}
+Walker.__index = Walker
 
-while true do
-  if not wait then
-    isObstruction = not turtle.forward()
+function Walker:new()
+  local self = setmetatable({}, Walker)
+  self.ignore = 0
+  self.yield = 0
+  self.wait = false
+
+  return self
+end
+
+--- Runs a step. Returns whether to break out of the loop.
+--- @return boolean
+function Walker:step()
+  local obstruction = false
+  if not self.wait then
+    obstruction = not turtle.forward()
   end
 
-  if isObstruction then
-    goto continue
+  if obstruction then
+    return false
   end
 
   local isBlock, info = turtle.inspectDown()
   if isBlock and info then
     local color = getColor(info.tags)
 
-    if color ~= nil and ignore > 0 then
-      ignore = ignore - 1
-      goto continue
+    if color ~= nil and self.ignore > 0 then
+      self.ignore = self.ignore - 1
+      return false
     end
 
     if color == "white" then
       turtle.turnRight()
 
-      if yield > 0 then
-        yield = yield - 1
+      if self.yield > 0 then
+        self.yield = self.yield - 1
 
         if turtle.detect() then
           turtle.turnLeft()
@@ -45,25 +59,25 @@ while true do
     elseif color == "black" then
       turtle.turnLeft()
 
-      if yield > 0 then
-        yield = yield - 1
+      if self.yield > 0 then
+        self.yield = self.yield - 1
 
         if turtle.detect() then
           turtle.turnRight()
         end
       end
     elseif color == "yellow" then
-      ignore = ignore + 1
+      self.ignore = self.ignore + 1
     elseif color == "lime" then
-      yield = yield + 1
+      self.yield = self.yield + 1
     elseif color == "green" then
-      wait = true
+      self.wait = true
     elseif color == "purple" then
-      break
+      return true
     end
 
-    if wait and color ~= "green" then
-      wait = false
+    if self.wait and color ~= "green" then
+      self.wait = false
     end
 
     local barrel = peripheral.wrap("bottom")
@@ -89,9 +103,11 @@ while true do
     end
   end
 
-  if not isBlock and wait then
-    wait = false
+  if not isBlock and self.wait then
+    self.wait = false
   end
 
-  ::continue::
+  return false
 end
+
+return Walker
