@@ -5,6 +5,8 @@ local Order = require "turt.order"
 local usage = "Usage: " .. arg[0] .. " <order|ls|capacity>"
 local command = arg[1]
 
+rednet.open("top")
+
 if command == nil then
   printError(usage)
   printError()
@@ -98,8 +100,6 @@ elseif command == "order" then
     printError("Amount must be provided")
     return
   end
-
-  rednet.open("top")
 
   local order = {
     [item] = amount
