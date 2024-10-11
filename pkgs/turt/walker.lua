@@ -36,11 +36,7 @@ function Walker:isWithinPosition()
   return x == self.order.pos.x and z == self.order.pos.z
 end
 
-function Walker:chestMode()
-  while ({gps.locate(2, false)})[2] < self.order.pos.y do
-    turtle.up()
-  end
-
+function Walker:pullFromChest()
   local chest = peripheral.wrap("front")
 
   --- @cast chest Inventory
@@ -75,7 +71,6 @@ function Walker:chestMode()
     end
   end
 
-  while turtle.down() do end
 end
 
 function Walker:dropAll()
@@ -152,27 +147,59 @@ function Walker:step()
         if name == "wp-storage-right" then
           if self:isWithinPosition() then
             turtle.turnRight()
-            self:chestMode()
+            while ({gps.locate(2, false)})[2] < self.order.pos.y do
+              turtle.up()
+            end
+
+            if self.order.type == "output" then
+              self:pullFromChest()
+            elseif self.order.type == "input" then
+              self:dropAll()
+            end
+
+            while turtle.down() do end
             turtle.turnLeft()
           end
         elseif name == "wp-storage-left" then
           if self:isWithinPosition() then
             turtle.turnLeft()
-            self:chestMode()
+            while ({gps.locate(2, false)})[2] < self.order.pos.y do
+              turtle.up()
+            end
+
+            if self.order.type == "output" then
+              self:pullFromChest()
+            elseif self.order.type == "input" then
+              self:dropAll()
+            end
+
+            while turtle.down() do end
             turtle.turnRight()
           end
         elseif name == "wp-input-right" then
-          -- TODO: actually do something
+          if self.order.type == "input" then
+            turtle.turnRight()
+            self:pullFromChest()
+            turtle.turnLeft()
+          end
         elseif name == "wp-input-left" then
-          -- TODO: actually do something
+          if self.order.type == "input" then
+            turtle.turnLeft()
+            self:pullFromChest()
+            turtle.turnRight()
+          end
         elseif name == "wp-output-right" then
-          turtle.turnRight()
-          self:dropAll()
-          turtle.turnLeft()
+          if self.order.type == "output" then
+            turtle.turnRight()
+            self:dropAll()
+            turtle.turnLeft()
+          end
         elseif name == "wp-output-left" then
-          turtle.turnLeft()
-          self:dropAll()
-          turtle.turnRight()
+          if self.order.type == "output" then
+            turtle.turnLeft()
+            self:dropAll()
+            turtle.turnRight()
+          end
         end
       end
     end
