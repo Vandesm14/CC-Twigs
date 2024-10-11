@@ -41,10 +41,14 @@ function Walker:pullFromChest()
 
   --- @cast chest Inventory
   if chest ~= nil then
+    turtle.select(2)
+    turtle.suck()
+
     for slot, item in pairs(chest.list()) do
       if item.name == self.order.item and item.count >= self.order.count then
-        turtle.select(1)
-        turtle.suck()
+        if slot == 1 then
+          return
+        end
 
         local success, _ = pcall(
           chest.pullItems,
@@ -58,13 +62,11 @@ function Walker:pullFromChest()
           error("failed to pull items")
         end
 
-        turtle.suck(self.order.count)
-
         turtle.select(1)
-        turtle.drop()
-
+        turtle.suck(self.order.count)
+        
         turtle.select(2)
-        turtle.transferTo(1)
+        turtle.drop()
 
         turtle.select(1)
       end
