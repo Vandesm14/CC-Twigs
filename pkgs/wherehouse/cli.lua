@@ -143,7 +143,7 @@ elseif command == "order" then
     print("Checking chest '" .. chestName .. "'...")
 
     -- Check for items. Run through each item
-    for slot, item in pairs(chest.list()) do
+    for _, item in pairs(chest.list()) do
       -- If we have all we need, skip
       if order[item.name] ~= nil and myItems[item.name] == order[item.name] then
         break

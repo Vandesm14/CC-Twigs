@@ -3,8 +3,7 @@ local Walker = require "turt.walker"
 
 rednet.open("right")
 
-while true do
-  local id, message = rednet.receive("wherehouse")
+local function handleMessage(id, message)
   print("Received message from " .. id .. ":")
   pretty.pretty_print(message)
 
@@ -17,4 +16,16 @@ while true do
       end
     end
   end
+end
+
+local function waitForGlobal()
+  handleMessage(rednet.receive("wherehouse"))
+end
+
+local function waitForSelf()
+  handleMessage(rednet.receive("wherehouse_" .. os.getComputerLabel()))
+end
+
+while true do
+  parallel.waitForAny(waitForGlobal, waitForSelf)
 end
