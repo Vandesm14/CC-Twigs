@@ -31,8 +31,6 @@ function Queue:findAvailableTurtle()
         while true do
           local _, reply = rednet.receive("wherehouse")
 
-          pretty.pretty_print(reply)
-
           --- @cast reply Message
           if reply ~= nil and reply.type == "status" then
             table.insert(replies, reply)
@@ -55,16 +53,26 @@ function Queue:findAvailableTurtle()
     return nil
   end
 
-  return replies[1].value
+  return replies[1]
 end
 
 function Queue:tryOrder()
   local avail = self:findAvailableTurtle()
   if avail ~= nil then
     local order = table.remove(self.orders, #self.orders)
+
+    --- @type OrderMessage
+    local msg = { type = "order", value = order }
+
     if order ~= nil then
-      rednet.broadcast(order, "wherehouse_" .. avail.value.name)
+      rednet.broadcast(msg, "wherehouse_" .. avail.value.name)
     end
+  end
+end
+
+function Queue:run()
+  for _, _ in ipairs(self.orders) do
+    self:tryOrder()
   end
 end
 
