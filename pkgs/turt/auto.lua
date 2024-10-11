@@ -10,8 +10,21 @@ end
 
 local ignore = 0
 local wait = false
+local isTurtle = false
+
 while true do
-  if not wait then
+  local isBlock, info = turtle.inspect()
+  if isBlock and info.tags["computercraft:turtle"] then
+    isTurtle = true
+    goto continue
+  end
+
+  if isTurtle then
+    isTurtle = false
+    turtle.forward()
+
+    goto continue
+  elseif not wait then
     turtle.forward()
   end
 
@@ -47,4 +60,6 @@ while true do
   if not isBlock and wait then
     wait = false
   end
+
+  ::continue::
 end
