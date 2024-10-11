@@ -83,6 +83,18 @@ function Walker:dropAll()
   turtle.select(1)
 end
 
+function Walker:downUntilBarrel()
+  local isBarrel = false
+  while not isBarrel do
+    turtle.down()
+
+    local isBlock, info = turtle.inspectDown()
+    if isBlock and info then
+      isBarrel = info.name == "minecraft:barrel"
+    end
+  end
+end
+
 --- Runs a step. Returns whether to break out of the loop.
 --- @return boolean
 function Walker:step()
@@ -157,7 +169,7 @@ function Walker:step()
               self:dropAll()
             end
 
-            while turtle.down() do end
+            self:downUntilBarrel()
             turtle.turnLeft()
           end
         elseif name == "wp-storage-left" then
@@ -173,7 +185,7 @@ function Walker:step()
               self:dropAll()
             end
 
-            while turtle.down() do end
+            self:downUntilBarrel()
             turtle.turnRight()
           end
         elseif name == "wp-input-right" then
