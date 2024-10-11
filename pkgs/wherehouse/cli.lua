@@ -44,65 +44,113 @@ elseif command == "ls" then
     end
   end
 elseif command == "pull" then
-  local query = arg[2]
+  local inputChest = nil
 
-  --- The distribution chest MUST be a single chest
-  --- and the storage chests MUST be double chests
-  --- @diagnostic disable-next-line: param-type-mismatch
-  local distributionChest = peripheral.find("minecraft:barrel")
-  --- @cast distributionChest Inventory
+  local list = lib.scanItems()
+  local position = nil
+  local mostSpace = nil
+  local acc = 0
+  for _, chest in pairs(list) do
+    local name = lib.getName(chest.inventory)
+    if name == "input_chest" then
+      inputChest = chest
+    end
 
-  if distributionChest == nil then
-    printError("No distribution chest found.")
-    return true
+    local space = chest.inventory.size() - #chest.items
+    if space > acc then
+      local newPosition = lib.getChestPosition(chest.inventory)
+      if newPosition ~= nil then
+        acc = space
+        mostSpace = chest
+        position = newPosition
+      end
+    end
   end
 
-  local items = {}
-  countItems(distributionChest.list(), items)
-  local myItems = {}
-  for key, val in pairs(items) do
-    myItems[key] = val
+  if mostSpace == nil or inputChest == nil then
+    printError("No space in network.")
+    return
   end
 
-  local distributionChestName = peripheral.getName(distributionChest)
+  if position == nil then
+    printError("No position of largest chest")
+    return
+  end
 
-  -- Run through each stack and try to place it in a chest
-  for slot, item in pairs(distributionChest.list()) do
-    --- @diagnostic disable-next-line: param-type-mismatch
-    for _, chest in ipairs({ peripheral.find("minecraft:chest") }) do
-      --- @cast chest Inventory
-      local chestName = lib.getName(chest)
-
-      -- Move the stack into the chest
-      local success, got = pcall(
-        chest.pullItems,
-        distributionChestName,
-        slot
-      )
-
-      -- If we succeed, then decrement how many items we have left
-      if success then
-        print("sent", got, "of", item.name, "to", chestName)
-        myItems[item.name] = myItems[item.name] - got
-
-        -- If we clear out all of our items, skip to the next item
-        if got == myItems[item.name] then
-          break
+  for _, item in pairs(inputChest.items) do
+    if item.name ~= "computercraft:disk" then
+      if acc > 0 then
+        if position ~= nil then
+          local chunk = Order:new(item.name, item.count, position, "input")
+          pretty.pretty_print(chunk)
+          rednet.broadcast(chunk, "wherehouse")
+          error("stop")
         end
+  
+        acc = acc -1
       end
     end
   end
 
-  print("Pulled:")
-  for name, count in pairs(items) do
-    if query ~= nil and type(query) == "string" then
-      if string.find(name, query) ~= nil then
-        print(name .. ": " .. count)
-      end
-    else
-      print(name .. ": " .. count)
-    end
-  end
+  -- local query = arg[2]
+
+  -- --- The distribution chest MUST be a single chest
+  -- --- and the storage chests MUST be double chests
+  -- --- @diagnostic disable-next-line: param-type-mismatch
+  -- local distributionChest = peripheral.find("minecraft:barrel")
+  -- --- @cast distributionChest Inventory
+
+  -- if distributionChest == nil then
+  --   printError("No distribution chest found.")
+  --   return true
+  -- end
+
+  -- local items = {}
+  -- countItems(distributionChest.list(), items)
+  -- local myItems = {}
+  -- for key, val in pairs(items) do
+  --   myItems[key] = val
+  -- end
+
+  -- local distributionChestName = peripheral.getName(distributionChest)
+
+  -- -- Run through each stack and try to place it in a chest
+  -- for slot, item in pairs(distributionChest.list()) do
+  --   --- @diagnostic disable-next-line: param-type-mismatch
+  --   for _, chest in ipairs({ peripheral.find("minecraft:chest") }) do
+  --     --- @cast chest Inventory
+  --     local chestName = lib.getName(chest)
+
+  --     -- Move the stack into the chest
+  --     local success, got = pcall(
+  --       chest.pullItems,
+  --       distributionChestName,
+  --       slot
+  --     )
+
+  --     -- If we succeed, then decrement how many items we have left
+  --     if success then
+  --       print("sent", got, "of", item.name, "to", chestName)
+  --       myItems[item.name] = myItems[item.name] - got
+
+  --       -- If we clear out all of our items, skip to the next item
+  --       if got == myItems[item.name] then
+  --         break
+  --       end
+  --     end
+  --   end
+  -- end
+
+  -- print("Pulled:")
+  -- for name, count in pairs(items) do
+  --   if query ~= nil and type(query) == "string" then
+  --     if string.find(name, query) ~= nil then
+  --       print(name .. ": " .. count)
+  --     end
+  --   else
+  --     print(name .. ": " .. count)
+  --   end
+  -- end
 elseif command == "order" then
   local item = arg[2]
   local amount = tonumber(arg[3])

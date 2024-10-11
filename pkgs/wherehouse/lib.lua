@@ -9,7 +9,7 @@ function lib.getName(chest)
     local nbt = chest.getItemDetail(slot)
 
     if nbt ~= nil then
-      if nbt.name == "computercraft:disk" then
+      if nbt.name == "computercraft:disk" and nbt.displayName ~= nbt.name then
         return nbt.displayName
       end
     end
@@ -36,6 +36,7 @@ end
 --- @field name string
 --- @field items itemList
 --- @field position Position
+--- @field inventory Inventory
 Chest = {}
 
 --- Chest ID = `c{x}_{y}_{z}`
@@ -45,7 +46,12 @@ Chest = {}
 local function parseCoordinates(str)
   if str ~= nil then
     local x, y, z = str:match("c(%d+)_(%d+)_(%d+)")
-    return { x = tonumber(x), y = tonumber(y), z = tonumber(z) }
+
+    if x ~= nil and y ~= nil and z ~= nil then
+      return { x = tonumber(x), y = tonumber(y), z = tonumber(z) }
+    else
+      return nil
+    end
   end
 
   return nil
@@ -78,7 +84,8 @@ function lib.scanItems()
         table.insert(chests, {
           name = name,
           items = chest.list(),
-          position = parseCoordinates(name)
+          position = parseCoordinates(name),
+          inventory = chest
         })
       end
     end
