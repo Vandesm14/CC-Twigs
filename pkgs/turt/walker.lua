@@ -78,6 +78,16 @@ function Walker:chestMode()
   while turtle.down() do end
 end
 
+function Walker:dropAll()
+  local index = 1
+  while index <= 16 do
+    turtle.drop()
+    index = index + 1
+  end
+
+  turtle.select(1)
+end
+
 --- Runs a step. Returns whether to break out of the loop.
 --- @return boolean
 function Walker:step()
@@ -156,9 +166,13 @@ function Walker:step()
         elseif name == "wp-input-left" then
           -- TODO: actually do something
         elseif name == "wp-output-right" then
-          -- TODO: actually do something
+          turtle.turnRight()
+          self:dropAll()
+          turtle.turnLeft()
         elseif name == "wp-output-left" then
-          -- TODO: actually do something
+          turtle.turnLeft()
+          self:dropAll()
+          turtle.turnRight()
         end
       end
     end
