@@ -2,21 +2,6 @@ local pretty = require "cc.pretty"
 local lib = require "wherehouse.lib"
 local Order = require "turt.order"
 
---- @param items itemList
---- @param table table
-local function countItems(items, table)
-  -- Run through each item in the chest
-  for _, item in pairs(items) do
-    local name, count = item.name, item.count
-    -- Update or set the entry
-    if table[name] ~= nil then
-      table[name] = table[name] + count
-    else
-      table[name] = count
-    end
-  end
-end
-
 local usage = "Usage: " .. arg[0] .. " <order|ls|capacity>"
 local command = arg[1]
 
@@ -96,66 +81,6 @@ elseif command == "pull" then
   end
 
   print("Done.")
-
-  -- local query = arg[2]
-
-  -- --- The distribution chest MUST be a single chest
-  -- --- and the storage chests MUST be double chests
-  -- --- @diagnostic disable-next-line: param-type-mismatch
-  -- local distributionChest = peripheral.find("minecraft:barrel")
-  -- --- @cast distributionChest Inventory
-
-  -- if distributionChest == nil then
-  --   printError("No distribution chest found.")
-  --   return true
-  -- end
-
-  -- local items = {}
-  -- countItems(distributionChest.list(), items)
-  -- local myItems = {}
-  -- for key, val in pairs(items) do
-  --   myItems[key] = val
-  -- end
-
-  -- local distributionChestName = peripheral.getName(distributionChest)
-
-  -- -- Run through each stack and try to place it in a chest
-  -- for slot, item in pairs(distributionChest.list()) do
-  --   --- @diagnostic disable-next-line: param-type-mismatch
-  --   for _, chest in ipairs({ peripheral.find("minecraft:chest") }) do
-  --     --- @cast chest Inventory
-  --     local chestName = lib.getName(chest)
-
-  --     -- Move the stack into the chest
-  --     local success, got = pcall(
-  --       chest.pullItems,
-  --       distributionChestName,
-  --       slot
-  --     )
-
-  --     -- If we succeed, then decrement how many items we have left
-  --     if success then
-  --       print("sent", got, "of", item.name, "to", chestName)
-  --       myItems[item.name] = myItems[item.name] - got
-
-  --       -- If we clear out all of our items, skip to the next item
-  --       if got == myItems[item.name] then
-  --         break
-  --       end
-  --     end
-  --   end
-  -- end
-
-  -- print("Pulled:")
-  -- for name, count in pairs(items) do
-  --   if query ~= nil and type(query) == "string" then
-  --     if string.find(name, query) ~= nil then
-  --       print(name .. ": " .. count)
-  --     end
-  --   else
-  --     print(name .. ": " .. count)
-  --   end
-  -- end
 elseif command == "order" then
   local item = arg[2]
   local amount = tonumber(arg[3])
