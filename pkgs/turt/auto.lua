@@ -9,6 +9,8 @@ local function getColor(tags)
 end
 
 local ignore = 0
+local yield = 0
+
 local wait = false
 local isObstruction = false
 
@@ -32,10 +34,28 @@ while true do
 
     if color == "white" then
       turtle.turnRight()
+
+      if yield > 0 then
+        yield = yield - 1
+
+        if turtle.detect() then
+          turtle.turnLeft()
+        end
+      end
     elseif color == "black" then
       turtle.turnLeft()
+
+      if yield > 0 then
+        yield = yield - 1
+
+        if turtle.detect() then
+          turtle.turnRight()
+        end
+      end
     elseif color == "yellow" then
       ignore = ignore + 1
+    elseif color == "lime" then
+      yield = yield + 1
     elseif color == "green" then
       wait = true
     elseif color == "purple" then
