@@ -39,6 +39,23 @@ end
 --- @field inventory Inventory
 Chest = {}
 
+--- @class StatusMessage
+--- @field type "status"
+--- @field value { name: string, fuel: number }
+StatusMessage = {}
+
+--- @class AvailMessage
+--- @field type "avail"
+--- @field value nil
+StatusMessage = {}
+
+--- @class OrderMessage
+--- @field type "order"
+--- @field value Order
+OrderMessage = {}
+
+--- @alias Message StatusMessage|OrderMessage|AvailMessage
+
 --- Chest ID = `c{x}_{y}_{z}`
 --- comment
 --- @param str string

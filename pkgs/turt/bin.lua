@@ -3,18 +3,34 @@ local Walker = require "turt.walker"
 
 rednet.open("right")
 
+---comment
+---@param id number|nil
+---@param message Message
 local function handleMessage(id, message)
   print("Received message from " .. id .. ":")
   pretty.pretty_print(message)
 
-  --- @cast message Order
-  if message ~= nil and message.item ~= nil then
-    local walker = Walker:new(message)
-    while true do
-      if walker:step() then
-        break
+  if message ~= nil and message.type == "order" then
+    local order = message.value
+    if order.item ~= nil then
+      local walker = Walker:new(order)
+      while true do
+        if walker:step() then
+          break
+        end
       end
     end
+  elseif message ~= nil and id ~= nil and message.type == "avail" then
+    rednet.broadcast(
+      {
+        type = "status",
+        value = {
+          name = os.getComputerLabel(),
+          fuel = turtle.getFuelLevel()
+        }
+      },
+      "wherehouse"
+    )
   end
 end
 
