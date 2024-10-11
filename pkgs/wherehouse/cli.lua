@@ -46,11 +46,13 @@ elseif command == "ls" then
 elseif command == "pull" then
   local inputChest = nil
 
+  print("Finding available space...")
   local list = lib.scanItems()
   local position = nil
   local mostSpace = nil
   local acc = 0
   for _, chest in pairs(list) do
+    print("Scanning chest '" .. chest.name .. "'...")
     local name = lib.getName(chest.inventory)
     if name == "input_chest" then
       inputChest = chest
@@ -77,12 +79,13 @@ elseif command == "pull" then
     return
   end
 
+  print("Queueing orders...")
   for _, item in pairs(inputChest.items) do
     if item.name ~= "computercraft:disk" then
       if acc > 0 then
         if position ~= nil then
           local chunk = Order:new(item.name, item.count, position, "input")
-          pretty.pretty_print(chunk)
+          print("Sent order for '" .. item.name .. "'")
           rednet.broadcast(chunk, "wherehouse")
           error("stop")
         end
@@ -91,6 +94,8 @@ elseif command == "pull" then
       end
     end
   end
+
+  print("Done.")
 
   -- local query = arg[2]
 
