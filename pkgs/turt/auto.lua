@@ -9,8 +9,11 @@ local function getColor(tags)
 end
 
 local ignore = 0
+local wait = false
 while true do
-  turtle.forward()
+  if not wait then
+    turtle.forward()
+  end
 
   local isBlock, info = turtle.inspectDown()
   if isBlock and info then
@@ -28,10 +31,20 @@ while true do
       elseif color == "purple" then
         break
       elseif color == "blue" then
-        break
+        -- break
       elseif color == "red" then
-        break
+        -- break
+      elseif color == "green" then
+        wait = true
       end
     end
+
+    if wait and color ~= "green" then
+      wait = false
+    end
+  end
+
+  if not isBlock and wait then
+    wait = false
   end
 end
