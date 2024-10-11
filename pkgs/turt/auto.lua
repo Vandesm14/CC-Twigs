@@ -27,22 +27,19 @@ while true do
 
     if color ~= nil and ignore > 0 then
       ignore = ignore - 1
-    else
-      if color == "white" then
-        turtle.turnRight()
-      elseif color == "black" then
-        turtle.turnLeft()
-      elseif color == "yellow" then
-        ignore = ignore + 1
-      elseif color == "purple" then
-        break
-      elseif color == "blue" then
-        -- break
-      elseif color == "red" then
-        -- break
-      elseif color == "green" then
-        wait = true
-      end
+      goto continue
+    end
+
+    if color == "white" then
+      turtle.turnRight()
+    elseif color == "black" then
+      turtle.turnLeft()
+    elseif color == "yellow" then
+      ignore = ignore + 1
+    elseif color == "green" then
+      wait = true
+    elseif color == "purple" then
+      break
     end
 
     if wait and color ~= "green" then
