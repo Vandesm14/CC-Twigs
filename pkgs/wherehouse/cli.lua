@@ -58,7 +58,7 @@ elseif command == "pull" then
       inputChest = chest
     end
 
-    local space = chest.inventory.size() - #chest.items
+    local space = chest.inventory.size() - #chest.inventory.list()
     if space > acc then
       local newPosition = lib.getChestPosition(chest.inventory)
       if newPosition ~= nil then
@@ -79,7 +79,7 @@ elseif command == "pull" then
     return
   end
 
-  print("Queueing orders...")
+  print("Queueing orders to '" .. mostSpace.name .. "'...")
   for _, item in pairs(inputChest.items) do
     if item.name ~= "computercraft:disk" then
       if acc > 0 then
