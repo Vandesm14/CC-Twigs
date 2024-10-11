@@ -1,35 +1,16 @@
 {
-  "$schema": "https://raw.githubusercontent.com/sumneko/vscode-lua/master/setting/schema.json",
+  "$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
   "runtime": {
-    "version": "Lua 5.3",
-    "builtin": {
-      "basic": "enable",
-      "bit": "disable",
-      "bit32": "enable",
-      "builtin": "enable",
-      "coroutine": "enable",
-      "debug": "disable",
-      "ffi": "disable",
-      "io": "disable",
-      "jit": "disable",
-      "math": "enable",
-      "os": "disable",
-      "package": "enable",
-      "string": "enable",
-      "table": "enable",
-      "table.clear": "disable",
-      "table.new": "disable",
-      "utf8": "enable"
-    }
+      "version": "Lua 5.3",
+      "builtin": {
+          "io": "disable",
+          "os": "disable"
+      }
   },
   "workspace": {
-    "checkThirdParty": false,
-    "library": [
-      ".luarc/addons/cc-tweaked/library"
-    ]
-  },
-  "completion": {
-    "keywordSnippet": "Replace",
-    "showWord": "Disable"
+      "checkThirdParty": false,
+      "library": [
+          ".luarc/addons/cc-tweaked"
+      ]
   }
 }
