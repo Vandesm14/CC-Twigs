@@ -41,11 +41,38 @@ function Walker:chestMode()
     turtle.up()
   end
 
-  local inventory = peripheral.wrap("front")
+  local chest = peripheral.wrap("front")
 
-  --- @cast inventory Inventory
-  if inventory ~= nil then
-    print("access chest")
+  --- @cast chest Inventory
+  if chest ~= nil then
+    for slot, item in pairs(chest.list()) do
+      if item.name == self.order.item and item.count >= self.order.count then
+        turtle.select(1)
+        turtle.suck()
+
+        local success, _ = pcall(
+          chest.pullItems,
+          "front",
+          slot,
+          self.order.count,
+          1
+        )
+
+        if not success then
+          error("failed to pull items")
+        end
+
+        turtle.suck(self.order.count)
+
+        turtle.select(1)
+        turtle.drop()
+
+        turtle.select(2)
+        turtle.transferTo(1)
+
+        turtle.select(1)
+      end
+    end
   end
 
   while turtle.down() do end
