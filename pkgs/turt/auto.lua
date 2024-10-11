@@ -65,6 +65,28 @@ while true do
     if wait and color ~= "green" then
       wait = false
     end
+
+    local barrel = peripheral.wrap("bottom")
+    --- @cast barrel Inventory
+    if barrel ~= nil then
+      local first = barrel.getItemDetail(1)
+      if first ~= nil then
+        local name = first.displayName
+        if name == "wp-storage-right" then
+          -- TODO: actually do something
+        elseif name == "wp-storage-left" then
+          -- TODO: actually do something
+        elseif name == "wp-input-right" then
+          -- TODO: actually do something
+        elseif name == "wp-input-left" then
+          -- TODO: actually do something
+        elseif name == "wp-output-right" then
+          -- TODO: actually do something
+        elseif name == "wp-output-left" then
+          -- TODO: actually do something
+        end
+      end
+    end
   end
 
   if not isBlock and wait then
