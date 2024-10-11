@@ -24,6 +24,14 @@ end
 --- @field z number
 Position = {}
 
+function Position:new(x, y, z)
+  local self = setmetatable({}, Position)
+  self.x = x
+  self.y = y
+  self.z = z
+  return self
+end
+
 --- @class Chest
 --- @field name string
 --- @field items itemList

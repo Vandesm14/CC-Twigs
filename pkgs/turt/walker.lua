@@ -1,3 +1,5 @@
+local order = require "turt.order"
+
 --- @param tags table<string, boolean>
 --- @return string|nil
 local function getColor(tags)
@@ -8,21 +10,45 @@ local function getColor(tags)
   end
 end
 
-
 --- @class Walker
 --- @field ignore number
 --- @field yield number
 --- @field wait boolean
+--- @field order Order
 local Walker = {}
 Walker.__index = Walker
 
-function Walker:new()
+--- comment
+--- @param order Order
+--- @return Walker
+function Walker:new(order)
   local self = setmetatable({}, Walker)
   self.ignore = 0
   self.yield = 0
   self.wait = false
+  self.order = order
 
   return self
+end
+
+function Walker:isWithinPosition()
+  local x, _, z = gps.locate(2, false)
+  return x == self.order.pos.x and z == self.order.pos.z
+end
+
+function Walker:chestMode()
+  while ({gps.locate(2, false)})[2] < self.order.pos.y do
+    turtle.up()
+  end
+
+  local inventory = peripheral.wrap("front")
+
+  --- @cast inventory Inventory
+  if inventory ~= nil then
+    print("access chest")
+  end
+
+  while turtle.down() do end
 end
 
 --- Runs a step. Returns whether to break out of the loop.
@@ -87,9 +113,17 @@ function Walker:step()
       if first ~= nil then
         local name = first.displayName
         if name == "wp-storage-right" then
-          -- TODO: actually do something
+          if self:isWithinPosition() then
+            turtle.turnRight()
+            self:chestMode()
+            turtle.turnLeft()
+          end
         elseif name == "wp-storage-left" then
-          -- TODO: actually do something
+          if self:isWithinPosition() then
+            turtle.turnLeft()
+            self:chestMode()
+            turtle.turnRight()
+          end
         elseif name == "wp-input-right" then
           -- TODO: actually do something
         elseif name == "wp-input-left" then
