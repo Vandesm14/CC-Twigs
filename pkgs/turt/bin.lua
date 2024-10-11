@@ -1,18 +1,20 @@
 local pretty = require "cc.pretty"
 local Walker = require "turt.walker"
-local Order = require "turt.order"
 
-local x = tonumber(arg[1])
-local y = tonumber(arg[2])
-local z = tonumber(arg[3])
+rednet.open("right")
 
-local order = Order:new("minecraft:diamond", 5, Position:new(x, y, z), "input")
-print("Order:")
-pretty.pretty_print(order)
-
-local walker = Walker:new(order)
 while true do
-  if walker:step() then
-    break
+  local id, message = rednet.receive("wherehouse")
+  print("Received message from " .. id .. ":")
+  pretty.pretty_print(message)
+
+  --- @cast message Order
+  if message ~= nil and message.item ~= nil then
+    local walker = Walker:new(message)
+    while true do
+      if walker:step() then
+        break
+      end
+    end
   end
 end

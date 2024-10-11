@@ -3,9 +3,9 @@ local lib = {}
 --- @param chest Inventory
 --- @return string|nil
 function lib.getName(chest)
+
   -- Run through each item in the chest
-  for slot, item in pairs(chest.list()) do
-    local name, count = item.name, item.count
+  for slot, _ in pairs(chest.list()) do
     local nbt = chest.getItemDetail(slot)
 
     if nbt ~= nil then
@@ -38,10 +38,29 @@ end
 --- @field position Position
 Chest = {}
 
--- Chest ID = `c{x}_{y}_{z}`
+--- Chest ID = `c{x}_{y}_{z}`
+--- comment
+--- @param str string
+--- @return Position|nil
 local function parseCoordinates(str)
-  local x, y, z = str:match("c(%d+)_(%d+)_(%d+)")
-  return { x = tonumber(x), y = tonumber(y), z = tonumber(z) }
+  if str ~= nil then
+    local x, y, z = str:match("c(%d+)_(%d+)_(%d+)")
+    return { x = tonumber(x), y = tonumber(y), z = tonumber(z) }
+  end
+
+  return nil
+end
+
+---comment
+---@param chest Inventory
+---@return Position|nil
+function lib.getChestPosition(chest)
+  local name = lib.getName(chest)
+  if name ~= nil then
+    return parseCoordinates(name)
+  end
+
+  return nil
 end
 
 function lib.scanItems()

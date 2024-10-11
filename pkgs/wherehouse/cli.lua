@@ -1,5 +1,6 @@
 local pretty = require "cc.pretty"
 local lib = require "wherehouse.lib"
+local Order = require "turt.order"
 
 --- @param items itemList
 --- @param table table
@@ -120,23 +121,14 @@ elseif command == "order" then
     return
   end
 
+  rednet.open("top")
+
   local order = {
     [item] = amount
   }
 
   --- @type table<string, integer>
   local myItems = {}
-
-  --- The distribution chest MUST be a single chest
-  --- and the storage chests MUST be double chests
-  --- @diagnostic disable-next-line: param-type-mismatch
-  local distributionChest = peripheral.find("minecraft:barrel")
-  --- @cast distributionChest Inventory
-
-  if distributionChest == nil then
-    printError("No distribution chest found.")
-    return true
-  end
 
   -- Add 0's for all the order items
   for name, _ in pairs(order) do
@@ -153,7 +145,7 @@ elseif command == "order" then
     -- Check for items. Run through each item
     for slot, item in pairs(chest.list()) do
       -- If we have all we need, skip
-      if myItems[item.name] == order[item.name] then
+      if order[item.name] ~= nil and myItems[item.name] == order[item.name] then
         break
       end
 
@@ -164,27 +156,20 @@ elseif command == "order" then
 
           -- ...and we don't have enough
           if need > 0 then
-            -- Move the items into our distribution chest
-            local success, got = pcall(
-              distributionChest.pullItems,
-              chestName,
-              slot,
-              need
+            local got = math.min(item.count, need)
+            myItems[item.name] = myItems[item.name] + got
+            print(
+              "  Got",
+              tostring(got),
+              item.name .. ", need",
+              tostring(need - got),
+              "more."
             )
 
-            if success then
-              -- Add this action to our running totals
-              myItems[item.name] = myItems[item.name] + got
-              print(
-                "  Got",
-                tostring(got),
-                item.name .. ", need",
-                tostring(need - got),
-                "more."
-              )
-            else
-              printError("  Unable to pull from it.")
-              break
+            local position = lib.getChestPosition(chest)
+            if position ~= nil then
+              local chunk = Order:new(item.name, need, position, "output")
+              rednet.broadcast(chunk, "wherehouse")
             end
           end
         end
