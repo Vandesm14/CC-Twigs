@@ -40,11 +40,13 @@ function Queue:findAvailableTurtle()
         end
       end,
       function ()
-        local timer_id = os.startTimer(2)
+        local timer_id = os.startTimer(5)
         local _, id
         repeat
           _, id = os.pullEvent("timer")
         until id == timer_id
+
+        print("Waiting for available turtle...")
       end
     )
   end
@@ -56,11 +58,9 @@ function Queue:findAvailableTurtle()
   return replies[1]
 end
 
-function Queue:tryOrder()
+function Queue:tryOrder(order)
   local avail = self:findAvailableTurtle()
   if avail ~= nil then
-    local order = table.remove(self.orders, #self.orders)
-
     --- @type OrderMessage
     local msg = { type = "order", value = order }
 
@@ -71,8 +71,9 @@ function Queue:tryOrder()
 end
 
 function Queue:run()
-  for _, _ in ipairs(self.orders) do
-    self:tryOrder()
+  for _, order in ipairs(self.orders) do
+    self:tryOrder(order)
+    print("Queued order for '" .. order.item .. "'")
   end
 end
 

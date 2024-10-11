@@ -73,21 +73,25 @@ elseif command == "pull" then
     return
   end
 
-  print("Queueing orders to '" .. mostSpace.name .. "'...")
+  print("Calculating orders to '" .. mostSpace.name .. "'...") 
+  local orders = {}
   for _, item in pairs(inputChest.items) do
     if item.name ~= "computercraft:disk" then
       if acc > 0 then
         if position ~= nil then
           local chunk = Order:new(item.name, item.count, position, "input")
           print("Sent order for '" .. item.name .. "'")
-          rednet.broadcast(chunk, "wherehouse")
-          error("stop")
+          table.insert(orders, chunk)
         end
-  
+
         acc = acc -1
       end
     end
   end
+
+  print("Queueing orders...")
+  local queue = Queue:new(orders)
+  queue:run()
 
   print("Done.")
 elseif command == "order" then

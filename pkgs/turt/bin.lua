@@ -3,6 +3,10 @@ local Walker = require "turt.walker"
 
 rednet.open("right")
 
+
+--- @type Walker|nil
+local walker = nil
+
 ---comment
 ---@param id number|nil
 ---@param message Message
@@ -13,24 +17,26 @@ local function handleMessage(id, message)
   if message ~= nil and message.type == "order" then
     local order = message.value
     if order.item ~= nil then
-      local walker = Walker:new(order)
-      while true do
-        if walker:step() then
-          break
-        end
-      end
+      walker = Walker:new(order)
+      return
     end
   elseif message ~= nil and id ~= nil and message.type == "avail" then
-    rednet.broadcast(
-      {
-        type = "status",
-        value = {
-          name = os.getComputerLabel(),
-          fuel = turtle.getFuelLevel()
-        }
-      },
-      "wherehouse"
-    )
+    local isBlock, info = turtle.inspectDown()
+    if isBlock and info then
+      local color = Walker.getColor(info.tags)
+      if color == "purple" then
+        rednet.broadcast(
+          {
+            type = "status",
+            value = {
+              name = os.getComputerLabel(),
+              fuel = turtle.getFuelLevel()
+            }
+          },
+          "wherehouse"
+        )
+      end
+    end
   end
 end
 
@@ -43,5 +49,11 @@ local function waitForSelf()
 end
 
 while true do
-  parallel.waitForAny(waitForGlobal, waitForSelf)
+  if walker ~= nil then
+    if walker:step() then
+      walker = nil
+    end
+  else
+    parallel.waitForAny(waitForGlobal, waitForSelf)
+  end
 end

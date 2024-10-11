@@ -1,15 +1,5 @@
 local order = require "turt.order"
 
---- @param tags table<string, boolean>
---- @return string|nil
-local function getColor(tags)
-  for color, _ in pairs(tags) do
-    if color:match("c:dyed/%a+") then
-      return color:match("c:dyed/(%a+)")
-    end
-  end
-end
-
 --- @class Walker
 --- @field ignore number
 --- @field yield number
@@ -29,6 +19,17 @@ function Walker:new(order)
   self.order = order
 
   return self
+end
+
+--- @param tags table<string, boolean>
+--- @return string|nil
+function Walker.getColor(tags)
+  for color, _ in pairs(tags) do
+    if color:match("c:dyed/%a+") then
+      local c = color:match("c:dyed/(%a+)")
+      return c
+    end
+  end
 end
 
 function Walker:isWithinPosition()
@@ -111,7 +112,7 @@ function Walker:step()
 
   local isBlock, info = turtle.inspectDown()
   if isBlock and info then
-    local color = getColor(info.tags)
+    local color = self.getColor(info.tags)
 
     if color ~= nil and self.ignore > 0 then
       self.ignore = self.ignore - 1
