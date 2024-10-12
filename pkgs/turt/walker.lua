@@ -207,7 +207,8 @@ function Walker:step()
             if self.order.type == "output" then
               self:pullFromChest()
             elseif self.order.type == "input" then
-              self:dropAll()
+              turtle.select(1)
+              turtle.drop()
             end
 
             self:downUntilBarrel()
@@ -228,13 +229,15 @@ function Walker:step()
         elseif name == "wp-output-right" then
           if self.order.type == "output" then
             turtle.turnRight()
-            self:dropAll()
+            turtle.select(1)
+            turtle.drop()
             turtle.turnLeft()
           end
         elseif name == "wp-output-left" then
           if self.order.type == "output" then
             turtle.turnLeft()
-            self:dropAll()
+            turtle.select(1)
+            turtle.drop()
             turtle.turnRight()
           end
         end
