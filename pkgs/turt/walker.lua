@@ -42,15 +42,21 @@ function Walker:pullFromChest()
 
   --- @cast chest Inventory
   if chest ~= nil then
+    -- Get the item in the first slot of the chest
     turtle.select(2)
     turtle.suck()
 
     for slot, item in pairs(chest.list()) do
       if item.name == self.order.item and item.count >= self.order.count then
+        -- If our item was in the first slot, set it to our first slot then
+        -- return.
         if slot == 1 then
+          turtle.transferTo(1)
+          turtle.select(1)
           return
         end
 
+        -- Mopve the target item to the first slot of the chest
         local success, _ = pcall(
           chest.pullItems,
           "front",
@@ -63,17 +69,23 @@ function Walker:pullFromChest()
           error("failed to pull items")
         end
 
+        -- Select our first slot
         turtle.select(1)
+        -- Suck our intented item from the first slot of the chest
         turtle.suck(self.order.count)
-        
+
+        -- Select our second slot
         turtle.select(2)
+        -- Drop the junk item back into the chest
         turtle.drop()
 
+        -- Select our first slot with our item
         turtle.select(1)
+
+        return
       end
     end
   end
-
 end
 
 function Walker:dropAll()

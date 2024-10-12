@@ -8,12 +8,6 @@ local command = arg[1]
 
 rednet.open("top")
 
--- --- @type Order
--- local order = Order:new("minecraft:diamond", 1, Position:new(1, 2, 3), "output")
-
--- local queue = Queue:new({order})
--- queue:tryOrder()
-
 if command == nil then
   printError(usage)
   printError()
@@ -63,8 +57,13 @@ elseif command == "pull" then
     end
   end
 
-  if mostSpace == nil or inputChest == nil then
+  if mostSpace == nil then
     printError("No space in network.")
+    return
+  end
+
+  if inputChest == nil then
+    printError("No input chest.")
     return
   end
 
@@ -80,7 +79,6 @@ elseif command == "pull" then
       if acc > 0 then
         if position ~= nil then
           local chunk = Order:new(item.name, item.count, position, "input")
-          print("Sent order for '" .. item.name .. "'")
           table.insert(orders, chunk)
         end
 
