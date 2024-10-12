@@ -65,6 +65,7 @@ function Queue:tryOrder(order)
     local msg = { type = "order", value = order }
 
     if order ~= nil then
+      print("Queued order for '" .. order.item .. "' to '" .. avail.value.name .. "'.")
       rednet.broadcast(msg, "wherehouse_" .. avail.value.name)
     end
   end
@@ -73,7 +74,6 @@ end
 function Queue:run()
   for _, order in ipairs(self.orders) do
     self:tryOrder(order)
-    print("Queued order for '" .. order.item .. "'")
   end
 end
 

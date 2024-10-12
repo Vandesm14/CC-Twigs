@@ -17,20 +17,32 @@ elseif command == "ls" then
   local query = arg[2]
 
   local chests = lib.scanItems()
+  local file = fs.open("list.txt", "w")
+  local lines = {}
   
   for _, chest in pairs(chests) do
-    print("")
-    print("Chest " .. chest.name .. ":")
+    table.insert(lines, "")
+    table.insert(lines, "Chest " .. chest.name .. ":")
     for _, item in pairs(chest.items) do
       if query ~= nil and type(query) == "string" then
         if string.find(item.name, query) ~= nil then
-          print(item.name .. ": " .. item.count)
+          table.insert(lines, item.name .. ": " .. item.count)
         end
       else
-        print(item.name .. ": " .. item.count)
+        table.insert(lines, item.name .. ": " .. item.count)
       end
     end
   end
+
+  if file ~= nil then
+    for _, line in pairs(lines) do
+      file.writeLine(line)
+    end
+
+    file.close()
+  end
+
+  print("Open list.txt to view.")
 elseif command == "pull" then
   local inputChest = nil
 
@@ -122,6 +134,11 @@ elseif command == "order" then
     myItems[name] = 0
   end
 
+  --- @type table<number, Order>
+  local orders = {}
+
+  print("Calculating orders...")
+
   -- Scan each chest for items, until we hit the end-stop
   --- @diagnostic disable-next-line: param-type-mismatch
   for _, chest in ipairs({ peripheral.find("minecraft:chest", function(_, chest) return chest.size() == 54 end) }) do
@@ -156,7 +173,7 @@ elseif command == "order" then
             local position = lib.getChestPosition(chest)
             if position ~= nil then
               local chunk = Order:new(item.name, need, position, "output")
-              rednet.broadcast(chunk, "wherehouse")
+              table.insert(orders, chunk)
             end
           end
         end
@@ -168,6 +185,11 @@ elseif command == "order" then
   for name, count in pairs(myItems) do
     print(name .. ": " .. count)
   end
+
+  print("Queueing orders...")
+  local queue = Queue:new(orders)
+  queue:run()
+  print("Done.")
 elseif command == "capacity" then
   local capacity = 0
 
