@@ -46,7 +46,15 @@ function Walker:pullFromChest()
     turtle.select(2)
     turtle.suck()
 
-    for slot, item in pairs(chest.list()) do
+    local first = turtle.getItemDetail()
+    if first ~= nil and first.name == self.order.item then
+      turtle.transferTo(1)
+      turtle.select(1)
+      return
+    end
+
+    local list = chest.list()
+    for slot, item in pairs(list) do
       if item.name == self.order.item and item.count >= self.order.count then
         -- If our item was in the first slot, set it to our first slot then
         -- return.
