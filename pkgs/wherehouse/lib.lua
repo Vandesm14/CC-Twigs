@@ -3,7 +3,6 @@ local lib = {}
 --- @param chest Inventory
 --- @return string|nil
 function lib.getName(chest)
-
   -- Run through each item in the chest
   for slot, _ in pairs(chest.list()) do
     local nbt = chest.getItemDetail(slot)
