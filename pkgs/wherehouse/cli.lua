@@ -172,7 +172,7 @@ elseif command == "order" then
 
             local position = lib.getChestPosition(chest)
             if position ~= nil then
-              local chunk = Order:new(item.name, need, position, "output")
+              local chunk = Order:new(item.name, got, position, "output")
               table.insert(orders, chunk)
             end
           end
