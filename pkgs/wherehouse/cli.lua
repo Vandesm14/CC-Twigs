@@ -32,7 +32,6 @@ if command == nil then
 elseif command == "ls" then
   local query = arg[2]
 
-  local chests = lib.scanItems()
   local file = fs.open("list.txt", "w")
   local lines = {}
   local items = {}
@@ -68,7 +67,6 @@ elseif command == "ls" then
   end
 
   print("")
-
   print("Open list.txt to view full list.")
 elseif command == "pull" then
   local inputChest = nil
@@ -79,9 +77,7 @@ elseif command == "pull" then
   local mostSpace = nil
   local acc = 0
   for _, chest in pairs(list) do
-    print("Scanning chest '" .. chest.name .. "'...")
-    local name = lib.getName(chest.inventory)
-    if name == "input_chest" then
+    if chest.name == "input_chest" then
       inputChest = chest
     end
 
@@ -166,43 +162,38 @@ elseif command == "order" then
 
   print("Calculating orders...")
 
+  local chests = lib.scanItems()
+
   -- Scan each chest for items, until we hit the end-stop
   --- @diagnostic disable-next-line: param-type-mismatch
-  for _, chest in ipairs({ peripheral.find("minecraft:chest", function(_, chest) return chest.size() == 54 end) }) do
-    --- @cast chest Inventory
-    local chestName = peripheral.getName(chest)
-    print("Checking chest '" .. chestName .. "'...")
+  for _, chest in pairs(chests) do
+    print("Checking chest '" .. chest.name .. "'...")
 
     -- Check for items. Run through each item
-    for _, item in pairs(chest.list()) do
+    for _, item in pairs(chest.items) do
       -- If we have all we need, skip
       if order[item.name] ~= nil and myItems[item.name] == order[item.name] then
         break
       end
 
-      if item ~= nil then
-        -- If the order wants this item...
-        if order[item.name] ~= nil then
-          local need = order[item.name] - myItems[item.name]
+      -- If the order wants this item...
+      if order[item.name] ~= nil and item ~= nil then
+        local need = order[item.name] - myItems[item.name]
 
-          -- ...and we don't have enough
-          if need > 0 then
-            local got = math.min(item.count, need)
-            myItems[item.name] = myItems[item.name] + got
-            print(
-              "  Got",
-              tostring(got),
-              item.name .. ", need",
-              tostring(need - got),
-              "more."
-            )
+        -- ...and we don't have enough
+        if need > 0 then
+          local got = math.min(item.count, need)
+          myItems[item.name] = myItems[item.name] + got
+          print(
+            "  Got",
+            tostring(got),
+            item.name .. ", need",
+            tostring(need - got),
+            "more."
+          )
 
-            local position = lib.getChestPosition(chest)
-            if position ~= nil then
-              local chunk = Order:new(item.name, got, position, "output")
-              table.insert(orders, chunk)
-            end
-          end
+          local chunk = Order:new(item.name, got, chest.position, "output")
+          table.insert(orders, chunk)
         end
       end
     end

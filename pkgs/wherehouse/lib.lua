@@ -96,6 +96,9 @@ function lib.scanItems()
 
     if chest ~= nil then
       local name = lib.getName(chest)
+
+      print("Scanned chest '" .. name .. "'...")
+
       if name ~= nil then
         table.insert(chests, {
           name = name,
