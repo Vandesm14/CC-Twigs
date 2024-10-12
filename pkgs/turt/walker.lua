@@ -85,6 +85,8 @@ function Walker:pullFromChest()
         return
       end
     end
+
+    error("Failed to find item '" .. self.order.item .. "' in chest.")
   end
 end
 
