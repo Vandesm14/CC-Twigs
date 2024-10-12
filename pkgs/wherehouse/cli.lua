@@ -3,6 +3,22 @@ local Order = require "turt.order"
 local lib = require "wherehouse.lib"
 local Queue = require "wherehouse.queue"
 
+--- @param chest Inventory
+--- @param table table
+local function countItems(chest, table)
+  -- Run through each item in the chest
+  for _, item in pairs(chest.list()) do
+    local name, count = item.name, item.count
+
+    -- Update or set the entry
+    if table[name] ~= nil then
+      table[name] = table[name] + count
+    else
+      table[name] = count
+    end
+  end
+end
+
 local usage = "Usage: " .. arg[0] .. " <order|ls|capacity>"
 local command = arg[1]
 
@@ -19,30 +35,41 @@ elseif command == "ls" then
   local chests = lib.scanItems()
   local file = fs.open("list.txt", "w")
   local lines = {}
-  
-  for _, chest in pairs(chests) do
-    table.insert(lines, "")
-    table.insert(lines, "Chest " .. chest.name .. ":")
-    for _, item in pairs(chest.items) do
-      if query ~= nil and type(query) == "string" then
-        if string.find(item.name, query) ~= nil then
-          table.insert(lines, item.name .. ": " .. item.count)
-        end
-      else
-        table.insert(lines, item.name .. ": " .. item.count)
+  local items = {}
+
+  -- Scan each chest for items, until we hit the end-stop
+  --- @diagnostic disable-next-line: param-type-mismatch
+  for _, chest in ipairs({ peripheral.find("minecraft:chest") }) do
+    --- @cast chest Inventory
+
+    if chest ~= nil then
+      countItems(chest, items)
+    end
+  end
+
+  table.insert(lines, "Items:")
+  for name, count in pairs(items) do
+    if query ~= nil and type(query) == "string" then
+      if string.find(name, query) ~= nil then
+        table.insert(lines, name .. ": " .. count)
       end
+    else
+      table.insert(lines, name .. ": " .. count)
     end
   end
 
   if file ~= nil then
     for _, line in pairs(lines) do
       file.writeLine(line)
+      print(line)
     end
 
     file.close()
   end
 
-  print("Open list.txt to view.")
+  print("")
+
+  print("Open list.txt to view full list.")
 elseif command == "pull" then
   local inputChest = nil
 
