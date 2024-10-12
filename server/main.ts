@@ -4,7 +4,10 @@
  * @module
  */
 
-import { fs, oak, path } from './deps.ts';
+import * as fs from "@std/fs"
+import * as path from "@std/path"
+import * as cli from "@std/cli"
+import * as oak from "@oak/oak"
 
 /** The root dir path that contains the packages. */
 const ROOT_PACKAGES_DIR_PATH = 'pkgs/';
@@ -12,6 +15,9 @@ const ROOT_PACKAGES_DIR_PATH = 'pkgs/';
 const PACKAGE_FILE_EXTS = ['.lua'];
 /** A RegExp that matches `require("...")`. */
 const REQUIRE_REGEXP = /(?<=require\(("|')).*(?=("|')\))/g;
+
+const args = cli.parseArgs(Deno.args);
+const port = typeof(args.port) === "number" ? args.port : 3000;
 
 const router = new oak.Router();
 
@@ -88,7 +94,9 @@ const app = new oak.Application();
 app.use(router.routes());
 app.use(router.allowedMethods());
 
-await app.listen({ port: 3000 });
+console.log(`Listening on port localhost:${port}`);
+
+await app.listen({ port });
 
 async function getPackages(): Promise<string[]> {
   const names: string[] = [];
