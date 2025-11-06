@@ -4,10 +4,10 @@
  * @module
  */
 
-import * as fs from "@std/fs"
-import * as path from "@std/path"
-import * as cli from "@std/cli"
-import * as oak from "@oak/oak"
+import * as fs from '@std/fs';
+import * as path from '@std/path';
+import * as cli from '@std/cli';
+import * as oak from '@oak/oak';
 
 /** The root dir path that contains the packages. */
 const ROOT_PACKAGES_DIR_PATH = 'pkgs/';
@@ -17,7 +17,8 @@ const PACKAGE_FILE_EXTS = ['.lua'];
 const REQUIRE_REGEXP = /(?<=require\(("|')).*(?=("|')\))/g;
 
 const args = cli.parseArgs(Deno.args);
-const port = typeof(args.port) === "number" ? args.port : 3000;
+const port = typeof args.port === 'number' ? args.port : 3000;
+const host = typeof args.host === 'string' ? args.host : '0.0.0.0';
 
 const router = new oak.Router();
 
@@ -41,7 +42,7 @@ router
   .get('/:package/:file', async (context) => {
     const content = await readPackageFileContent(
       context.params.package,
-      context.params.file,
+      context.params.file
     );
 
     if (typeof content !== 'undefined') {
@@ -54,7 +55,7 @@ router
   .get('/:package/:file/deps', async (context) => {
     const content = await readPackageFileContent(
       context.params.package,
-      context.params.file,
+      context.params.file
     );
     const packages = await getPackages();
 
@@ -94,20 +95,18 @@ const app = new oak.Application();
 app.use(router.routes());
 app.use(router.allowedMethods());
 
-console.log(`Listening on port localhost:${port}`);
+console.log(`Listening on port ${host}:${port}`);
 
-await app.listen({ port });
+await app.listen({ port, hostname: host });
 
 async function getPackages(): Promise<string[]> {
   const names: string[] = [];
 
-  for await (
-    const entry of fs.walk(ROOT_PACKAGES_DIR_PATH, {
-      maxDepth: 1,
-      includeFiles: false,
-      followSymlinks: true,
-    })
-  ) {
+  for await (const entry of fs.walk(ROOT_PACKAGES_DIR_PATH, {
+    maxDepth: 1,
+    includeFiles: false,
+    followSymlinks: true,
+  })) {
     if (entry.path !== ROOT_PACKAGES_DIR_PATH) {
       names.push(entry.name);
     }
@@ -117,21 +116,19 @@ async function getPackages(): Promise<string[]> {
 }
 
 async function getPackageFiles(
-  package_: string,
+  package_: string
 ): Promise<string[] | undefined> {
   const dirPath = path.join(ROOT_PACKAGES_DIR_PATH, package_);
 
   if (await fs.exists(dirPath, { isDirectory: true, isReadable: true })) {
     const names: string[] = [];
 
-    for await (
-      const entry of fs.walk(dirPath, {
-        maxDepth: 1,
-        includeDirs: false,
-        followSymlinks: true,
-        exts: PACKAGE_FILE_EXTS,
-      })
-    ) {
+    for await (const entry of fs.walk(dirPath, {
+      maxDepth: 1,
+      includeDirs: false,
+      followSymlinks: true,
+      exts: PACKAGE_FILE_EXTS,
+    })) {
       names.push(entry.name);
     }
 
@@ -141,17 +138,20 @@ async function getPackageFiles(
 
 async function readPackageFileContent(
   package_: string,
-  file: string,
+  file: string
 ): Promise<string | undefined> {
   const dirPath = path.join(ROOT_PACKAGES_DIR_PATH, package_);
   const filePath = path.join(dirPath, file);
 
   if (
     PACKAGE_FILE_EXTS.includes(path.extname(filePath)) &&
-    await fs.exists(dirPath, { isDirectory: true, isReadable: true }) &&
-    await fs.exists(filePath, { isFile: true, isReadable: true })
+    (await fs.exists(dirPath, { isDirectory: true, isReadable: true })) &&
+    (await fs.exists(filePath, { isFile: true, isReadable: true }))
   ) {
-    return await Deno.readTextFile('server/prepend.lua') + '\n' +
-      await Deno.readTextFile(filePath);
+    return (
+      (await Deno.readTextFile('server/prepend.lua')) +
+      '\n' +
+      (await Deno.readTextFile(filePath))
+    );
   }
 }
