@@ -47,7 +47,7 @@ server. To install mngr, follow the steps below on a ComputerCraft computer:
 1. Set the `mngr.url` setting to the package server URL —
    `set mngr.url http://localhost:3000`.
 2. Download and run the mngr install file via HTTP —
-   `wget run http://localhost:3000/mngr/install.lua`.
-3. Run mngr to see the available commands — `mngr`.
+   `wget run http://localhost:3000/mngr/mngr.lua`.
+3. Run `mngr` to refetch packages from the server.
 
 [Deno]: https://deno.land
