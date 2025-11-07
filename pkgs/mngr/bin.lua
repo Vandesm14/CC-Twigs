@@ -63,7 +63,7 @@ local function fetchPackageFileContent(rootUrl, packageName, fileName)
   return content
 end
 
-if not package.loaded["mngr.mngr"] then
+if not package.loaded["mngr.bin"] then
   local mngrDir = "/.mngr"
 
   local tempDir = fs.combine("/.temp", mngrDir)
@@ -119,13 +119,44 @@ if not package.loaded["mngr.mngr"] then
     end
   end
 
+  -- Create bin directory for all package binaries
+  local binDir = fs.combine(tempDir, "bin")
+  if not pcall(fs.makeDir, binDir) then
+    printError("Unable to create '" .. binDir .. "' directory.")
+    return
+  end
+
+  -- Copy bin.lua files from packages to the bin directory for PATH access
+  print("Setting up package binaries...")
+  for _, packageName in ipairs(packageNames) do
+    local binPath = fs.combine(tempDir, packageName, "bin.lua")
+    if fs.exists(binPath) then
+      local targetPath = fs.combine(binDir, packageName .. ".lua")
+      
+      local sourceFile = fs.open(binPath, "r")
+      if sourceFile then
+        local content = sourceFile.readAll()
+        sourceFile.close()
+        
+        local targetFile = fs.open(targetPath, "w")
+        if targetFile then
+          targetFile.write(content)
+          targetFile.close()
+          print("  Added '" .. packageName .. "' binary.")
+        else
+          printError("Unable to create binary '" .. targetPath .. "'.")
+        end
+      end
+    end
+  end
+
   print("Committing '" .. tempDir .. "' to '" .. mngrDir .. "'...")
 
   fs.delete(mngrDir)
   fs.move(tempDir, mngrDir)
   fs.delete(tempDir)
 
-  shell.setPath( shell.path() .. ":/.mngr/mngr")
+  shell.setPath(shell.path() .. ":/.mngr/bin")
 
   if not fs.exists("/startup/mngr.lua") then
     print("Creating '/startup/mngr.lua'...")
@@ -136,7 +167,7 @@ if not package.loaded["mngr.mngr"] then
       return
     end
 
-    file.writeLine("shell.setPath( shell.path() .. \":\" .. \"/.mngr/mngr\")")
+    file.writeLine("shell.setPath( shell.path() .. \":\" .. \"/.mngr/bin\")")
     file.close()
   end
 
