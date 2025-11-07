@@ -1,6 +1,6 @@
 local lib = {}
 
---- @param chest Inventory
+--- @param chest ccTweaked.peripherals.Inventory
 --- @return string|nil
 function lib.getName(chest)
   -- Run through each item in the chest
@@ -33,9 +33,9 @@ end
 
 --- @class Chest
 --- @field name string
---- @field items itemList
+--- @field items ccTweaked.peripherals.inventory.itemList
 --- @field position Position
---- @field inventory Inventory
+--- @field inventory ccTweaked.peripherals.Inventory
 Chest = {}
 
 --- @class StatusMessage
@@ -74,7 +74,7 @@ local function parseCoordinates(str)
 end
 
 ---comment
----@param chest Inventory
+---@param chest ccTweaked.peripherals.Inventory
 ---@return Position|nil
 function lib.getChestPosition(chest)
   local name = lib.getName(chest)
@@ -92,7 +92,7 @@ function lib.scanItems()
   -- Scan each chest for items, until we hit the end-stop
   --- @diagnostic disable-next-line: param-type-mismatch
   for _, chest in ipairs({ peripheral.find("minecraft:chest") }) do
-    --- @cast chest Inventory
+    --- @cast chest ccTweaked.peripherals.Inventory
 
     if chest ~= nil then
       local name = lib.getName(chest)

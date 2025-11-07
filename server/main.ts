@@ -18,7 +18,7 @@ const REQUIRE_REGEXP = /(?<=require\(("|')).*(?=("|')\))/g;
 
 const args = cli.parseArgs(Deno.args);
 const port = typeof args.port === 'number' ? args.port : 3000;
-const host = typeof args.host === 'string' ? args.host : '0.0.0.0';
+const host = typeof args.host === 'string' ? args.host : 'localhost';
 
 const router = new oak.Router();
 

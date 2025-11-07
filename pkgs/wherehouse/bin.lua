@@ -3,7 +3,7 @@ local Order = require "turt.order"
 local lib = require "wherehouse.lib"
 local Queue = require "wherehouse.queue"
 
---- @param chest Inventory
+--- @param chest ccTweaked.peripherals.Inventory
 --- @param table table
 local function countItems(chest, table)
   -- Run through each item in the chest
@@ -39,7 +39,7 @@ elseif command == "ls" then
   -- Scan each chest for items, until we hit the end-stop
   --- @diagnostic disable-next-line: param-type-mismatch
   for _, chest in ipairs({ peripheral.find("minecraft:chest") }) do
-    --- @cast chest Inventory
+    --- @cast chest ccTweaked.peripherals.Inventory
 
     if chest ~= nil then
       countItems(chest, items)
@@ -107,17 +107,17 @@ elseif command == "pull" then
     return
   end
 
-  print("Calculating orders to '" .. mostSpace.name .. "'...") 
+  print("Calculating orders to '" .. mostSpace.name .. "'...")
   local orders = {}
   for _, item in pairs(inputChest.items) do
     if item.name ~= "computercraft:disk" then
       if acc > 0 then
         if position ~= nil then
-          local chunk = Order:new(item.name, item.count, position, "input")
+          local chunk = Order:new(item.name, item.count, "", "input")
           table.insert(orders, chunk)
         end
 
-        acc = acc -1
+        acc = acc - 1
       end
     end
   end
@@ -192,7 +192,7 @@ elseif command == "order" then
             "more."
           )
 
-          local chunk = Order:new(item.name, got, chest.position, "output")
+          local chunk = Order:new(item.name, got, "", "output")
           table.insert(orders, chunk)
         end
       end
@@ -213,7 +213,7 @@ elseif command == "capacity" then
 
   --- @diagnostic disable-next-line: param-type-mismatch
   for _, chest in ipairs({ peripheral.find("minecraft:chest") }) do
-    --- @cast chest Inventory
+    --- @cast chest ccTweaked.peripherals.Inventory
     capacity = capacity + chest.size()
   end
 

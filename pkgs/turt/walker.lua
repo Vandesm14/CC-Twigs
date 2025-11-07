@@ -1,10 +1,12 @@
-local order = require "turt.order"
+local pretty = require "cc.pretty"
+
+-- local Order = require "turt.order"
 
 --- @class Walker
 --- @field ignore number
---- @field yield number
---- @field wait boolean
 --- @field order Order
+--- @field was_lime boolean
+--- @field action string|nil
 local Walker = {}
 Walker.__index = Walker
 
@@ -12,13 +14,12 @@ Walker.__index = Walker
 --- @param order Order
 --- @return Walker
 function Walker:new(order)
-  local self = setmetatable({}, Walker)
-  self.ignore = 0
-  self.yield = 0
-  self.wait = false
-  self.order = order
-
-  return self
+  local o = {}
+  o.ignore = 0
+  o.order = order
+  o.was_lime = false
+  o.action = ""
+  return setmetatable(o, self)
 end
 
 --- @param tags table<string, boolean>
@@ -32,19 +33,14 @@ function Walker.getColor(tags)
   end
 end
 
-function Walker:isWithinPosition()
-  local x, _, z = gps.locate(2, false)
-  return x == self.order.pos.x and z == self.order.pos.z
-end
-
 function Walker:pullFromChest()
-  local chest = peripheral.wrap("front")
+  local chest = peripheral.wrap("bottom")
 
-  --- @cast chest Inventory
+  --- @cast chest ccTweaked.peripherals.Inventory
   if chest ~= nil then
     -- Get the item in the first slot of the chest
     turtle.select(2)
-    turtle.suck()
+    turtle.suckDown()
 
     local first = turtle.getItemDetail()
     if first ~= nil and first.name == self.order.item then
@@ -64,7 +60,7 @@ function Walker:pullFromChest()
           return
         end
 
-        -- Mopve the target item to the first slot of the chest
+        -- Move the target item to the first slot of the chest
         local success, _ = pcall(
           chest.pullItems,
           "front",
@@ -80,12 +76,12 @@ function Walker:pullFromChest()
         -- Select our first slot
         turtle.select(1)
         -- Suck our intented item from the first slot of the chest
-        turtle.suck(self.order.count)
+        turtle.suckDown(self.order.count)
 
         -- Select our second slot
         turtle.select(2)
         -- Drop the junk item back into the chest
-        turtle.drop()
+        turtle.dropDown()
 
         -- Select our first slot with our item
         turtle.select(1)
@@ -108,145 +104,72 @@ function Walker:dropAll()
   turtle.select(1)
 end
 
-function Walker:downUntilBarrel()
-  local isBarrel = false
-  while not isBarrel do
-    turtle.down()
-
-    local isBlock, info = turtle.inspectDown()
-    if isBlock and info then
-      isBarrel = info.name == "minecraft:barrel"
-    end
-  end
-end
-
 --- Runs a step. Returns whether to break out of the loop.
 --- @return boolean
 function Walker:step()
-  local obstruction = false
-  if not self.wait then
-    obstruction = not turtle.forward()
-  end
+  -- turtle.forward()
+  if self.action == "x" then
+    local isBlock, info = turtle.inspectDown()
+    if isBlock and info then
+      local color = self.getColor(info.tags)
 
-  if obstruction then
-    return false
-  end
+      if color ~= nil and self.ignore > 0 then
+        print("ignore")
+        self.ignore = self.ignore - 1
+        return false
+      end
 
-  local isBlock, info = turtle.inspectDown()
-  if isBlock and info then
-    local color = self.getColor(info.tags)
+      print(color)
+      if color ~= "lime" then
+        self.was_lime = false
+      end
 
-    if color ~= nil and self.ignore > 0 then
-      self.ignore = self.ignore - 1
-      return false
-    end
-
-    if color == "white" then
-      turtle.turnRight()
-
-      if self.yield > 0 then
-        self.yield = self.yield - 1
-
-        if turtle.detect() then
+      if color == "yellow" then
+        print("STOP")
+        return true
+      elseif color == "orange" then
+        -- We hit a checkpoint and can continue
+        self.action = nil
+      elseif color == "white" then
+        turtle.turnRight()
+      elseif color == "black" then
+        turtle.turnLeft()
+      elseif color == "pink" then
+        -- Ignore the next action (color only)
+        self.ignore = self.ignore + 1
+      elseif color == "lime" then
+        -- If the last block wasn't lime, turn left.
+        if not self.was_lime then
+          print("lime-left")
           turtle.turnLeft()
         end
+        self.was_lime = true
       end
-    elseif color == "black" then
-      turtle.turnLeft()
-
-      if self.yield > 0 then
-        self.yield = self.yield - 1
-
-        if turtle.detect() then
-          turtle.turnRight()
-        end
-      end
-    elseif color == "yellow" then
-      self.ignore = self.ignore + 1
-    elseif color == "lime" then
-      self.yield = self.yield + 1
-    elseif color == "green" then
-      self.wait = true
-    elseif color == "purple" then
+    end
+  else
+    self.action = self.order:next_action()
+    print(self.action)
+    if not self.action then
       return true
-    end
-
-    if self.wait and color ~= "green" then
-      self.wait = false
-    end
-
-    local barrel = peripheral.wrap("bottom")
-    --- @cast barrel Inventory
-    if barrel ~= nil then
-      local first = barrel.getItemDetail(1)
-      if first ~= nil then
-        local name = first.displayName
-        if name == "wp-storage-right" then
-          if self:isWithinPosition() then
-            turtle.turnRight()
-            while ({gps.locate(2, false)})[2] < self.order.pos.y do
-              turtle.up()
-            end
-
-            if self.order.type == "output" then
-              self:pullFromChest()
-            elseif self.order.type == "input" then
-              self:dropAll()
-            end
-
-            self:downUntilBarrel()
-            turtle.turnLeft()
-          end
-        elseif name == "wp-storage-left" then
-          if self:isWithinPosition() then
-            turtle.turnLeft()
-            while ({gps.locate(2, false)})[2] < self.order.pos.y do
-              turtle.up()
-            end
-
-            if self.order.type == "output" then
-              self:pullFromChest()
-            elseif self.order.type == "input" then
-              turtle.select(1)
-              turtle.drop()
-            end
-
-            self:downUntilBarrel()
-            turtle.turnRight()
-          end
-        elseif name == "wp-input-right" then
-          if self.order.type == "input" then
-            turtle.turnRight()
-            self:pullFromChest()
-            turtle.turnLeft()
-          end
-        elseif name == "wp-input-left" then
-          if self.order.type == "input" then
-            turtle.turnLeft()
-            self:pullFromChest()
-            turtle.turnRight()
-          end
-        elseif name == "wp-output-right" then
-          if self.order.type == "output" then
-            turtle.turnRight()
-            turtle.select(1)
-            turtle.drop()
-            turtle.turnLeft()
-          end
-        elseif name == "wp-output-left" then
-          if self.order.type == "output" then
-            turtle.turnLeft()
-            turtle.select(1)
-            turtle.drop()
-            turtle.turnRight()
-          end
-        end
-      end
     end
   end
 
-  if not isBlock and self.wait then
-    self.wait = false
+  if self.action == "l" then
+    turtle.turnLeft()
+  elseif self.action == "r" then
+    turtle.turnRight()
+  elseif self.action == "f" then
+    turtle.forward()
+  elseif self.action == "i" then
+    self:pullFromChest()
+  elseif self.action == "o" then
+    self:dropAll()
+  elseif self.action == "x" then
+    turtle.forward()
+    -- Then handled by the next call.
+  elseif self.action == "h" then
+    turtle.forward()
+    return true
   end
 
   return false
