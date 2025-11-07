@@ -50,4 +50,59 @@ server. To install mngr, follow the steps below on a ComputerCraft computer:
    `wget run http://localhost:3000/mngr/bin.lua`.
 3. Run `mngr` to refetch packages from the server.
 
+## Turt
+
+Turt is a turtle automation program that navigates paths using colored blocks
+and waypoints. Turtles follow tracks and respond to colored blocks and barrel
+identifiers to execute navigation logic and warehouse operations.
+
+### Colors
+
+Turtles detect colored blocks (dyed blocks) underneath them as they move. These
+colors control navigation behavior:
+
+- **white** — Turn right. If yield counter is active, skip the turn if blocked.
+- **black** — Turn left. If yield counter is active, skip the turn if blocked.
+- **yellow** — Increment the ignore counter. The next colored block will be
+  ignored.
+- **lime** — Increment the yield counter. The next turn will be skipped if
+  blocked.
+- **green** — Wait (pause movement). Turtle resumes when it moves off a green
+  block or encounters a non-green colored block.
+- **purple** — End operation and return to idle state. Also used as a
+  home/status reporting location.
+
+### Waypoint Identifiers
+
+Turtles detect barrels underneath them with specific item names (disk labels) to
+trigger waypoint actions. These identifiers are stored in the first slot of the
+barrel:
+
+- **wp-storage-right** — Storage waypoint. Turn right, move up to target Y
+  position, and either pull items from chest (output orders) or drop all items
+  (input orders). Then return down and turn left.
+- **wp-storage-left** — Storage waypoint. Turn left, move up to target Y
+  position, and either pull items from chest (output orders) or drop items
+  (input orders). Then return down and turn right.
+- **wp-input-right** — Input waypoint. For input orders, turn right, pull items
+  from chest, and turn left.
+- **wp-input-left** — Input waypoint. For input orders, turn left, pull items
+  from chest, and turn right.
+- **wp-output-right** — Output waypoint. For output orders, turn right, drop
+  items into chest, and turn left.
+- **wp-output-left** — Output waypoint. For output orders, turn left, drop items
+  into chest, and turn right.
+
+### Storage Chest Identifiers
+
+The wherehouse system uses coordinate-based naming for storage chests. Each
+chest must have a disk in its first slot with a label following this pattern:
+
+- **c{x}\_{y}\_{z}** — Coordinate identifier (e.g., `c10_5_20`). The wherehouse
+  manager uses these coordinates to direct turtles to specific storage
+  locations. The `x`, `y`, and `z` values correspond to GPS coordinates in the
+  world.
+- **input_chest** — Special identifier for the main input chest where items are
+  deposited for distribution to storage.
+
 [Deno]: https://deno.land
