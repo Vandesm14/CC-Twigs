@@ -42,7 +42,7 @@ function Walker:validateState(should_have_items, context)
   local item = turtle.getItemDetail(1)
   local is_valid = true
   local error_msg = nil
-  
+
   if should_have_items then
     -- Assert we have the correct items in inventory
     if item == nil then
@@ -62,7 +62,7 @@ function Walker:validateState(should_have_items, context)
       error_msg = context .. ": inventory should be empty but still have " .. item.count .. "x " .. item.name
     end
   end
-  
+
   if not is_valid then
     -- Broadcast the error
     rednet.broadcast(
@@ -76,14 +76,14 @@ function Walker:validateState(should_have_items, context)
       },
       "wh_" .. lib.OUR_NAME .. "_error"
     )
-    
+
     -- Try to move up to signal out of service
     turtle.up()
-    
+
     -- Print the error and stop execution
     error("ASSERTION FAILED: " .. error_msg)
   end
-  
+
   return is_valid
 end
 
@@ -139,6 +139,7 @@ function Walker:pullFromChest()
       end
     end
 
+    turtle.dropDown()
     print("Failed to find item '" .. self.order.item .. "' in chest.")
   end
 end
