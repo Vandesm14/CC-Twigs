@@ -21,7 +21,8 @@ local function countItems(chest, table)
   end
 end
 
-local usage = "Usage: " .. arg[0] .. " <order|ls|capacity>"
+local usage = "Usage: " .. arg[0] .. " <order|ls|capacity>\n" ..
+  "  ls [search]        - List items, optionally filter by substring"
 local command = arg[1]
 
 rednet.open("back")
@@ -46,7 +47,11 @@ elseif command == "ls" then
     end
   end
 
-  table.insert(lines, "Items:")
+  if query ~= nil and type(query) == "string" then
+    table.insert(lines, "Items (filtered by '" .. query .. "'):")
+  else
+    table.insert(lines, "Items:")
+  end
   for name, count in pairs(items) do
     if query ~= nil and type(query) == "string" then
       if string.find(name, query) ~= nil then
