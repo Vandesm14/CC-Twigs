@@ -98,7 +98,7 @@ elseif command == "pull" then
   end
 
   if inputChest == nil then
-    printError("No input chest.")
+    printError("No items to input.")
     return
   end
 
