@@ -20,16 +20,16 @@ end
 ---@return StatusMessage|nil
 function Queue:findAvailableTurtle()
   --- @type AvailMessage
-  local msg = {type = "avail"}
+  local msg = { type = "avail" }
 
   local replies = {}
   local exit = false
   while not exit do
-    rednet.broadcast(msg, "wherehouse")
+    rednet.broadcast(msg, "wh")
     parallel.waitForAny(
-      function ()
+      function()
         while true do
-          local _, reply = rednet.receive("wherehouse")
+          local _, reply = rednet.receive("wh")
 
           --- @cast reply Message
           if reply ~= nil and reply.type == "status" then
@@ -39,7 +39,7 @@ function Queue:findAvailableTurtle()
           end
         end
       end,
-      function ()
+      function()
         local timer_id = os.startTimer(5)
         local _, id
         repeat
@@ -66,7 +66,7 @@ function Queue:tryOrder(order)
 
     if order ~= nil then
       print("Queued '" .. order.item .. "' to '" .. avail.value.name .. "'.")
-      rednet.broadcast(msg, "wherehouse_" .. avail.value.name)
+      rednet.broadcast(msg, "wh_" .. avail.value.name)
     end
   end
 end

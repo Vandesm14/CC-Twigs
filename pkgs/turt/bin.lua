@@ -3,7 +3,6 @@
 
 -- rednet.open("right")
 
-
 -- --- @type Walker|nil
 -- local walker = nil
 
@@ -33,7 +32,7 @@
 --               fuel = turtle.getFuelLevel()
 --             }
 --           },
---           "wherehouse"
+--           "wh"
 --         )
 --       end
 --     end
@@ -41,11 +40,11 @@
 -- end
 
 -- local function waitForGlobal()
---   handleMessage(rednet.receive("wherehouse"))
+--   handleMessage(rednet.receive("wh"))
 -- end
 
 -- local function waitForSelf()
---   handleMessage(rednet.receive("wherehouse_" .. os.getComputerLabel()))
+--   handleMessage(rednet.receive("wh_" .. os.getComputerLabel()))
 -- end
 
 -- while true do
@@ -60,7 +59,7 @@
 
 local Walker = require "turt.walker"
 local Order = require "turt.order"
-local branches = require "turt.branches"
+local branches = require "wh.branches"
 
 local walker = Walker:new(Order:new("minecraft:cobblestone", 1,
   branches.input["_"] .. branches.storage[1] .. branches.output[2], "input"))

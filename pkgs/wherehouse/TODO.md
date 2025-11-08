@@ -1,6 +1,0 @@
-- **Blocks**
-  - **Black:** Turn left
-  - **White:** Turn right
-  - **Yellow:** Forward (skip next)
-  - **Red:** Home (availablr)
-  - 

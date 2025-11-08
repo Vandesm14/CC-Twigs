@@ -1,7 +1,9 @@
 local pretty = require "cc.pretty"
 local Order = require "turt.order"
-local lib = require "wherehouse.lib"
-local Queue = require "wherehouse.queue"
+local lib = require "wh.lib"
+local Queue = require "wh.queue"
+local tbl = require "lib.table"
+local Branches = require "wh.branches"
 
 --- @param chest ccTweaked.peripherals.Inventory
 --- @param table table
@@ -22,7 +24,7 @@ end
 local usage = "Usage: " .. arg[0] .. " <order|ls|capacity>"
 local command = arg[1]
 
-rednet.open("top")
+rednet.open("back")
 
 if command == nil then
   printError(usage)
@@ -38,11 +40,9 @@ elseif command == "ls" then
 
   -- Scan each chest for items, until we hit the end-stop
   --- @diagnostic disable-next-line: param-type-mismatch
-  for _, chest in ipairs({ peripheral.find("minecraft:chest") }) do
-    --- @cast chest ccTweaked.peripherals.Inventory
-
+  for _, chest in ipairs(lib.scanItems(tbl.keys(Branches.storage))) do
     if chest ~= nil then
-      countItems(chest, items)
+      countItems(chest.inventory, items)
     end
   end
 
@@ -70,25 +70,25 @@ elseif command == "ls" then
   print("Open list.txt to view full list.")
 elseif command == "pull" then
   local inputChest = nil
+  --- @cast inputChest Chest|nil
+
+  local list = lib.scanItems(tbl.keys(Branches.input))
+  for _, chest in pairs(list) do
+    if #chest.inventory.list() > 0 then
+      inputChest = chest
+      break
+    end
+  end
 
   print("Finding available space...")
-  local list = lib.scanItems()
-  local position = nil
-  local mostSpace = nil
+  local list = lib.scanItems(tbl.keys(Branches.storage))
   local acc = 0
+  local mostSpace = nil
   for _, chest in pairs(list) do
-    if chest.name == "input_chest" then
-      inputChest = chest
-    end
-
     local space = chest.inventory.size() - #chest.inventory.list()
     if space > acc then
-      local newPosition = lib.getChestPosition(chest.inventory)
-      if newPosition ~= nil then
-        acc = space
-        mostSpace = chest
-        position = newPosition
-      end
+      acc = space
+      mostSpace = chest
     end
   end
 
@@ -102,20 +102,13 @@ elseif command == "pull" then
     return
   end
 
-  if position == nil then
-    printError("No position of largest chest")
-    return
-  end
-
   print("Calculating orders to '" .. mostSpace.name .. "'...")
   local orders = {}
   for _, item in pairs(inputChest.items) do
     if item.name ~= "computercraft:disk" then
       if acc > 0 then
-        if position ~= nil then
-          local chunk = Order:new(item.name, item.count, "", "input")
-          table.insert(orders, chunk)
-        end
+        local chunk = Order:new(item.name, item.count, Branches.storage[mostSpace.id], "input")
+        table.insert(orders, chunk)
 
         acc = acc - 1
       end
@@ -212,7 +205,7 @@ elseif command == "capacity" then
   local capacity = 0
 
   --- @diagnostic disable-next-line: param-type-mismatch
-  for _, chest in ipairs({ peripheral.find("minecraft:chest") }) do
+  for _, chest in ipairs({ peripheral.find("minecraft:barrel") }) do
     --- @cast chest ccTweaked.peripherals.Inventory
     capacity = capacity + chest.size()
   end
