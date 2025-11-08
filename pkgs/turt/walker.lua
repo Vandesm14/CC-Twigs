@@ -54,7 +54,6 @@ function Walker:pullFromChest()
     end
 
     for slot, item in pairs(chest.list()) do
-      print(item.name, item.count)
       if item.name == self.order.item and item.count >= self.order.count then
         -- Move the target item to the first slot of the chest
         local success, _ = pcall(
@@ -104,7 +103,6 @@ function Walker:step()
         return false
       end
 
-      print(color)
       if color ~= "lime" then
         self.was_lime = false
       end
@@ -125,7 +123,6 @@ function Walker:step()
       elseif color == "lime" then
         -- If the last block wasn't lime, turn left.
         if not self.was_lime then
-          print("lime-left")
           turtle.turnLeft()
         end
         self.was_lime = true
