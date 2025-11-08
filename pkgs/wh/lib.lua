@@ -53,7 +53,7 @@ function lib.scanItems(filter)
     if chest ~= nil then
       local id = lib.chestID(name)
       if filter == nil or (filter ~= nil and tbl.contains(filter, id)) then
-        print("Scanned chest '" .. name .. "'...")
+        -- print("Scanned chest '" .. name .. "'...")
 
         if id ~= nil then
           table.insert(chests, {
