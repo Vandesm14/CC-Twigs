@@ -208,9 +208,8 @@ elseif command == "capacity" then
   local capacity = 0
 
   --- @diagnostic disable-next-line: param-type-mismatch
-  for _, chest in ipairs({ peripheral.find("minecraft:barrel") }) do
-    --- @cast chest ccTweaked.peripherals.Inventory
-    capacity = capacity + chest.size()
+  for _, chest in ipairs(lib.scanItems(tbl.keys(Branches.storage))) do
+    capacity = capacity + chest.inventory.size()
   end
 
   print("The capacity is:", capacity)
