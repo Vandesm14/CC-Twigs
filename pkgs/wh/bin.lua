@@ -206,11 +206,15 @@ elseif command == "order" then
   print("Done.")
 elseif command == "capacity" then
   local capacity = 0
+  local used = 0
 
   --- @diagnostic disable-next-line: param-type-mismatch
   for _, chest in pairs(lib.scanItems(tbl.keys(Branches.storage))) do
     capacity = capacity + chest.inventory.size()
+    used = used + tbl.len(chest.inventory.list())
   end
 
-  print("The capacity is:", capacity)
+  local available = capacity - used
+
+  print("Capacity: " .. used .. " / " .. capacity .. " slots used (" .. available .. " available)")
 end
