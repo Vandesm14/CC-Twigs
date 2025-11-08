@@ -1,6 +1,7 @@
 local pretty = require "cc.pretty"
 local Walker = require "turt.walker"
 local Order = require "turt.order"
+local lib = require "turt.lib"
 
 -- Check for optional command-line actions
 local actions = arg[1]
@@ -28,10 +29,6 @@ rednet.open("right")
 
 --- @type Walker|nil
 local walker = nil
-local OUR_NAME = os.getComputerLabel()
-if OUR_NAME == nil then
-  OUR_NAME = tostring(os.getComputerID())
-end
 
 ---comment
 ---@param id number|nil
@@ -55,7 +52,7 @@ local function handleMessage(id, message)
           {
             type = "status",
             value = {
-              name = OUR_NAME,
+              name = lib.OUR_NAME,
               fuel = turtle.getFuelLevel()
             }
           },
@@ -71,7 +68,7 @@ local function waitForGlobal()
 end
 
 local function waitForSelf()
-  handleMessage(rednet.receive("wh_" .. OUR_NAME))
+  handleMessage(rednet.receive("wh_" .. lib.OUR_NAME))
 end
 
 while true do

@@ -1,4 +1,5 @@
 local pretty = require "cc.pretty"
+local lib = require "turt.lib"
 
 -- local Order = require "turt.order"
 
@@ -31,6 +32,58 @@ function Walker.getColor(tags)
       return c
     end
   end
+end
+
+--- Validates the turtle's state after an operation and handles errors
+--- @param operation_type string "pull" or "drop"
+--- @return boolean true if state is valid, false if invalid (should stop execution)
+function Walker:validateState(operation_type)
+  local item = turtle.getItemDetail(1)
+  local is_valid = true
+  local error_msg = nil
+  
+  if operation_type == "pull" then
+    -- After pulling, we should have the expected items
+    if item == nil then
+      is_valid = false
+      error_msg = "Failed to pull items from chest: no items in inventory"
+    elseif item.name ~= self.order.item then
+      is_valid = false
+      error_msg = "Failed to pull items from chest: got " .. item.name .. " instead of " .. self.order.item
+    elseif item.count < self.order.count then
+      is_valid = false
+      error_msg = "Failed to pull items from chest: got " .. item.count .. " but expected " .. self.order.count .. " of " .. self.order.item
+    end
+  elseif operation_type == "drop" then
+    -- After dropping, we should have no items
+    if item ~= nil and item.count > 0 then
+      is_valid = false
+      error_msg = "Failed to drop all items into chest: still have " .. item.count .. "x " .. item.name .. " in inventory"
+    end
+  end
+  
+  if not is_valid then
+    -- Broadcast the error
+    rednet.broadcast(
+      {
+        type = "error",
+        value = {
+          name = lib.OUR_NAME,
+          error = error_msg,
+          order = self.order
+        }
+      },
+      "wh_" .. lib.OUR_NAME .. "_error"
+    )
+    
+    -- Try to move up to signal out of service
+    turtle.up()
+    
+    -- Print the error and stop execution
+    error("ASSERTION FAILED: " .. error_msg)
+  end
+  
+  return is_valid
 end
 
 function Walker:pullFromChest()
@@ -145,13 +198,17 @@ function Walker:step()
     end
   elseif self.action == "i" then
     self:pullFromChest()
+    self:validateState("pull")
   elseif self.action == "o" then
     turtle.dropDown()
+    self:validateState("drop")
   elseif self.action == "c" then
     if self.order.type == "input" then
       turtle.dropDown()
+      self:validateState("drop")
     elseif self.order.type == "output" then
       self:pullFromChest()
+      self:validateState("pull")
     else
       error("invalid order type: " .. self.order.type)
     end
