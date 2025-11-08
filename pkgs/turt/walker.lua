@@ -86,7 +86,7 @@ function Walker:pullFromChest()
       end
     end
 
-    error("Failed to find item '" .. self.order.item .. "' in chest.")
+    print("Failed to find item '" .. self.order.item .. "' in chest.")
   end
 end
 
