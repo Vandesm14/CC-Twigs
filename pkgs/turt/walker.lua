@@ -148,9 +148,9 @@ function Walker:step()
     turtle.dropDown()
   elseif self.action == "c" then
     if self.order.type == "input" then
-      self:pullFromChest()
-    elseif self.order.type == "output" then
       turtle.dropDown()
+    elseif self.order.type == "output" then
+      self:pullFromChest()
     else
       error("invalid order type: " .. self.order.type)
     end

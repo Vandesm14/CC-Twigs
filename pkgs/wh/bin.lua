@@ -102,12 +102,14 @@ elseif command == "pull" then
     return
   end
 
-  print("Calculating orders to '" .. mostSpace.name .. "'...")
+  print("Calculating orders to '" .. mostSpace.id .. "'...")
   local orders = {}
   for _, item in pairs(inputChest.items) do
     if item.name ~= "computercraft:disk" then
       if acc > 0 then
-        local chunk = Order:new(item.name, item.count, Branches.storage[mostSpace.id], "input")
+        local chunk = Order:new(item.name, item.count,
+          Branches.input[inputChest.id] .. Branches.storage[mostSpace.id] .. Branches.output["_"],
+          "input")
         table.insert(orders, chunk)
 
         acc = acc - 1
@@ -160,7 +162,7 @@ elseif command == "order" then
   -- Scan each chest for items, until we hit the end-stop
   --- @diagnostic disable-next-line: param-type-mismatch
   for _, chest in pairs(chests) do
-    print("Checking chest '" .. chest.name .. "'...")
+    print("Checking chest '" .. chest.id .. "'...")
 
     -- Check for items. Run through each item
     for _, item in pairs(chest.items) do

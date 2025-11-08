@@ -19,7 +19,7 @@ function Order:new(item, count, actions, type)
   o.item = item
   o.count = count
   o.type = type
-  o.actions = actions:reverse()
+  o.actions = actions
   return setmetatable(o, self)
 end
 

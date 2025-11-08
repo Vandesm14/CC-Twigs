@@ -15,9 +15,9 @@ local function XY(x, y)
 end
 
 --- @class Branches
---- @field input table<number, string>
+--- @field input table<number|string, string>
 --- @field storage table<number, string>
---- @field output table<number, string>
+--- @field output table<number|string, string>
 local branches = {
   -- L: Left
   -- R: Right
