@@ -34,33 +34,18 @@ function Walker.getColor(tags)
   end
 end
 
---- Validates the turtle's state and handles errors
+--- Validates the turtle's inventory is empty (first slot)
 --- Broadcasts error, moves up to signal out of service, and stops execution if invalid
---- @param should_have_items boolean true if we should have items, false if inventory should be empty
 --- @param context string description of the operation for error messages
-function Walker:validateState(should_have_items, context)
+function Walker:assertEmpty(context)
   local item = turtle.getItemDetail(1)
   local is_valid = true
   local error_msg = nil
 
-  if should_have_items then
-    -- Assert we have the correct items in inventory
-    if item == nil then
-      is_valid = false
-      error_msg = context .. ": no items in inventory"
-    elseif item.name ~= self.order.item then
-      is_valid = false
-      error_msg = context .. ": got " .. item.name .. " instead of " .. self.order.item
-    elseif item.count < self.order.count then
-      is_valid = false
-      error_msg = context .. ": got " .. item.count .. " but expected " .. self.order.count .. " of " .. self.order.item
-    end
-  else
-    -- Assert inventory is empty (no loose items)
-    if item ~= nil and item.count > 0 then
-      is_valid = false
-      error_msg = context .. ": inventory should be empty but still have " .. item.count .. "x " .. item.name
-    end
+  -- Assert inventory is empty (no loose items)
+  if item ~= nil and item.count > 0 then
+    is_valid = false
+    error_msg = context .. ": inventory should be empty but still have " .. item.count .. "x " .. item.name
   end
 
   if not is_valid then
@@ -140,7 +125,7 @@ function Walker:pullFromChest()
     end
 
     turtle.dropDown()
-    print("Failed to find item '" .. self.order.item .. "' in chest.")
+    self:assertEmpty("Failed to find item '" .. self.order.item .. "' in chest.")
   end
 end
 
@@ -199,27 +184,16 @@ function Walker:step()
     while not turtle.forward() do
     end
   elseif self.action == "i" then
-    -- Action "i": Pull from chest (used at source for input orders, or at storage for output orders)
     self:pullFromChest()
-    -- Assert: Should have the correct items after pulling
-    self:validateState(true, "After pulling items (action 'i')")
   elseif self.action == "o" then
-    -- Action "o": Drop to chest (used at destination for output orders)
     turtle.dropDown()
-    -- Assert: Inventory should be empty after dropping (no loose items)
-    self:validateState(false, "After dropping to destination (action 'o')")
+    self:assertEmpty("After dropping to destination (action 'o')")
   elseif self.action == "c" then
-    -- Action "c": Context-dependent chest operation based on order type
     if self.order.type == "input" then
-      -- INPUT order: Drop items into storage
       turtle.dropDown()
-      -- Assert: Inventory should be empty after dropping (no loose items)
-      self:validateState(false, "After dropping to storage (input order, action 'c')")
+      self:assertEmpty("After dropping to storage (input order, action 'c')")
     elseif self.order.type == "output" then
-      -- OUTPUT order: Pull items from storage
       self:pullFromChest()
-      -- Assert: Should have the correct items after pulling
-      self:validateState(true, "After pulling from storage (output order, action 'c')")
     else
       error("invalid order type: " .. self.order.type)
     end
