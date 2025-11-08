@@ -74,7 +74,7 @@ elseif command == "pull" then
 
   local list = lib.scanItems(tbl.keys(Branches.input))
   for _, chest in pairs(list) do
-    if #chest.inventory.list() > 0 then
+    if tbl.len(chest.inventory.list()) > 0 then
       inputChest = chest
       break
     end

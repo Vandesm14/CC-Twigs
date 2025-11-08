@@ -1,7 +1,7 @@
 local tbl = {}
 
 function tbl.contains(tbl, item)
-  for _, el in ipairs(tbl) do
+  for _, el in pairs(tbl) do
     if el == item then
       return true
     end
@@ -24,6 +24,14 @@ function tbl.values(tbl)
     table.insert(values, value)
   end
   return values
+end
+
+function tbl.len(tbl)
+  local len = 0
+  for _, _ in pairs(tbl) do
+    len = len + 1
+  end
+  return len
 end
 
 return tbl
