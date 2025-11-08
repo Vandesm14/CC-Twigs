@@ -72,7 +72,7 @@ function Queue:tryOrder(order)
 end
 
 function Queue:run()
-  for _, order in ipairs(self.orders) do
+  for _, order in pairs(self.orders) do
     self:tryOrder(order)
   end
 end

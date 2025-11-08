@@ -40,7 +40,7 @@ elseif command == "ls" then
 
   -- Scan each chest for items, until we hit the end-stop
   --- @diagnostic disable-next-line: param-type-mismatch
-  for _, chest in ipairs(lib.scanItems(tbl.keys(Branches.storage))) do
+  for _, chest in pairs(lib.scanItems(tbl.keys(Branches.storage))) do
     if chest ~= nil then
       countItems(chest.inventory, items)
     end
@@ -208,7 +208,7 @@ elseif command == "capacity" then
   local capacity = 0
 
   --- @diagnostic disable-next-line: param-type-mismatch
-  for _, chest in ipairs(lib.scanItems(tbl.keys(Branches.storage))) do
+  for _, chest in pairs(lib.scanItems(tbl.keys(Branches.storage))) do
     capacity = capacity + chest.inventory.size()
   end
 
