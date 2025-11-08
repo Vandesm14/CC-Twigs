@@ -127,6 +127,13 @@ function Walker:pullFromChest()
   end
 end
 
+local function checkFuel()
+  if turtle.getFuelLevel() <= 1 then
+    turtle.up()
+    error("fuel is 1")
+  end
+end
+
 --- Runs a step. Returns whether to break out of the loop.
 --- @return boolean
 function Walker:step()
@@ -144,6 +151,7 @@ function Walker:step()
         return true
       elseif color == "yellow" then
         -- Skips the next block
+        checkFuel()
         turtle.forward()
       elseif color == "orange" then
         -- We hit a checkpoint and can continue
@@ -173,7 +181,9 @@ function Walker:step()
   elseif self.action == "r" then
     turtle.turnRight()
   elseif self.action == "f" then
+    checkFuel()
     while not turtle.forward() do
+      checkFuel()
     end
   elseif self.action == "i" then
     self:pullFromChest()
@@ -190,11 +200,15 @@ function Walker:step()
       error("invalid order type: " .. self.order.type)
     end
   elseif self.action == "x" then
+    checkFuel()
     while not turtle.forward() do
+      checkFuel()
     end
     -- Then handled by the next call.
   elseif self.action == "h" then
+    checkFuel()
     while not turtle.forward() do
+      checkFuel()
     end
   end
 
