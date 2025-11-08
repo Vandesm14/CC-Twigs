@@ -40,10 +40,14 @@ function Walker:pullFromChest()
   if chest ~= nil then
     -- Get the item in the first slot of the chest
     turtle.select(2)
-    turtle.suckDown(self.order.count)
+    turtle.suckDown()
 
     local item = turtle.getItemDetail()
     if item ~= nil and item.name == self.order.item and item.count >= self.order.count then
+      if item.count > self.order.count then
+        turtle.dropDown(item.count - self.order.count)
+      end
+
       turtle.transferTo(1)
       turtle.select(1)
       return
