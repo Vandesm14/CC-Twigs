@@ -20,6 +20,7 @@ local branches = {
   -- F: Forward
   -- I: Input (take items)
   -- O: Output (put items)
+  -- C: Chest (I/O based on order)
   -- X: Move until checkpoint (orange)
   -- H: Home (stack up and wait)
   --
@@ -31,36 +32,36 @@ local branches = {
 
   storage = {
     -- b1, s1
-    [1]  = "lx" .. XY(1, 1) .. "oxxl",
-    [2]  = "lx" .. XY(2, 1) .. "oxxl",
-    [3]  = "lx" .. XY(3, 1) .. "oxxl",
-    [4]  = "lx" .. XY(1, 2) .. "oxxl",
-    [5]  = "lx" .. XY(2, 2) .. "oxxl",
-    [6]  = "lx" .. XY(3, 2) .. "oxxl",
+    [1]  = "lx" .. XY(1, 1) .. "cxxl",
+    [2]  = "lx" .. XY(2, 1) .. "cxxl",
+    [3]  = "lx" .. XY(3, 1) .. "cxxl",
+    [4]  = "lx" .. XY(1, 2) .. "cxxl",
+    [5]  = "lx" .. XY(2, 2) .. "cxxl",
+    [6]  = "lx" .. XY(3, 2) .. "cxxl",
 
     -- b1, s2
-    [7]  = "lxx" .. XY(1, 1) .. "oxl",
-    [8]  = "lxx" .. XY(2, 1) .. "oxl",
-    [9]  = "lxx" .. XY(3, 1) .. "oxl",
-    [10] = "lxx" .. XY(1, 2) .. "oxl",
-    [11] = "lxx" .. XY(2, 2) .. "oxl",
-    [12] = "lxx" .. XY(3, 2) .. "oxl",
+    [7]  = "lxx" .. XY(1, 1) .. "cxl",
+    [8]  = "lxx" .. XY(2, 1) .. "cxl",
+    [9]  = "lxx" .. XY(3, 1) .. "cxl",
+    [10] = "lxx" .. XY(1, 2) .. "cxl",
+    [11] = "lxx" .. XY(2, 2) .. "cxl",
+    [12] = "lxx" .. XY(3, 2) .. "cxl",
 
     -- b2, s1
-    [13] = "x" .. XY(1, 1) .. "oxx",
-    [14] = "x" .. XY(2, 1) .. "oxx",
-    [15] = "x" .. XY(3, 1) .. "oxx",
-    [16] = "x" .. XY(1, 2) .. "oxx",
-    [17] = "x" .. XY(2, 2) .. "oxx",
-    [18] = "x" .. XY(3, 2) .. "oxx",
+    [13] = "x" .. XY(1, 1) .. "cxx",
+    [14] = "x" .. XY(2, 1) .. "cxx",
+    [15] = "x" .. XY(3, 1) .. "cxx",
+    [16] = "x" .. XY(1, 2) .. "cxx",
+    [17] = "x" .. XY(2, 2) .. "cxx",
+    [18] = "x" .. XY(3, 2) .. "cxx",
 
     -- b2, s2
-    [19] = "xx" .. XY(1, 1) .. "ox",
-    [20] = "xx" .. XY(2, 1) .. "ox",
-    [21] = "xx" .. XY(3, 1) .. "ox",
-    [22] = "xx" .. XY(1, 2) .. "ox",
-    [23] = "xx" .. XY(2, 2) .. "ox",
-    [24] = "xx" .. XY(3, 2) .. "ox",
+    [19] = "xx" .. XY(1, 1) .. "cx",
+    [20] = "xx" .. XY(2, 1) .. "cx",
+    [21] = "xx" .. XY(3, 1) .. "cx",
+    [22] = "xx" .. XY(1, 2) .. "cx",
+    [23] = "xx" .. XY(2, 2) .. "cx",
+    [24] = "xx" .. XY(3, 2) .. "cx",
   },
 
   output = {

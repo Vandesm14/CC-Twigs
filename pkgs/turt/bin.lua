@@ -62,7 +62,8 @@ local Walker = require "turt.walker"
 local Order = require "turt.order"
 local branches = require "turt.branches"
 
-local walker = Walker:new(Order:new("nil", 0, branches.input[1] .. branches.storage[10] .. branches.output["_"], "input"))
+local walker = Walker:new(Order:new("minecraft:cobblestone", 1,
+  branches.input["_"] .. branches.storage[1] .. branches.output[2], "input"))
 while true do
   if walker:step() then
     break

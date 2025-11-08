@@ -42,28 +42,20 @@ function Walker:pullFromChest()
     turtle.select(2)
     turtle.suckDown()
 
-    local first = turtle.getItemDetail()
-    if first ~= nil and first.name == self.order.item then
+    local item = turtle.getItemDetail()
+    if item ~= nil and item.name == self.order.item and item.count >= self.order.count then
       turtle.transferTo(1)
       turtle.select(1)
       return
     end
 
-    local list = chest.list()
-    for slot, item in pairs(list) do
+    for slot, item in pairs(chest.list()) do
+      print(item.name, item.count)
       if item.name == self.order.item and item.count >= self.order.count then
-        -- If our item was in the first slot, set it to our first slot then
-        -- return.
-        if slot == 1 then
-          turtle.transferTo(1)
-          turtle.select(1)
-          return
-        end
-
         -- Move the target item to the first slot of the chest
         local success, _ = pcall(
           chest.pullItems,
-          "front",
+          "bottom",
           slot,
           self.order.count,
           1
@@ -92,16 +84,6 @@ function Walker:pullFromChest()
 
     error("Failed to find item '" .. self.order.item .. "' in chest.")
   end
-end
-
-function Walker:dropAll()
-  local index = 1
-  while index <= 16 do
-    turtle.drop()
-    index = index + 1
-  end
-
-  turtle.select(1)
 end
 
 --- Runs a step. Returns whether to break out of the loop.
@@ -163,7 +145,15 @@ function Walker:step()
   elseif self.action == "i" then
     self:pullFromChest()
   elseif self.action == "o" then
-    self:dropAll()
+    turtle.dropDown()
+  elseif self.action == "c" then
+    if self.order.type == "input" then
+      self:pullFromChest()
+    elseif self.order.type == "output" then
+      turtle.dropDown()
+    else
+      error("invalid order type: " .. self.order.type)
+    end
   elseif self.action == "x" then
     turtle.forward()
     -- Then handled by the next call.
