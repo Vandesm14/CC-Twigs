@@ -4,7 +4,6 @@ local lib = require "turt.lib"
 -- local Order = require "turt.order"
 
 --- @class Walker
---- @field ignore number
 --- @field order Order
 --- @field was_lime boolean
 --- @field action string|nil
@@ -16,7 +15,6 @@ Walker.__index = Walker
 --- @return Walker
 function Walker:new(order)
   local o = {}
-  o.ignore = 0
   o.order = order
   o.was_lime = false
   o.action = ""
@@ -137,19 +135,16 @@ function Walker:step()
     if isBlock and info then
       local color = self.getColor(info.tags)
 
-      if color ~= nil and self.ignore > 0 then
-        print("ignore")
-        self.ignore = self.ignore - 1
-        return false
-      end
-
       if color ~= "lime" then
         self.was_lime = false
       end
 
-      if color == "yellow" then
+      if color == "red" then
         print("STOP")
         return true
+      elseif color == "yellow" then
+        -- Skips the next block
+        turtle.forward()
       elseif color == "orange" then
         -- We hit a checkpoint and can continue
         self.action = nil
@@ -157,10 +152,7 @@ function Walker:step()
         turtle.turnRight()
       elseif color == "black" then
         turtle.turnLeft()
-      elseif color == "pink" then
-        -- Ignore the next action (color only)
-        self.ignore = self.ignore + 1
-      elseif color == "lime" then
+      elseif color == "blue" then
         -- If the last block wasn't lime, turn left.
         if not self.was_lime then
           turtle.turnLeft()
