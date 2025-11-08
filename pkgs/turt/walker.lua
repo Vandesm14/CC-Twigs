@@ -135,7 +135,7 @@ function Walker:step()
     if isBlock and info then
       local color = self.getColor(info.tags)
 
-      if color ~= "lime" then
+      if color ~= "blue" then
         self.was_lime = false
       end
 
