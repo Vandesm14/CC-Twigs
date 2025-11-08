@@ -22,7 +22,8 @@ local function countItems(chest, table)
 end
 
 local usage = "Usage: " .. arg[0] .. " <order|ls|capacity>\n" ..
-  "  ls [search]        - List items, optionally filter by substring"
+  "  ls [search]        - List items, optionally filter by substring\n" ..
+  "  order <item> <amt> - Order items (use short name like 'cobblestone' or full like 'minecraft:cobblestone')"
 local command = arg[1]
 
 rednet.open("back")
@@ -130,30 +131,28 @@ elseif command == "order" then
   local amount = tonumber(arg[3])
 
   if item == nil or type(item) ~= "string" then
-    printError("Usage: " .. arg[0] .. " order <item> <amount>")
+    printError("Usage: " .. arg[0] .. " order <item> <amt>")
     printError()
     printError("Item must be provided")
     return
   end
 
   if amount == nil or type(amount) ~= "number" then
-    printError("Usage: " .. arg[0] .. " order <item> <amount>")
+    printError("Usage: " .. arg[0] .. " order <item> <amt>")
     printError()
     printError("Amount must be provided")
     return
   end
 
-  local order = {
-    [item] = amount
-  }
+  -- If item doesn't contain ":", prepend ":" for short name matching
+  local searchPattern = item
+  if not string.find(item, ":") then
+    searchPattern = ":" .. item
+  end
 
   --- @type table<string, integer>
   local myItems = {}
-
-  -- Add 0's for all the order items
-  for name, _ in pairs(order) do
-    myItems[name] = 0
-  end
+  local amountNeeded = amount
 
   --- @type table<number, Order>
   local orders = {}
@@ -168,32 +167,33 @@ elseif command == "order" then
     -- print("Checking chest '" .. chest.id .. "'...")
 
     -- Check for items. Run through each item
-    for _, item in pairs(chest.items) do
+    for _, chestItem in pairs(chest.items) do
       -- If we have all we need, skip
-      if order[item.name] ~= nil and myItems[item.name] == order[item.name] then
+      if amountNeeded <= 0 then
         break
       end
 
-      -- If the order wants this item...
-      if order[item.name] ~= nil and item ~= nil then
-        local need = order[item.name] - myItems[item.name]
-
-        -- ...and we don't have enough
-        if need > 0 then
-          local got = math.min(item.count, need)
-          myItems[item.name] = myItems[item.name] + got
-          print(
-            "  Got",
-            tostring(got),
-            item.name .. ", need",
-            tostring(need - got),
-            "more."
-          )
-
-          local chunk = Order:new(item.name, got,
-            Branches.input["_"] .. Branches.storage[chest.id] .. Branches.output[tbl.keys(Branches.output)[1]], "output")
-          table.insert(orders, chunk)
+      -- If the item matches our search pattern...
+      if string.find(chestItem.name, searchPattern, 1, true) and chestItem ~= nil then
+        -- Initialize tracking for this item if needed
+        if myItems[chestItem.name] == nil then
+          myItems[chestItem.name] = 0
         end
+
+        local got = math.min(chestItem.count, amountNeeded)
+        myItems[chestItem.name] = myItems[chestItem.name] + got
+        amountNeeded = amountNeeded - got
+        print(
+          "  Got",
+          tostring(got),
+          chestItem.name .. ", need",
+          tostring(amountNeeded),
+          "more."
+        )
+
+        local chunk = Order:new(chestItem.name, got,
+          Branches.input["_"] .. Branches.storage[chest.id] .. Branches.output[tbl.keys(Branches.output)[1]], "output")
+        table.insert(orders, chunk)
       end
     end
   end
