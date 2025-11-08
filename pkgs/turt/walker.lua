@@ -89,7 +89,6 @@ end
 --- Runs a step. Returns whether to break out of the loop.
 --- @return boolean
 function Walker:step()
-  -- turtle.forward()
   if self.action == "x" then
     local isBlock, info = turtle.inspectDown()
     if isBlock and info then
@@ -141,7 +140,8 @@ function Walker:step()
   elseif self.action == "r" then
     turtle.turnRight()
   elseif self.action == "f" then
-    turtle.forward()
+    while not turtle.forward() do
+    end
   elseif self.action == "i" then
     self:pullFromChest()
   elseif self.action == "o" then
@@ -155,11 +155,13 @@ function Walker:step()
       error("invalid order type: " .. self.order.type)
     end
   elseif self.action == "x" then
-    turtle.forward()
+    while not turtle.forward() do
+    end
     -- Then handled by the next call.
   elseif self.action == "h" then
-    turtle.forward()
-    return true
+    while not turtle.forward() do
+      turtle.up()
+    end
   end
 
   return false

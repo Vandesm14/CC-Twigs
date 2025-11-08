@@ -18,17 +18,17 @@ local function handleMessage(id, message)
   print("Received message from " .. id .. ":")
   pretty.pretty_print(message)
 
-  if message ~= nil and message.type == "order" then
-    local order = message.value
-    if order.item ~= nil then
-      walker = Walker:new(Order:new(order.item, order.count, order.actions:reverse(), order.type))
-      return
-    end
-  elseif message ~= nil and id ~= nil and message.type == "avail" then
-    local isBlock, info = turtle.inspectDown()
-    if isBlock and info then
-      local color = Walker.getColor(info.tags)
-      if color == "red" then
+  local isBlock, info = turtle.inspectDown()
+  if isBlock and info then
+    local color = Walker.getColor(info.tags)
+    if color == "red" then
+      if message ~= nil and message.type == "order" then
+        local order = message.value
+        if order.item ~= nil then
+          walker = Walker:new(Order:new(order.item, order.count, order.actions:reverse(), order.type))
+          return
+        end
+      elseif message ~= nil and id ~= nil and message.type == "avail" then
         rednet.broadcast(
           {
             type = "status",
@@ -41,6 +41,8 @@ local function handleMessage(id, message)
         )
       end
     end
+  else
+    turtle.down()
   end
 end
 
