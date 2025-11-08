@@ -49,7 +49,7 @@ local branches = {
   output = {
     [1] = "xfoxh",
     -- [2] = "xffoxh",
-    ["_"] = "xh"
+    ["_"] = "xxh"
   },
 }
 
