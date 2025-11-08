@@ -63,8 +63,6 @@ local function handleMessage(id, message)
         )
       end
     end
-  else
-    turtle.down()
   end
 end
 

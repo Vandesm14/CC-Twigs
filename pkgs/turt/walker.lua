@@ -161,7 +161,6 @@ function Walker:step()
     -- Then handled by the next call.
   elseif self.action == "h" then
     while not turtle.forward() do
-      turtle.up()
     end
   end
 
