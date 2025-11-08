@@ -157,7 +157,7 @@ elseif command == "order" then
 
   print("Calculating orders...")
 
-  local chests = lib.scanItems()
+  local chests = lib.scanItems(tbl.keys(Branches.storage))
 
   -- Scan each chest for items, until we hit the end-stop
   --- @diagnostic disable-next-line: param-type-mismatch
@@ -187,7 +187,8 @@ elseif command == "order" then
             "more."
           )
 
-          local chunk = Order:new(item.name, got, "", "output")
+          local chunk = Order:new(item.name, got,
+            Branches.input["_"] .. Branches.storage[chest.id] .. Branches.output[tbl.keys(Branches.output)[1]], "output")
           table.insert(orders, chunk)
         end
       end
