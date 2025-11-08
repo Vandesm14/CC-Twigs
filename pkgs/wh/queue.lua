@@ -40,7 +40,7 @@ function Queue:findAvailableTurtle()
         end
       end,
       function()
-        local timer_id = os.startTimer(5)
+        local timer_id = os.startTimer(2)
         local _, id
         repeat
           _, id = os.pullEvent("timer")
