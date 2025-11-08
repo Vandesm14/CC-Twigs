@@ -88,6 +88,38 @@ router
     }
 
     context.response.body = matchesDedupeSplit.map(([p, _]) => p).join('\n');
+  })
+  /// Upload a file to the server.
+  .post('/upload/:computerid/:path*', async (context) => {
+    const computerId = context.params.computerid;
+    const filePath = context.params.path;
+
+    if (!computerId || !filePath) {
+      context.response.status = oak.Status.BadRequest;
+      context.response.body = 'Missing computer ID or file path';
+      return;
+    }
+
+    try {
+      const body = context.request.body;
+      const fileContent = await body.text();
+
+      const uploadDir = path.join('uploads', computerId);
+      await fs.ensureDir(uploadDir);
+
+      const fullPath = path.join(uploadDir, filePath);
+      const fileDir = path.dirname(fullPath);
+      await fs.ensureDir(fileDir);
+
+      await Deno.writeTextFile(fullPath, fileContent);
+
+      context.response.status = oak.Status.OK;
+      context.response.body = 'File uploaded successfully';
+    } catch (error) {
+      console.error('Upload error:', error);
+      context.response.status = oak.Status.InternalServerError;
+      context.response.body = 'Failed to upload file';
+    }
   });
 
 const app = new oak.Application();

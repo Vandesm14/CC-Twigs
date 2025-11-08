@@ -63,7 +63,89 @@ local function fetchPackageFileContent(rootUrl, packageName, fileName)
   return content
 end
 
-if not package.loaded["mngr.bin"] then
+--- @param rootUrl string
+--- @param filePath string
+--- @param content string
+--- @return boolean success
+local function uploadFile(rootUrl, filePath, content)
+  local computerId = tostring(os.getComputerID())
+  local url = rootUrl .. "/upload/" .. computerId .. "/" .. filePath
+  
+  local response = http.post(url, content, nil, false)
+  if response == nil then return false end
+  
+  response.close()
+  return true
+end
+
+--- @param path string
+--- @return string[]
+local function getAllFiles(path)
+  --- @type string[]
+  local files = {}
+  
+  local function walk(dir)
+    local items = fs.list(dir)
+    for _, item in ipairs(items) do
+      local itemPath = fs.combine(dir, item)
+      if fs.isDir(itemPath) then
+        walk(itemPath)
+      else
+        files[#files + 1] = itemPath
+      end
+    end
+  end
+  
+  walk(path)
+  return files
+end
+
+local args = { ... }
+
+if args[1] == "upload" then
+  -- Upload mode
+  local rootUrl = settings.get("mngr.url") or ""
+  rootUrl = trimSlash(rootUrl)
+
+  if not http.checkURL(rootUrl) then
+    printError("Expected the 'mngr.url' setting to be a valid URL.")
+    return
+  end
+
+  print("Uploading files to server...")
+  
+  local allFiles = getAllFiles("/")
+  local uploadedCount = 0
+  local failedCount = 0
+  
+  for _, filePath in ipairs(allFiles) do
+    -- Skip files in rom directory
+    if not filePath:match("^/?rom/") and not filePath:match("^rom/") then
+      local file = fs.open(filePath, "r")
+      if file then
+        local content = file.readAll()
+        file.close()
+        
+        -- Remove leading slash for upload path
+        local uploadPath = filePath:gsub("^/", "")
+        
+        print("Uploading '" .. filePath .. "'...")
+        if uploadFile(rootUrl, uploadPath, content) then
+          uploadedCount = uploadedCount + 1
+        else
+          printError("Failed to upload '" .. filePath .. "'.")
+          failedCount = failedCount + 1
+        end
+      else
+        printError("Unable to read file '" .. filePath .. "'.")
+        failedCount = failedCount + 1
+      end
+    end
+  end
+  
+  print("Upload complete: " .. uploadedCount .. " files uploaded, " .. failedCount .. " failed.")
+elseif not package.loaded["mngr.bin"] then
+  -- Download mode (original behavior)
   local mngrDir = "/.mngr"
 
   local tempDir = fs.combine("/.temp", mngrDir)
