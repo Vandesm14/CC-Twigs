@@ -105,15 +105,13 @@ elseif command == "pull" then
   print("Calculating orders to '" .. mostSpace.id .. "'...")
   local orders = {}
   for _, item in pairs(inputChest.items) do
-    if item.name ~= "computercraft:disk" then
-      if acc > 0 then
-        local chunk = Order:new(item.name, item.count,
-          Branches.input[inputChest.id] .. Branches.storage[mostSpace.id] .. Branches.output["_"],
-          "input")
-        table.insert(orders, chunk)
+    if acc > 0 then
+      local chunk = Order:new(item.name, item.count,
+        Branches.input[inputChest.id] .. Branches.storage[mostSpace.id] .. Branches.output["_"],
+        "input")
+      table.insert(orders, chunk)
 
-        acc = acc - 1
-      end
+      acc = acc - 1
     end
   end
 
