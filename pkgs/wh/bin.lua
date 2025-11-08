@@ -162,7 +162,7 @@ elseif command == "order" then
   -- Scan each chest for items, until we hit the end-stop
   --- @diagnostic disable-next-line: param-type-mismatch
   for _, chest in pairs(chests) do
-    print("Checking chest '" .. chest.id .. "'...")
+    -- print("Checking chest '" .. chest.id .. "'...")
 
     -- Check for items. Run through each item
     for _, item in pairs(chest.items) do
