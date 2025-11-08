@@ -2,6 +2,28 @@ local pretty = require "cc.pretty"
 local Walker = require "turt.walker"
 local Order = require "turt.order"
 
+-- Check for optional command-line actions
+local actions = arg[1]
+
+if actions ~= nil and type(actions) == "string" then
+  -- Reverse the actions string before using (Order pops from the end)
+  local reversed = string.reverse(actions)
+  
+  -- Create an order with the actions (using dummy values for item/count)
+  local order = Order:new("", 0, reversed, "output")
+  walker = Walker:new(order)
+  
+  -- Run the walker until completion
+  print("Running actions: " .. actions)
+  while walker ~= nil do
+    if walker:step() then
+      walker = nil
+    end
+  end
+  
+  print("Actions complete.")
+end
+
 rednet.open("right")
 
 --- @type Walker|nil
