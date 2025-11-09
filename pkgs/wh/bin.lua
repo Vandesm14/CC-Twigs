@@ -3,6 +3,7 @@ local Order = require "turt.order"
 local lib = require "wh.lib"
 local Queue = require "wh.queue"
 local tbl = require "lib.table"
+local str = require "lib.str"
 local Branches = require "wh.branches"
 
 --- @param chest ccTweaked.peripherals.Inventory
@@ -144,12 +145,9 @@ elseif command == "order" then
     return
   end
 
-  -- If item doesn't contain ":", prepend ":" for short name matching
-  local searchPattern = item
-  if not string.find(item, ":") then
-    searchPattern = ":" .. item
-  end
-
+  -- Determine if we're doing exact full name match or post-colon match
+  local isFullNameQuery = str.contains(item, ":")
+  
   --- @type table<string, integer>
   local myItems = {}
   local amountNeeded = amount
@@ -173,8 +171,17 @@ elseif command == "order" then
         break
       end
 
-      -- If the item matches our search pattern...
-      if string.find(chestItem.name, searchPattern, 1, true) and chestItem ~= nil then
+      -- Check if the item matches exactly
+      local matches = false
+      if isFullNameQuery then
+        -- Match the full name exactly (e.g., "minecraft:cobblestone")
+        matches = str.equals(chestItem.name, item)
+      else
+        -- Match the post-colon part exactly (e.g., "cobblestone" matches "minecraft:cobblestone")
+        matches = str.endsWith(chestItem.name, ":" .. item)
+      end
+      
+      if matches and chestItem ~= nil then
         -- Initialize tracking for this item if needed
         if myItems[chestItem.name] == nil then
           myItems[chestItem.name] = 0
