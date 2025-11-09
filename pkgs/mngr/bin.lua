@@ -151,8 +151,10 @@ elseif args[1] == "enable" then
   end
 
   local f = fs.open("startup/" .. bin .. ".lua", "w")
-  f.write("shell.run(\"" .. bin .. "\")")
-  f.close()
+  if f ~= nil then
+    f.write("shell.run(\"" .. bin .. "\")")
+    f.close()
+  end
 elseif args[1] == "disable" then
   local bin = args[2]
   if not bin then
@@ -259,14 +261,14 @@ elseif not package.loaded["mngr.bin"] then
   if not fs.exists("/startup/mngr-path.lua") then
     print("Creating '/startup/mngr-path.lua'...")
 
-    local file = fs.open("/startup/mngr-path.lua", "w")
-    if not file then
+    local f = fs.open("/startup/mngr-path.lua", "w")
+    if f == nil then
       printError("Unable to create '/startup/mngr-path.lua' file.")
       return
     end
 
-    file.writeLine("shell.setPath(shell.path() .. \":\" .. \"/.mngr/bin\")")
-    file.close()
+    f.writeLine("shell.setPath(shell.path() .. \":\" .. \"/.mngr/bin\")")
+    f.close()
   end
 
   print("Done.")
