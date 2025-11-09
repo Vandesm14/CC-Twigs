@@ -120,7 +120,7 @@ if args[1] == "upload" then
 
   for _, filePath in ipairs(allFiles) do
     -- Skip files in rom directory
-    if not filePath:match("^/?rom/") and not filePath:match("^rom/") then
+    if not filePath:match("^.mngr/") and not filePath:match("^rom/") then
       local file = fs.open(filePath, "r")
       if file then
         local content = file.readAll()

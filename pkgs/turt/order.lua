@@ -1,8 +1,10 @@
 --- @alias orderType "input"|"output"
 
 --- @class Order
---- @field item string
+--- @field name string
 --- @field count number
+--- @field from_slot number
+--- @field to_slot number
 --- @field type orderType
 --- @field actions string
 local Order = {}

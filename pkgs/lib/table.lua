@@ -34,4 +34,16 @@ function tbl.len(tbl)
   return len
 end
 
+function tbl.merge(tbl1, tbl2)
+  local tbl = {}
+  for key, val in pairs(tbl1) do
+    tbl[key] = val
+  end
+  for key, val in pairs(tbl2) do
+    tbl[key] = val
+  end
+
+  return tbl
+end
+
 return tbl

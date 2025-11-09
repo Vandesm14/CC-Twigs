@@ -23,8 +23,8 @@ local function countItems(chest, table)
 end
 
 local usage = "Usage: " .. arg[0] .. " <order|ls|capacity>\n" ..
-  "  ls [search]           - List items, optionally filter by substring\n" ..
-  "  order <item> [<amt>] - Order items (use short name like 'cobblestone' or full like 'minecraft:cobblestone'). Defaults to 64 if not specified."
+    "  ls [search]           - List items, optionally filter by substring\n" ..
+    "  order <item> [<amt>] - Order items (use short name like 'cobblestone' or full like 'minecraft:cobblestone'). Defaults to 64 if not specified."
 local command = arg[1]
 
 rednet.open("back")
@@ -76,147 +76,151 @@ elseif command == "ls" then
   print("")
   print("Open list.txt to view full list.")
 elseif command == "pull" then
-  local inputChest = nil
-  --- @cast inputChest Chest|nil
+  print("Scanning storage...")
+  local storage_slots, storage_maxCounts = lib.scanItems(tbl.keys(Branches.storage), true)
 
-  local list = lib.scanItems(tbl.keys(Branches.input))
-  for _, chest in pairs(list) do
-    if tbl.len(chest.inventory.list()) > 0 then
-      inputChest = chest
-      break
-    end
+  print("Scanning inputs...")
+  local input_slots, input_maxCounts = lib.scanItems(tbl.keys(Branches.input))
+  local maxCounts = tbl.merge(storage_maxCounts, input_maxCounts)
+
+  local f = fs.open("out.json", "w")
+  if f ~= nil then
+    f.write(textutils.serialiseJSON(storage_slots))
+    f.close()
   end
 
-  print("Finding available space...")
-  local list = lib.scanItems(tbl.keys(Branches.storage))
-  local acc = 0
-  local mostSpace = nil
-  for _, chest in pairs(list) do
-    local space = chest.inventory.size() - #chest.inventory.list()
-    if space > acc then
-      acc = space
-      mostSpace = chest
-    end
-  end
+  print("Planning movements...")
+  for _, item in pairs(input_slots) do
+    local maxCount = maxCounts[item.name]
+    if maxCount ~= nil and item.count < maxCount then
+      print("need to check " .. item.name .. " in " .. item.slot_id)
+      local result = lib.findExistingSlot(maxCounts, storage_slots, item)
+      if result ~= nil then
+        local remaining = item.count - result.count
+        pretty.pretty_print(result)
+        print("with " .. remaining .. " remaining")
 
-  if mostSpace == nil then
-    printError("No space in network.")
-    return
-  end
-
-  if inputChest == nil then
-    printError("No items to input.")
-    return
-  end
-
-  print("Calculating orders to '" .. mostSpace.id .. "'...")
-  local orders = {}
-  for _, item in pairs(inputChest.items) do
-    if acc > 0 then
-      local chunk = Order:new(item.name, item.count,
-        Branches.input[inputChest.id] .. Branches.storage[mostSpace.id] .. Branches.output["_"],
-        "input")
-      table.insert(orders, chunk)
-
-      acc = acc - 1
-    end
-  end
-
-  print("Queueing orders...")
-  local queue = Queue:new(orders)
-  queue:run()
-
-  print("Done.")
-elseif command == "order" then
-  local item = arg[2]
-  local amount = tonumber(arg[3])
-
-  if item == nil or type(item) ~= "string" then
-    printError("Usage: " .. arg[0] .. " order <item> [<amt>]")
-    printError()
-    printError("Item must be provided")
-    return
-  end
-
-  -- Default to a stack (64) if no amount is provided
-  if amount == nil then
-    amount = 64
-  elseif type(amount) ~= "number" then
-    printError("Usage: " .. arg[0] .. " order <item> [<amt>]")
-    printError()
-    printError("Amount must be a number")
-    return
-  end
-
-  -- Determine if we're doing exact full name match or post-colon match
-  local isFullNameQuery = str.contains(item, ":")
-  
-  --- @type table<string, integer>
-  local myItems = {}
-  local amountNeeded = amount
-
-  --- @type table<number, Order>
-  local orders = {}
-
-  print("Calculating orders...")
-
-  local chests = lib.scanItems(tbl.keys(Branches.storage))
-
-  -- Scan each chest for items, until we hit the end-stop
-  --- @diagnostic disable-next-line: param-type-mismatch
-  for _, chest in pairs(chests) do
-    -- print("Checking chest '" .. chest.id .. "'...")
-
-    -- Check for items. Run through each item
-    for _, chestItem in pairs(chest.items) do
-      -- If we have all we need, skip
-      if amountNeeded <= 0 then
-        break
-      end
-
-      -- Check if the item matches exactly
-      local matches = false
-      if isFullNameQuery then
-        -- Match the full name exactly (e.g., "minecraft:cobblestone")
-        matches = str.equals(chestItem.name, item)
-      else
-        -- Match the post-colon part exactly (e.g., "cobblestone" matches "minecraft:cobblestone")
-        matches = str.endsWith(chestItem.name, ":" .. item)
-      end
-      
-      if matches and chestItem ~= nil then
-        -- Initialize tracking for this item if needed
-        if myItems[chestItem.name] == nil then
-          myItems[chestItem.name] = 0
+        local rest = lib.findEmptySlot(storage_slots)
+        if rest ~= nil then
+          print("sent rest to " .. rest.chest_id .. " in slot " .. rest.slot_id)
         end
-
-        local got = math.min(chestItem.count, amountNeeded)
-        myItems[chestItem.name] = myItems[chestItem.name] + got
-        amountNeeded = amountNeeded - got
-        print(
-          "  Got",
-          tostring(got),
-          chestItem.name .. ", need",
-          tostring(amountNeeded),
-          "more."
-        )
-
-        local chunk = Order:new(chestItem.name, got,
-          Branches.input["_"] .. Branches.storage[chest.id] .. Branches.output[tbl.keys(Branches.output)[1]], "output")
-        table.insert(orders, chunk)
+      end
+    else
+      local result = lib.findEmptySlot(storage_slots)
+      if result ~= nil then
+        print("sent " .. item.count .. " of " .. item.name .. " to " .. result.chest_id .. " in slot " .. result.slot_id)
       end
     end
   end
 
-  print("Found:")
-  for name, count in pairs(myItems) do
-    print(name .. ": " .. count)
-  end
+  -- print("Calculating orders to '" .. mostSpace.id .. "'...")
+  -- local orders = {}
+  -- for _, item in pairs(inputChest.items) do
+  --   if acc > 0 then
+  --     local chunk = Order:new(item.name, item.count,
+  --       Branches.input[inputChest.id] .. Branches.storage[mostSpace.id] .. Branches.output["_"],
+  --       "input")
+  --     table.insert(orders, chunk)
 
-  print("Queueing orders...")
-  local queue = Queue:new(orders)
-  queue:run()
-  print("Done.")
+  --     acc = acc - 1
+  --   end
+  -- end
+
+  -- print("Queueing orders...")
+  -- local queue = Queue:new(orders)
+  -- queue:run()
+
+  -- print("Done.")
+elseif command == "order" then
+  -- local item = arg[2]
+  -- local amount = tonumber(arg[3])
+
+  -- if item == nil or type(item) ~= "string" then
+  --   printError("Usage: " .. arg[0] .. " order <item> [<amt>]")
+  --   printError()
+  --   printError("Item must be provided")
+  --   return
+  -- end
+
+  -- -- Default to a stack (64) if no amount is provided
+  -- if amount == nil then
+  --   amount = 64
+  -- elseif type(amount) ~= "number" then
+  --   printError("Usage: " .. arg[0] .. " order <item> [<amt>]")
+  --   printError()
+  --   printError("Amount must be a number")
+  --   return
+  -- end
+
+  -- -- Determine if we're doing exact full name match or post-colon match
+  -- local isFullNameQuery = str.contains(item, ":")
+
+  -- --- @type table<string, integer>
+  -- local myItems = {}
+  -- local amountNeeded = amount
+
+  -- --- @type table<number, Order>
+  -- local orders = {}
+
+  -- print("Calculating orders...")
+
+  -- local chests = lib.scanItems(tbl.keys(Branches.storage))
+
+  -- -- Scan each chest for items, until we hit the end-stop
+  -- --- @diagnostic disable-next-line: param-type-mismatch
+  -- for _, chest in pairs(chests) do
+  --   -- print("Checking chest '" .. chest.id .. "'...")
+
+  --   -- Check for items. Run through each item
+  --   for _, chestItem in pairs(chest.items) do
+  --     -- If we have all we need, skip
+  --     if amountNeeded <= 0 then
+  --       break
+  --     end
+
+  --     -- Check if the item matches exactly
+  --     local matches = false
+  --     if isFullNameQuery then
+  --       -- Match the full name exactly (e.g., "minecraft:cobblestone")
+  --       matches = str.equals(chestItem.name, item)
+  --     else
+  --       -- Match the post-colon part exactly (e.g., "cobblestone" matches "minecraft:cobblestone")
+  --       matches = str.endsWith(chestItem.name, ":" .. item)
+  --     end
+
+  --     if matches and chestItem ~= nil then
+  --       -- Initialize tracking for this item if needed
+  --       if myItems[chestItem.name] == nil then
+  --         myItems[chestItem.name] = 0
+  --       end
+
+  --       local got = math.min(chestItem.count, amountNeeded)
+  --       myItems[chestItem.name] = myItems[chestItem.name] + got
+  --       amountNeeded = amountNeeded - got
+  --       print(
+  --         "  Got",
+  --         tostring(got),
+  --         chestItem.name .. ", need",
+  --         tostring(amountNeeded),
+  --         "more."
+  --       )
+
+  --       local chunk = Order:new(chestItem.name, got,
+  --         Branches.input["_"] .. Branches.storage[chest.id] .. Branches.output[tbl.keys(Branches.output)[1]], "output")
+  --       table.insert(orders, chunk)
+  --     end
+  --   end
+  -- end
+
+  -- print("Found:")
+  -- for name, count in pairs(myItems) do
+  --   print(name .. ": " .. count)
+  -- end
+
+  -- print("Queueing orders...")
+  -- local queue = Queue:new(orders)
+  -- queue:run()
+  -- print("Done.")
 elseif command == "capacity" then
   local capacity = 0
   local used = 0
