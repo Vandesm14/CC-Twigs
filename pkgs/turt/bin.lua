@@ -68,7 +68,7 @@ local function waitForSelf()
   handleMessage(rednet.receive("wh_" .. lib.OUR_NAME))
 end
 
-local MIN_FUEL = 400
+local MIN_FUEL = 100
 
 while true do
   if turtle.getFuelLevel() < MIN_FUEL then
