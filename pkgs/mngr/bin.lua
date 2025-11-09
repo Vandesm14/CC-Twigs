@@ -70,10 +70,10 @@ end
 local function uploadFile(rootUrl, filePath, content)
   local computerId = tostring(os.getComputerID())
   local url = rootUrl .. "/upload/" .. computerId .. "/" .. filePath
-  
+
   local response = http.post(url, content, nil, false)
   if response == nil then return false end
-  
+
   response.close()
   return true
 end
@@ -83,7 +83,7 @@ end
 local function getAllFiles(path)
   --- @type string[]
   local files = {}
-  
+
   local function walk(dir)
     local items = fs.list(dir)
     for _, item in ipairs(items) do
@@ -95,7 +95,7 @@ local function getAllFiles(path)
       end
     end
   end
-  
+
   walk(path)
   return files
 end
@@ -113,11 +113,11 @@ if args[1] == "upload" then
   end
 
   print("Uploading files to server...")
-  
+
   local allFiles = getAllFiles("/")
   local uploadedCount = 0
   local failedCount = 0
-  
+
   for _, filePath in ipairs(allFiles) do
     -- Skip files in rom directory
     if not filePath:match("^/?rom/") and not filePath:match("^rom/") then
@@ -125,10 +125,10 @@ if args[1] == "upload" then
       if file then
         local content = file.readAll()
         file.close()
-        
+
         -- Remove leading slash for upload path
         local uploadPath = filePath:gsub("^/", "")
-        
+
         print("Uploading '" .. filePath .. "'...")
         if uploadFile(rootUrl, uploadPath, content) then
           uploadedCount = uploadedCount + 1
@@ -142,8 +142,24 @@ if args[1] == "upload" then
       end
     end
   end
-  
+
   print("Upload complete: " .. uploadedCount .. " files uploaded, " .. failedCount .. " failed.")
+elseif args[1] == "enable" then
+  local bin = args[2]
+  if not bin then
+    error("Usage: mngr enable <pkg>")
+  end
+
+  local f = fs.open("startup/" .. bin .. ".lua", "w")
+  f.write("shell.run(\"" .. bin .. "\")")
+  f.close()
+elseif args[1] == "disable" then
+  local bin = args[2]
+  if not bin then
+    error("Usage: mngr disable <pkg>")
+  end
+
+  fs.delete("startup/" .. bin .. ".lua")
 elseif not package.loaded["mngr.bin"] then
   -- Download mode (original behavior)
   local mngrDir = "/.mngr"
@@ -214,12 +230,12 @@ elseif not package.loaded["mngr.bin"] then
     local binPath = fs.combine(tempDir, packageName, "bin.lua")
     if fs.exists(binPath) then
       local targetPath = fs.combine(binDir, packageName .. ".lua")
-      
+
       local sourceFile = fs.open(binPath, "r")
       if sourceFile then
         local content = sourceFile.readAll()
         sourceFile.close()
-        
+
         local targetFile = fs.open(targetPath, "w")
         if targetFile then
           targetFile.write(content)
@@ -240,16 +256,16 @@ elseif not package.loaded["mngr.bin"] then
 
   shell.setPath(shell.path() .. ":/.mngr/bin")
 
-  if not fs.exists("/startup/mngr.lua") then
-    print("Creating '/startup/mngr.lua'...")
+  if not fs.exists("/startup/mngr-path.lua") then
+    print("Creating '/startup/mngr-path.lua'...")
 
-    local file = fs.open("/startup/mngr.lua", "w")
+    local file = fs.open("/startup/mngr-path.lua", "w")
     if not file then
-      printError("Unable to create '/startup/mngr.lua' file.")
+      printError("Unable to create '/startup/mngr-path.lua' file.")
       return
     end
 
-    file.writeLine("shell.setPath( shell.path() .. \":\" .. \"/.mngr/bin\")")
+    file.writeLine("shell.setPath(shell.path() .. \":\" .. \"/.mngr/bin\")")
     file.close()
   end
 
