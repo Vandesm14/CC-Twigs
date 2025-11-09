@@ -137,7 +137,7 @@ end
 --- Runs a step. Returns whether to break out of the loop.
 --- @return boolean
 function Walker:step()
-  if self.action == "x" then
+  if self.action == "x" or self.action == "h" then
     local isBlock, info = turtle.inspectDown()
     if isBlock and info then
       local color = self.getColor(info.tags)
@@ -153,9 +153,12 @@ function Walker:step()
         -- Skips the next block
         checkFuel()
         turtle.forward()
-      elseif color == "orange" then
+      elseif color == "orange" and self.action == "x" then
         -- We hit a checkpoint and can continue
         self.action = nil
+      elseif color == "red" and self.action == "h" then
+        -- We hit the home checkpoint.
+        return true
       elseif color == "white" then
         turtle.turnRight()
       elseif color == "black" then
