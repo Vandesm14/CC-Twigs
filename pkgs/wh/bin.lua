@@ -23,8 +23,8 @@ local function countItems(chest, table)
 end
 
 local usage = "Usage: " .. arg[0] .. " <order|ls|capacity>\n" ..
-  "  ls [search]        - List items, optionally filter by substring\n" ..
-  "  order <item> <amt> - Order items (use short name like 'cobblestone' or full like 'minecraft:cobblestone')"
+  "  ls [search]           - List items, optionally filter by substring\n" ..
+  "  order <item> [<amt>] - Order items (use short name like 'cobblestone' or full like 'minecraft:cobblestone'). Defaults to 64 if not specified."
 local command = arg[1]
 
 rednet.open("back")
@@ -132,16 +132,19 @@ elseif command == "order" then
   local amount = tonumber(arg[3])
 
   if item == nil or type(item) ~= "string" then
-    printError("Usage: " .. arg[0] .. " order <item> <amt>")
+    printError("Usage: " .. arg[0] .. " order <item> [<amt>]")
     printError()
     printError("Item must be provided")
     return
   end
 
-  if amount == nil or type(amount) ~= "number" then
-    printError("Usage: " .. arg[0] .. " order <item> <amt>")
+  -- Default to a stack (64) if no amount is provided
+  if amount == nil then
+    amount = 64
+  elseif type(amount) ~= "number" then
+    printError("Usage: " .. arg[0] .. " order <item> [<amt>]")
     printError()
-    printError("Amount must be provided")
+    printError("Amount must be a number")
     return
   end
 
