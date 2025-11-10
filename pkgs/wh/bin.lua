@@ -22,9 +22,10 @@ local function countItems(items, table)
   end
 end
 
-local usage = "Usage: " .. arg[0] .. " <order|ls|capacity>\n" ..
+local usage = "Usage: " .. arg[0] .. " <order|ls|capacity|export>\n" ..
     "  ls [search]           - List items, optionally filter by substring\n" ..
-    "  order <item> [<amt>] - Order items (use short name like 'cobblestone' or full like 'minecraft:cobblestone'). Defaults to 64 if not specified."
+    "  order <item> [<amt>] - Order items (use short name like 'cobblestone' or full like 'minecraft:cobblestone'). Defaults to 64 if not specified.\n" ..
+    "  export                - Export input, storage, and output slot lists to slots.json"
 local command = arg[1]
 
 rednet.open("back")
@@ -278,4 +279,32 @@ elseif command == "capacity" then
   local available = capacity - used
 
   print("Capacity: " .. used .. " / " .. capacity .. " slots used (" .. available .. " available)")
+elseif command == "export" then
+  print("Scanning input slots...")
+  local input_slots, input_maxCounts = lib.scanItems(tbl.keys(Branches.input))
+
+  print("Scanning storage slots...")
+  local storage_slots, storage_maxCounts = lib.scanItems(tbl.keys(Branches.storage))
+
+  print("Scanning output slots...")
+  local output_slots, output_maxCounts = lib.scanItems(tbl.keys(Branches.output))
+
+  local maxCounts = tbl.merge(input_maxCounts, tbl.merge(storage_maxCounts, output_maxCounts))
+
+  local slots = {
+    input = input_slots,
+    storage = storage_slots,
+    output = output_slots,
+    maxCounts = maxCounts
+  }
+
+  local json = textutils.serializeJSON(slots, false)
+  local file = fs.open("slots.json", "w")
+  if file ~= nil then
+    file.write(json)
+    file.close()
+    print("Exported slots to slots.json")
+  else
+    printError("Unable to create slots.json file.")
+  end
 end
