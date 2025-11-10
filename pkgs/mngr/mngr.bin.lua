@@ -274,25 +274,45 @@ elseif not package.loaded["mngr.bin"] then
     return
   end
 
-  -- Copy bin.lua files from packages to the bin directory for PATH access
+  -- Copy *.bin.lua files from packages to the bin directory for PATH access
   print("Setting up package binaries...")
   for _, packageName in ipairs(packageNames) do
-    local binPath = fs.combine(tempDir, packageName, "bin.lua")
-    if fs.exists(binPath) then
-      local targetPath = fs.combine(binDir, packageName .. ".lua")
+    local packageDir = fs.combine(tempDir, packageName)
+    
+    -- List files in the package directory after they've been written
+    if fs.exists(packageDir) then
+      local files = fs.list(packageDir)
+      
+      for _, fileName in ipairs(files) do
+        -- Skip directories
+        local filePath = fs.combine(packageDir, fileName)
+        if not fs.isDir(filePath) then
+          -- Check if file matches *.bin.lua pattern
+          if fileName:match("^.+%.bin%.lua$") then
+            -- Extract binary name (e.g., "mngr.bin.lua" -> "mngr")
+            local binName = fileName:match("^(.+)%.bin%.lua$")
+            if binName ~= nil then
+              local binPath = fs.combine(packageDir, fileName)
+              local targetPath = fs.combine(binDir, binName .. ".lua")
 
-      local sourceFile = fs.open(binPath, "r")
-      if sourceFile then
-        local content = sourceFile.readAll()
-        sourceFile.close()
+              local sourceFile = fs.open(binPath, "r")
+              if sourceFile then
+                local content = sourceFile.readAll()
+                sourceFile.close()
 
-        local targetFile = fs.open(targetPath, "w")
-        if targetFile then
-          targetFile.write(content)
-          targetFile.close()
-          print("  Added '" .. packageName .. "' binary.")
-        else
-          printError("Unable to create binary '" .. targetPath .. "'.")
+                local targetFile = fs.open(targetPath, "w")
+                if targetFile then
+                  targetFile.write(content)
+                  targetFile.close()
+                  print("  Added '" .. binName .. "' binary.")
+                else
+                  printError("Unable to create binary '" .. targetPath .. "'.")
+                end
+              else
+                printError("Unable to read binary file '" .. binPath .. "'.")
+              end
+            end
+          end
         end
       end
     end
