@@ -196,6 +196,7 @@ function lib.applyOrder(slots, order)
         local record = slots[i]
         if record ~= nil then
           record.count = record.count + order.count
+          record.name  = order.item
         end
         return
       end
@@ -206,6 +207,7 @@ function lib.applyOrder(slots, order)
         local record = slots[i]
         if record ~= nil then
           record.count = record.count - order.count
+          record.name  = order.item
         end
         return
       end
