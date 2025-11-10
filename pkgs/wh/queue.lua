@@ -58,6 +58,7 @@ function Queue:findAvailableTurtle()
   return replies[1]
 end
 
+--- @param order Order
 function Queue:tryOrder(order)
   local avail = self:findAvailableTurtle()
   if avail ~= nil then
@@ -65,7 +66,7 @@ function Queue:tryOrder(order)
     local msg = { type = "order", value = order }
 
     if order ~= nil then
-      print("Queued '" .. order.item .. "' to '" .. avail.value.name .. "'.")
+      print("Queued '" .. order.item .. " " .. order.count .. "'.")
       rednet.broadcast(msg, "wh_" .. avail.value.name)
     end
   end
