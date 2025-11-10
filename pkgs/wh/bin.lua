@@ -207,21 +207,24 @@ elseif command == "order" then
     --- @type Order|nil
     local order = nil
 
-    local result = lib.findOutputPartialSlot(maxCount, slots, name)
-    if result ~= nil then
-      local count = amountLeft
-      if result.count < amountLeft then
-        count = result.count
-      end
+    -- If amountLeft is a multiple of 64, skip partial stacks and grab full stacks directly
+    if amountLeft % 64 ~= 0 then
+      local result = lib.findOutputPartialSlot(maxCount, slots, name)
+      if result ~= nil then
+        local count = amountLeft
+        if result.count < amountLeft then
+          count = result.count
+        end
 
-      order = {
-        item = name,
-        count = count,
-        from = { chest_id = result.slot.chest_id, slot_id = result.slot.slot_id },
-        to = { chest_id = output_slot_id, slot_id = output_slot_id },
-        actions = Branches.input["_"] .. Branches.storage[result.slot.chest_id] .. Branches.output[output_chest_id],
-        type = "output"
-      }
+        order = {
+          item = name,
+          count = count,
+          from = { chest_id = result.slot.chest_id, slot_id = result.slot.slot_id },
+          to = { chest_id = output_slot_id, slot_id = output_slot_id },
+          actions = Branches.input["_"] .. Branches.storage[result.slot.chest_id] .. Branches.output[output_chest_id],
+          type = "output"
+        }
+      end
     end
 
     if order == nil then
