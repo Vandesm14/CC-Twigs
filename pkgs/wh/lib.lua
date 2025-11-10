@@ -118,19 +118,49 @@ end
 --- @param maxCount number
 --- @param slots Record[]
 --- @param item Record
---- @return Record|nil
-function lib.findExistingSlot(maxCount, slots, item)
+--- @return { slot: ChestSlot, count: number }|nil
+function lib.findInputPartialSlot(maxCount, slots, item)
   for _, record in pairs(slots) do
     if maxCount ~= nil and record.name == item.name and record.nbt == item.nbt and record.count < maxCount then
-      -- print("can use slot " .. record.slot_id .. " of " .. record.chest_id)
-      local count = item.count
-      if (record.count + item.count) > maxCount then
-        count = maxCount - record.count
-      end
       return {
-        name = item.name,
-        nbt = item.nbt,
-        count = count,
+        slot = {
+          slot_id = record.slot_id,
+          chest_id = record.chest_id,
+        },
+        count = record.count
+      }
+    end
+  end
+
+  return nil
+end
+
+--- @param maxCount number
+--- @param slots Record[]
+--- @param item string
+--- @return { slot: ChestSlot, count: number }|nil
+function lib.findOutputPartialSlot(maxCount, slots, item)
+  for _, record in pairs(slots) do
+    if maxCount ~= nil and record.name == item and record.count < maxCount and record.count > 0 then
+      return {
+        slot = {
+          slot_id = record.slot_id,
+          chest_id = record.chest_id,
+        },
+        count = record.count
+      }
+    end
+  end
+
+  return nil
+end
+
+--- @param slots Record[]
+--- @return ChestSlot|nil
+function lib.findEmptySlot(slots)
+  for _, record in pairs(slots) do
+    if record.count == 0 then
+      return {
         slot_id = record.slot_id,
         chest_id = record.chest_id,
       }
@@ -140,11 +170,13 @@ function lib.findExistingSlot(maxCount, slots, item)
   return nil
 end
 
+--- @param maxCount number
 --- @param slots Record[]
---- @return { slot_id: number, chest_id: number }|nil
-function lib.findEmptySlot(slots)
+--- @param item string
+--- @return ChestSlot|nil
+function lib.findFullSlot(maxCount, slots, item)
   for _, record in pairs(slots) do
-    if record.count == 0 then
+    if maxCount ~= nil and record.name == item and record.count == maxCount then
       return {
         slot_id = record.slot_id,
         chest_id = record.chest_id,

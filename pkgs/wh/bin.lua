@@ -29,6 +29,71 @@ local command = arg[1]
 
 rednet.open("back")
 
+--- @return Order[]
+local function pull()
+  print("Scanning storage...")
+  local storage_slots, storage_maxCounts = lib.scanItems(tbl.keys(Branches.storage), true)
+
+  print("Scanning inputs...")
+  local input_slots, input_maxCounts = lib.scanItems(tbl.keys(Branches.input))
+  local maxCounts = tbl.merge(storage_maxCounts, input_maxCounts)
+
+  --- @type Order[]
+  local orders = {}
+
+  print("Planning movements...")
+  for _, item in pairs(input_slots) do
+    local maxCount = maxCounts[item.name]
+    while item.count > 0 do
+      --- @type Order|nil
+      local order = nil
+      if maxCount ~= nil and item.count < maxCount then
+        local result = lib.findInputPartialSlot(maxCount, storage_slots, item)
+
+        if result ~= nil then
+          local count = item.count
+          if (result.count + item.count) > maxCount then
+            count = maxCount - result.count
+          end
+
+          order = {
+            item = item.name,
+            count = count,
+            from = { chest_id = item.chest_id, slot_id = item.slot_id },
+            to = { chest_id = result.slot.chest_id, slot_id = result.slot.slot_id },
+            actions = Branches.input[item.chest_id] .. Branches.storage[result.slot.chest_id] .. Branches.output["_"],
+            type = "input"
+          }
+        end
+      end
+
+      if order == nil then
+        local result = lib.findEmptySlot(storage_slots)
+        if result ~= nil then
+          order = {
+            item = item.name,
+            count = item.count,
+            from = { chest_id = item.chest_id, slot_id = item.slot_id },
+            to = { chest_id = result.chest_id, slot_id = result.slot_id },
+            actions = Branches.input[item.chest_id] .. Branches.storage[result.chest_id] .. Branches.output["_"],
+            type = "input"
+          }
+        end
+      end
+
+      if order ~= nil then
+        table.insert(orders, order)
+        lib.applyOrder(storage_slots, order)
+        item.count = item.count - order.count
+      end
+    end
+  end
+
+  print("Done.")
+
+  return orders
+end
+
 if command == nil then
   printError(usage)
   printError()
@@ -72,57 +137,7 @@ elseif command == "ls" then
   print("")
   print("Open list.txt to view full list.")
 elseif command == "pull" then
-  print("Scanning storage...")
-  local storage_slots, storage_maxCounts = lib.scanItems(tbl.keys(Branches.storage), true)
-
-  print("Scanning inputs...")
-  local input_slots, input_maxCounts = lib.scanItems(tbl.keys(Branches.input))
-  local maxCounts = tbl.merge(storage_maxCounts, input_maxCounts)
-
-  --- @type Order[]
-  local orders = {}
-
-  print("Planning movements...")
-  for _, item in pairs(input_slots) do
-    local maxCount = maxCounts[item.name]
-    while item.count > 0 do
-      --- @type Order|nil
-      local order = nil
-      if maxCount ~= nil and item.count < maxCount then
-        local result = lib.findExistingSlot(maxCount, storage_slots, item)
-        if result ~= nil then
-          order = {
-            item = result.name,
-            count = result.count,
-            from = { chest_id = item.chest_id, slot_id = item.slot_id },
-            to = { chest_id = result.chest_id, slot_id = result.slot_id },
-            actions = Branches.input[item.chest_id] .. Branches.storage[result.chest_id] .. Branches.output["_"],
-            type = "input"
-          }
-        end
-      end
-
-      if order == nil then
-        local result = lib.findEmptySlot(storage_slots)
-        if result ~= nil then
-          order = {
-            item = item.name,
-            count = item.count,
-            from = { chest_id = item.chest_id, slot_id = item.slot_id },
-            to = { chest_id = result.chest_id, slot_id = result.slot_id },
-            actions = Branches.input[item.chest_id] .. Branches.storage[result.chest_id] .. Branches.output["_"],
-            type = "input"
-          }
-        end
-      end
-
-      if order ~= nil then
-        table.insert(orders, order)
-        lib.applyOrder(storage_slots, order)
-        item.count = item.count - order.count
-      end
-    end
-  end
+  local orders = pull()
 
   print("Queueing orders...")
   local queue = Queue:new(orders)
@@ -130,95 +145,118 @@ elseif command == "pull" then
 
   print("Done.")
 elseif command == "order" then
-  -- local item = arg[2]
-  -- local amount = tonumber(arg[3])
+  local query = arg[2]
+  local amount = tonumber(arg[3])
 
-  -- if item == nil or type(item) ~= "string" then
-  --   printError("Usage: " .. arg[0] .. " order <item> [<amt>]")
-  --   printError()
-  --   printError("Item must be provided")
-  --   return
-  -- end
+  if query == nil or type(query) ~= "string" then
+    printError("Usage: " .. arg[0] .. " order <item> [<amt>]")
+    printError()
+    printError("Item must be provided")
+    return
+  end
 
-  -- -- Default to a stack (64) if no amount is provided
-  -- if amount == nil then
-  --   amount = 64
-  -- elseif type(amount) ~= "number" then
-  --   printError("Usage: " .. arg[0] .. " order <item> [<amt>]")
-  --   printError()
-  --   printError("Amount must be a number")
-  --   return
-  -- end
+  -- Determine if we're doing exact full name match or post-colon match
+  local isFullNameQuery = str.contains(query, ":")
 
-  -- -- Determine if we're doing exact full name match or post-colon match
-  -- local isFullNameQuery = str.contains(item, ":")
+  print("Scanning storage...")
+  local slots, maxCounts = lib.scanItems(tbl.keys(Branches.storage))
+  local name = nil
+  for _, key in pairs(tbl.keys(maxCounts)) do
+    if name ~= nil then
+      break
+    end
 
-  -- --- @type table<string, integer>
-  -- local myItems = {}
-  -- local amountNeeded = amount
+    if isFullNameQuery then
+      -- Match the full name exactly (e.g., "minecraft:cobblestone")
+      if str.equals(key, query) then
+        name = key
+      end
+    else
+      -- Match the post-colon part exactly (e.g., "cobblestone" matches "minecraft:cobblestone")
+      if str.endsWith(key, ":" .. query) then
+        name = key
+      end
+    end
+  end
 
-  -- --- @type table<number, Order>
-  -- local orders = {}
+  if name == nil then
+    error("No matches for \"" .. query .. "\"")
+  end
 
-  -- print("Calculating orders...")
+  local maxCount = maxCounts[name]
 
-  -- local chests = lib.scanItems(tbl.keys(Branches.storage))
+  -- Default to a stack (64) if no amount is provided
+  if amount == nil then
+    amount = maxCount
+  elseif type(amount) ~= "number" then
+    printError("Usage: " .. arg[0] .. " order <item> [<amt>]")
+    printError()
+    printError("Amount must be a number")
+    return
+  end
 
-  -- -- Scan each chest for items, until we hit the end-stop
-  -- --- @diagnostic disable-next-line: param-type-mismatch
-  -- for _, chest in pairs(chests) do
-  --   -- print("Checking chest '" .. chest.id .. "'...")
+  --- @type Order[]
+  local orders = {}
+  local amountLeft = amount
 
-  --   -- Check for items. Run through each item
-  --   for _, chestItem in pairs(chest.items) do
-  --     -- If we have all we need, skip
-  --     if amountNeeded <= 0 then
-  --       break
-  --     end
+  local output_chest_id = tbl.keys(Branches.output)[1]
+  local output_slot_id = 1
 
-  --     -- Check if the item matches exactly
-  --     local matches = false
-  --     if isFullNameQuery then
-  --       -- Match the full name exactly (e.g., "minecraft:cobblestone")
-  --       matches = str.equals(chestItem.name, item)
-  --     else
-  --       -- Match the post-colon part exactly (e.g., "cobblestone" matches "minecraft:cobblestone")
-  --       matches = str.endsWith(chestItem.name, ":" .. item)
-  --     end
+  print("Calculating orders...")
+  while amountLeft > 0 do
+    --- @type Order|nil
+    local order = nil
 
-  --     if matches and chestItem ~= nil then
-  --       -- Initialize tracking for this item if needed
-  --       if myItems[chestItem.name] == nil then
-  --         myItems[chestItem.name] = 0
-  --       end
+    local result = lib.findOutputPartialSlot(maxCount, slots, name)
+    if result ~= nil then
+      local count = amountLeft
+      if result.count < amountLeft then
+        count = result.count
+      elseif result.count > amountLeft then
+        count = result.count - amountLeft
+      end
 
-  --       local got = math.min(chestItem.count, amountNeeded)
-  --       myItems[chestItem.name] = myItems[chestItem.name] + got
-  --       amountNeeded = amountNeeded - got
-  --       print(
-  --         "  Got",
-  --         tostring(got),
-  --         chestItem.name .. ", need",
-  --         tostring(amountNeeded),
-  --         "more."
-  --       )
+      order = {
+        item = name,
+        count = count,
+        from = { chest_id = result.slot.chest_id, slot_id = result.slot.slot_id },
+        to = { chest_id = output_slot_id, slot_id = output_slot_id },
+        actions = Branches.input["_"] .. Branches.storage[result.slot.chest_id] .. Branches.output[output_chest_id],
+        type = "output"
+      }
+    end
 
-  --       local chunk = Order:new(chestItem.name, got,
-  --         Branches.input["_"] .. Branches.storage[chest.id] .. Branches.output[tbl.keys(Branches.output)[1]], "output")
-  --       table.insert(orders, chunk)
-  --     end
-  --   end
-  -- end
+    if order == nil then
+      local result = lib.findFullSlot(maxCount, slots, name)
+      if result ~= nil then
+        order = {
+          item = name,
+          count = maxCount,
+          from = { chest_id = result.chest_id, slot_id = result.slot_id },
+          to = { chest_id = output_slot_id, slot_id = output_slot_id },
+          actions = Branches.input["_"] .. Branches.storage[result.chest_id] .. Branches.output[output_chest_id],
+          type = "output"
+        }
+      end
+    end
 
-  -- print("Found:")
-  -- for name, count in pairs(myItems) do
-  --   print(name .. ": " .. count)
-  -- end
+    if order ~= nil then
+      table.insert(orders, order)
+      lib.applyOrder(slots, order)
+      amountLeft = amountLeft - order.count
+    else
+      break
+    end
+  end
 
-  -- print("Queueing orders...")
-  -- local queue = Queue:new(orders)
-  -- queue:run()
-  -- print("Done.")
+  if amountLeft > 0 then
+    error("found only: " .. (amount - amountLeft) .. " " .. name)
+  end
+
+  print("Queueing orders...")
+  local queue = Queue:new(orders)
+  queue:run()
+  print("Done.")
 elseif command == "capacity" then
   local capacity = 0
   local used = 0
