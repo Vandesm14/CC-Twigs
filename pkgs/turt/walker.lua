@@ -219,6 +219,8 @@ function Walker:step()
     self.action = self.order:next_action()
     if not self.action then
       return true
+    elseif self.action == "h" then
+      print("returning home.")
     end
   end
 
