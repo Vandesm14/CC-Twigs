@@ -186,21 +186,62 @@ elseif not package.loaded["mngr.bin"] then
     return
   end
 
-  for _, packageName in ipairs(packageNames) do
-    local packageDir = fs.combine(tempDir, packageName)
+  -- Fetch all package file lists in parallel
+  print("Fetching package file lists...")
+  --- @type table<string, string[]>
+  local packageFiles = {}
+  local fetchTasks = {}
 
-    local fileNames = fetchPackageFiles(rootUrl, packageName)
-    if fileNames == nil then
+  for _, packageName in ipairs(packageNames) do
+    table.insert(fetchTasks, function()
+      local fileNames = fetchPackageFiles(rootUrl, packageName)
+      if fileNames ~= nil then
+        packageFiles[packageName] = fileNames
+      end
+    end)
+  end
+
+  parallel.waitForAll(table.unpack(fetchTasks))
+
+  -- Verify all package file lists were fetched
+  for _, packageName in ipairs(packageNames) do
+    if packageFiles[packageName] == nil then
       printError("Unable to fetch files for package '" .. packageName .. "'.")
       return
     end
+  end
 
-    print("Fetching package '" .. packageName .. "'...")
+  -- Fetch all file contents in parallel
+  print("Fetching all package files...")
+  --- @type table<string, string>
+  local fileContents = {}
+  local contentFetchTasks = {}
 
-    for _, fileName in ipairs(fileNames) do
-      local fileContent = fetchPackageFileContent(rootUrl, packageName, fileName)
+  for _, packageName in ipairs(packageNames) do
+    for _, fileName in ipairs(packageFiles[packageName]) do
+      local key = packageName .. "/" .. fileName
+      table.insert(contentFetchTasks, function()
+        local content = fetchPackageFileContent(rootUrl, packageName, fileName)
+        if content ~= nil then
+          fileContents[key] = content
+        end
+      end)
+    end
+  end
+
+  parallel.waitForAll(table.unpack(contentFetchTasks))
+
+  -- Write all files to disk
+  print("Writing files to disk...")
+  for _, packageName in ipairs(packageNames) do
+    local packageDir = fs.combine(tempDir, packageName)
+
+    for _, fileName in ipairs(packageFiles[packageName]) do
+      local key = packageName .. "/" .. fileName
+      local fileContent = fileContents[key]
+
       if fileContent == nil then
-        printError("Unable to fetch file '" .. fs.combine(packageName, fileName) .. "'.")
+        printError("Unable to fetch file '" .. key .. "'.")
         return
       end
 
@@ -212,7 +253,7 @@ elseif not package.loaded["mngr.bin"] then
         return
       end
 
-      print("  Fetched '" .. fileName .. "'.")
+      print("  Wrote '" .. key .. "'.")
 
       file.write(fileContent)
       file.close()
