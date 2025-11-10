@@ -33,6 +33,19 @@ function lib.scanItems(filter, empty)
   --- @type table<string, number>
   local maxCounts = {}
 
+  -- Load cached maxCounts from file if it exists
+  if fs.exists("maxcount.lua") then
+    local file = fs.open("maxcount.lua", "r")
+    if file ~= nil then
+      local content = file.readAll()
+      file.close()
+      local loaded = textutils.unserialize(content)
+      if loaded ~= nil and type(loaded) == "table" then
+        maxCounts = loaded
+      end
+    end
+  end
+
   local names = peripheral.getNames()
   for _, name in pairs(names) do
     local chest = peripheral.wrap(name)
@@ -50,6 +63,13 @@ function lib.scanItems(filter, empty)
                 slot_id = slot_id,
                 chest_id = chest_id,
               })
+
+              if maxCounts[item.name] == nil then
+                local detail = chest.getItemDetail(slot_id)
+                if detail ~= nil then
+                  maxCounts[item.name] = detail.maxCount
+                end
+              end
             end
           else
             for slot_id = 1, chest.size(), 1 do
@@ -83,6 +103,13 @@ function lib.scanItems(filter, empty)
         end
       end
     end
+  end
+
+  -- Save maxCounts to file
+  local file = fs.open("maxcount.lua", "w")
+  if file ~= nil then
+    file.write(textutils.serialize(maxCounts))
+    file.close()
   end
 
   return records, maxCounts
