@@ -212,8 +212,6 @@ elseif command == "order" then
       local count = amountLeft
       if result.count < amountLeft then
         count = result.count
-      elseif result.count > amountLeft then
-        count = result.count - amountLeft
       end
 
       order = {
@@ -229,9 +227,14 @@ elseif command == "order" then
     if order == nil then
       local result = lib.findFullSlot(maxCount, slots, name)
       if result ~= nil then
+        local count = amountLeft
+        if maxCount < amountLeft then
+          count = maxCount
+        end
+
         order = {
           item = name,
-          count = maxCount,
+          count = count,
           from = { chest_id = result.chest_id, slot_id = result.slot_id },
           to = { chest_id = output_slot_id, slot_id = output_slot_id },
           actions = Branches.input["_"] .. Branches.storage[result.chest_id] .. Branches.output[output_chest_id],
