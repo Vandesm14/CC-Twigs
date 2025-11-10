@@ -86,10 +86,12 @@ elseif command == "pull" then
   for _, item in pairs(input_slots) do
     local maxCount = maxCounts[item.name]
     while item.count > 0 do
+      --- @type Order|nil
+      local order = nil
       if maxCount ~= nil and item.count < maxCount then
         local result = lib.findExistingSlot(maxCount, storage_slots, item)
         if result ~= nil then
-          local order = {
+          order = {
             item = result.name,
             count = result.count,
             from = { chest_id = item.chest_id, slot_id = item.slot_id },
@@ -97,29 +99,13 @@ elseif command == "pull" then
             actions = Branches.input[item.chest_id] .. Branches.storage[result.chest_id] .. Branches.output["_"],
             type = "input"
           }
-          table.insert(orders, order)
-          lib.applyOrder(storage_slots, order)
-          item.count = item.count - order.count
-        else
-          local result = lib.findEmptySlot(storage_slots)
-          if result ~= nil then
-            local order = {
-              item = item.name,
-              count = item.count,
-              from = { chest_id = item.chest_id, slot_id = item.slot_id },
-              to = { chest_id = result.chest_id, slot_id = result.slot_id },
-              actions = Branches.input[item.chest_id] .. Branches.storage[result.chest_id] .. Branches.output["_"],
-              type = "input"
-            }
-            table.insert(orders, order)
-            lib.applyOrder(storage_slots, order)
-            item.count = item.count - order.count
-          end
         end
-      else
+      end
+
+      if order == nil then
         local result = lib.findEmptySlot(storage_slots)
         if result ~= nil then
-          local order = {
+          order = {
             item = item.name,
             count = item.count,
             from = { chest_id = item.chest_id, slot_id = item.slot_id },
@@ -127,10 +113,13 @@ elseif command == "pull" then
             actions = Branches.input[item.chest_id] .. Branches.storage[result.chest_id] .. Branches.output["_"],
             type = "input"
           }
-          table.insert(orders, order)
-          lib.applyOrder(storage_slots, order)
-          item.count = item.count - order.count
         end
+      end
+
+      if order ~= nil then
+        table.insert(orders, order)
+        lib.applyOrder(storage_slots, order)
+        item.count = item.count - order.count
       end
     end
   end
