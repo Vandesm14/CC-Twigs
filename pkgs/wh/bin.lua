@@ -337,6 +337,9 @@ elseif command == "check" then
   print("Scanning storage slots...")
   local storage_slots, maxCounts = lib.scanItems(tbl.keys(Branches.storage))
 
+  local file = fs.open("check.txt", "w")
+  local lines = {}
+
   -- Group partial slots by item name
   --- @type table<string, Record[]>
   local partialByItem = {}
@@ -356,16 +359,28 @@ elseif command == "check" then
   for itemName, partialSlots in pairs(partialByItem) do
     if #partialSlots >= 2 then
       foundAny = true
-      print("")
-      print(itemName .. " (" .. #partialSlots .. " partial stacks):")
+      table.insert(lines, "")
+      table.insert(lines, itemName .. " (" .. #partialSlots .. " partial stacks):")
       for _, slot in pairs(partialSlots) do
-        print("  Chest ID: " ..
+        table.insert(lines, "  Chest ID: " ..
           slot.chest_id .. ", Slot ID: " .. slot.slot_id .. ", Count: " .. slot.count .. "/" .. maxCounts[itemName])
       end
     end
   end
 
   if not foundAny then
-    print("No items found with 2+ partial stacks.")
+    table.insert(lines, "No items found with 2+ partial stacks.")
   end
+
+  if file ~= nil then
+    for _, line in pairs(lines) do
+      file.writeLine(line)
+      print(line)
+    end
+
+    file.close()
+  end
+
+  print("")
+  print("Open check.txt to view full list.")
 end
