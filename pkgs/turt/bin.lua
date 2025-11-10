@@ -32,7 +32,6 @@ local walker = nil
 ---@param message Message
 local function handleMessage(id, message)
   print("Received message from " .. id .. ":")
-  pretty.pretty_print(message)
 
   local isBlock, info = turtle.inspectDown()
   if isBlock and info then
@@ -77,6 +76,7 @@ while true do
   if walker ~= nil then
     if walker:step() then
       walker = nil
+      print("finished order.")
     end
   else
     if turtle.getFuelLevel() < MIN_FUEL then
