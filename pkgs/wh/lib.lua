@@ -41,9 +41,8 @@ function lib.scanItems(filter, empty)
       if filter == nil or (filter ~= nil and tbl.contains(filter, chest_id)) then
         if chest_id ~= nil then
           local list = chest.list()
-          for slot_id = 1, chest.size(), 1 do
-            local item = list[slot_id]
-            if item ~= nil then
+          if not empty then
+            for slot_id, item in pairs(list) do
               table.insert(records, {
                 name = item.name,
                 nbt = item.nbt,
@@ -51,15 +50,26 @@ function lib.scanItems(filter, empty)
                 slot_id = slot_id,
                 chest_id = chest_id,
               })
+            end
+          else
+            for slot_id = 1, chest.size(), 1 do
+              local item = list[slot_id]
+              if item ~= nil then
+                table.insert(records, {
+                  name = item.name,
+                  nbt = item.nbt,
+                  count = item.count,
+                  slot_id = slot_id,
+                  chest_id = chest_id,
+                })
 
-              if maxCounts[item.name] == nil then
-                local detail = chest.getItemDetail(slot_id)
-                if detail ~= nil then
-                  maxCounts[item.name] = detail.maxCount
+                if maxCounts[item.name] == nil then
+                  local detail = chest.getItemDetail(slot_id)
+                  if detail ~= nil then
+                    maxCounts[item.name] = detail.maxCount
+                  end
                 end
-              end
-            else
-              if empty then
+              else
                 table.insert(records, {
                   name = "",
                   nbt = "",
