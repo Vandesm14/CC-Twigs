@@ -118,30 +118,37 @@ if args[1] == "upload" then
   local uploadedCount = 0
   local failedCount = 0
 
+  -- Upload all files in parallel
+  local uploadTasks = {}
+
   for _, filePath in ipairs(allFiles) do
     -- Skip files in rom directory
     if not filePath:match("^.mngr/") and not filePath:match("^rom/") then
-      local file = fs.open(filePath, "r")
-      if file then
-        local content = file.readAll()
-        file.close()
+      table.insert(uploadTasks, function()
+        local file = fs.open(filePath, "r")
+        if file then
+          local content = file.readAll()
+          file.close()
 
-        -- Remove leading slash for upload path
-        local uploadPath = filePath:gsub("^/", "")
+          -- Remove leading slash for upload path
+          local uploadPath = filePath:gsub("^/", "")
 
-        print("Uploading '" .. filePath .. "'...")
-        if uploadFile(rootUrl, uploadPath, content) then
-          uploadedCount = uploadedCount + 1
+          print("Uploading '" .. filePath .. "'...")
+          if uploadFile(rootUrl, uploadPath, content) then
+            uploadedCount = uploadedCount + 1
+          else
+            printError("Failed to upload '" .. filePath .. "'.")
+            failedCount = failedCount + 1
+          end
         else
-          printError("Failed to upload '" .. filePath .. "'.")
+          printError("Unable to read file '" .. filePath .. "'.")
           failedCount = failedCount + 1
         end
-      else
-        printError("Unable to read file '" .. filePath .. "'.")
-        failedCount = failedCount + 1
-      end
+      end)
     end
   end
+
+  parallel.waitForAll(table.unpack(uploadTasks))
 
   print("Upload complete: " .. uploadedCount .. " files uploaded, " .. failedCount .. " failed.")
 elseif args[1] == "enable" then
