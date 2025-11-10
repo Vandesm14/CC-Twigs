@@ -208,7 +208,7 @@ elseif command == "order" then
     local order = nil
 
     -- If amountLeft is a multiple of 64, skip partial stacks and grab full stacks directly
-    if amountLeft % 64 ~= 0 then
+    if amountLeft % maxCount ~= 0 then
       local result = lib.findOutputPartialSlot(maxCount, slots, name)
       if result ~= nil then
         local count = amountLeft
