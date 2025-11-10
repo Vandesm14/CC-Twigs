@@ -105,6 +105,18 @@ function lib.findExistingSlot(maxCounts, slots, item)
 end
 
 --- @param slots Record[]
+--- @param location ChestSlot
+--- @param count number
+function lib.updateSlot(slots, location, count)
+  for i, record in pairs(slots) do
+    if record.chest_id == location.chest_id and record.slot_id == location.slot_id then
+      slots[i].count = count
+      return
+    end
+  end
+end
+
+--- @param slots Record[]
 --- @return { slot_id: number, chest_id: number }|nil
 function lib.findEmptySlot(slots)
   for _, record in pairs(slots) do

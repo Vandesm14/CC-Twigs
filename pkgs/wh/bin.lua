@@ -1,16 +1,16 @@
 local pretty = require "cc.pretty"
-local Order = require "turt.order"
+local Order = require "wh.order"
 local lib = require "wh.lib"
 local Queue = require "wh.queue"
 local tbl = require "lib.table"
 local str = require "lib.str"
 local Branches = require "wh.branches"
 
---- @param chest ccTweaked.peripherals.Inventory
+--- @param items Record[]
 --- @param table table
-local function countItems(chest, table)
+local function countItems(items, table)
   -- Run through each item in the chest
-  for _, item in pairs(chest.list()) do
+  for _, item in pairs(items) do
     local name, count = item.name, item.count
 
     -- Update or set the entry
@@ -43,11 +43,7 @@ elseif command == "ls" then
 
   -- Scan each chest for items, until we hit the end-stop
   --- @diagnostic disable-next-line: param-type-mismatch
-  for _, chest in pairs(lib.scanItems(tbl.keys(Branches.storage))) do
-    if chest ~= nil then
-      countItems(chest.inventory, items)
-    end
-  end
+  countItems(lib.scanItems(tbl.keys(Branches.storage)), items)
 
   if query ~= nil and type(query) == "string" then
     table.insert(lines, "Items (filtered by '" .. query .. "'):")
@@ -83,54 +79,77 @@ elseif command == "pull" then
   local input_slots, input_maxCounts = lib.scanItems(tbl.keys(Branches.input))
   local maxCounts = tbl.merge(storage_maxCounts, input_maxCounts)
 
-  local f = fs.open("out.json", "w")
-  if f ~= nil then
-    f.write(textutils.serialiseJSON(storage_slots))
-    f.close()
-  end
+  --- @type Order[]
+  local orders = {}
 
   print("Planning movements...")
   for _, item in pairs(input_slots) do
     local maxCount = maxCounts[item.name]
     if maxCount ~= nil and item.count < maxCount then
-      print("need to check " .. item.name .. " in " .. item.slot_id)
       local result = lib.findExistingSlot(maxCounts, storage_slots, item)
       if result ~= nil then
         local remaining = item.count - result.count
-        pretty.pretty_print(result)
-        print("with " .. remaining .. " remaining")
+        table.insert(orders, {
+          item = result.name,
+          count = result.count,
+          from = { chest_id = item.chest_id, slot_id = item.slot_id },
+          to = { chest_id = result.chest_id, slot_id = result.slot_id },
+          actions = Branches.input[item.chest_id] .. Branches.storage[result.chest_id] .. Branches.output["_"],
+          type = "input"
+        })
 
         local rest = lib.findEmptySlot(storage_slots)
-        if rest ~= nil then
-          print("sent rest to " .. rest.chest_id .. " in slot " .. rest.slot_id)
+        if remaining > 0 then
+          if rest ~= nil then
+            table.insert(orders, {
+              item = item.name,
+              count = remaining,
+              from = { chest_id = item.chest_id, slot_id = item.slot_id },
+              to = { chest_id = rest.chest_id, slot_id = rest.slot_id },
+              actions = Branches.input[item.chest_id] .. Branches.storage[rest.chest_id] .. Branches.output["_"],
+              type = "input"
+            })
+          end
+        end
+      else
+        local result = lib.findEmptySlot(storage_slots)
+        if result ~= nil then
+          table.insert(orders, {
+            item = item.name,
+            count = item.count,
+            from = { chest_id = item.chest_id, slot_id = item.slot_id },
+            to = { chest_id = result.chest_id, slot_id = result.slot_id },
+            actions = Branches.input[item.chest_id] .. Branches.storage[result.chest_id] .. Branches.output["_"],
+            type = "input"
+          })
         end
       end
     else
       local result = lib.findEmptySlot(storage_slots)
       if result ~= nil then
-        print("sent " .. item.count .. " of " .. item.name .. " to " .. result.chest_id .. " in slot " .. result.slot_id)
+        table.insert(orders, {
+          item = item.name,
+          count = item.count,
+          from = { chest_id = item.chest_id, slot_id = item.slot_id },
+          to = { chest_id = result.chest_id, slot_id = result.slot_id },
+          actions = Branches.input[item.chest_id] .. Branches.storage[result.chest_id] .. Branches.output["_"],
+          type = "input"
+        })
       end
     end
   end
 
-  -- print("Calculating orders to '" .. mostSpace.id .. "'...")
-  -- local orders = {}
-  -- for _, item in pairs(inputChest.items) do
-  --   if acc > 0 then
-  --     local chunk = Order:new(item.name, item.count,
-  --       Branches.input[inputChest.id] .. Branches.storage[mostSpace.id] .. Branches.output["_"],
-  --       "input")
-  --     table.insert(orders, chunk)
+  local f = fs.open("out.json", "w")
+  if f ~= nil then
+    f.write(textutils.serialiseJSON(orders))
+    f.close()
+  end
 
-  --     acc = acc - 1
-  --   end
-  -- end
+  print("Queueing orders...")
+  local queue = Queue:new(orders)
+  queue:run()
 
-  -- print("Queueing orders...")
-  -- local queue = Queue:new(orders)
-  -- queue:run()
-
-  -- print("Done.")
+  print("Done.")
 elseif command == "order" then
   -- local item = arg[2]
   -- local amount = tonumber(arg[3])
@@ -226,9 +245,11 @@ elseif command == "capacity" then
   local used = 0
 
   --- @diagnostic disable-next-line: param-type-mismatch
-  for _, chest in pairs(lib.scanItems(tbl.keys(Branches.storage))) do
-    capacity = capacity + chest.inventory.size()
-    used = used + tbl.len(chest.inventory.list())
+  for _, slot in pairs(lib.scanItems(tbl.keys(Branches.storage), true)) do
+    capacity = capacity + 1
+    if slot.count > 0 then
+      used = used + 1
+    end
   end
 
   local available = capacity - used

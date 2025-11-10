@@ -75,41 +75,36 @@ function Walker:pullFromChest()
 
   --- @cast chest ccTweaked.peripherals.Inventory
   if chest ~= nil then
-    -- Get the item in the first slot of the chest
-    turtle.select(2)
-    turtle.suckDown()
+    if self.order.from.slot_id == 1 then
+      turtle.select(1)
+      turtle.suckDown(self.order.count)
+    else
+      local purgeFirstSlot = chest.getItemDetail(1) ~= nil
 
-    local item = turtle.getItemDetail()
-    if item ~= nil and item.name == self.order.item and item.count >= self.order.count then
-      if item.count > self.order.count then
-        turtle.dropDown(item.count - self.order.count)
+      if purgeFirstSlot then
+        turtle.select(2)
+        turtle.suckDown()
       end
 
-      turtle.transferTo(1)
+      -- Move the target item to the first slot of the chest
+      local success, _ = pcall(
+        chest.pullItems,
+        "bottom",
+        self.order.from.slot_id,
+        self.order.count,
+        1
+      )
+
+      if not success then
+        error("failed to pull items")
+      end
+
+      -- Select our first slot
       turtle.select(1)
-      return
-    end
+      -- Suck our intented item from the first slot of the chest
+      turtle.suckDown(self.order.count)
 
-    for slot, item in pairs(chest.list()) do
-      if item.name == self.order.item and item.count >= self.order.count then
-        -- Move the target item to the first slot of the chest
-        local success, _ = pcall(
-          chest.pullItems,
-          "bottom",
-          slot,
-          self.order.count,
-          1
-        )
-
-        if not success then
-          error("failed to pull items")
-        end
-
-        -- Select our first slot
-        turtle.select(1)
-        -- Suck our intented item from the first slot of the chest
-        turtle.suckDown(self.order.count)
-
+      if purgeFirstSlot then
         -- Select our second slot
         turtle.select(2)
         -- Drop the junk item back into the chest
@@ -117,13 +112,8 @@ function Walker:pullFromChest()
 
         -- Select our first slot with our item
         turtle.select(1)
-
-        return
       end
     end
-
-    turtle.dropDown()
-    self:assertEmpty("Failed to find item '" .. self.order.item .. "' in chest.")
   end
 end
 
@@ -173,7 +163,6 @@ function Walker:step()
     end
   else
     self.action = self.order:next_action()
-    print(self.action)
     if not self.action then
       return true
     end

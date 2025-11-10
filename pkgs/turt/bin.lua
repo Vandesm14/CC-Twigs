@@ -1,6 +1,6 @@
 local pretty = require "cc.pretty"
 local Walker = require "turt.walker"
-local Order = require "turt.order"
+local Order = require "wh.order"
 local lib = require "turt.lib"
 
 -- Check for optional command-line actions
@@ -11,7 +11,7 @@ if actions ~= nil and type(actions) == "string" then
   local reversed = string.reverse(actions)
 
   -- Create an order with the actions (using dummy values for item/count)
-  local order = Order:new("", 0, reversed, "output")
+  local order = Order:with_actions(reversed)
   local walker = Walker:new(order)
 
   -- Run the walker until completion
@@ -40,8 +40,11 @@ local function handleMessage(id, message)
     if color == "red" then
       if message ~= nil and message.type == "order" then
         local order = message.value
-        if order.item ~= nil then
-          walker = Walker:new(Order:new(order.item, order.count, order.actions:reverse(), order.type))
+        if order ~= nil then
+          print("starting order for " .. order.count .. " " .. order.item)
+          order = Order:from_order(order)
+          order:reverse_actions()
+          walker = Walker:new(order)
           return
         end
       elseif message ~= nil and id ~= nil and message.type == "avail" then
