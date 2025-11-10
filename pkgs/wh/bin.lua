@@ -347,10 +347,14 @@ elseif command == "check" then
   for _, slot in pairs(storage_slots) do
     local maxCount = maxCounts[slot.name]
     if maxCount ~= nil and slot.count > 0 and slot.count < maxCount then
-      if partialByItem[slot.name] == nil then
-        partialByItem[slot.name] = {}
+      local key = slot.name
+      if slot.nbt ~= nil then
+        key = key .. " " .. slot.nbt
       end
-      table.insert(partialByItem[slot.name], slot)
+      if partialByItem[key] == nil then
+        partialByItem[key] = {}
+      end
+      table.insert(partialByItem[key], slot)
     end
   end
 
@@ -358,12 +362,16 @@ elseif command == "check" then
   local foundAny = false
   for itemName, partialSlots in pairs(partialByItem) do
     if #partialSlots >= 2 then
-      foundAny = true
-      table.insert(lines, "")
-      table.insert(lines, itemName .. " (" .. #partialSlots .. " partial stacks):")
-      for _, slot in pairs(partialSlots) do
-        table.insert(lines, "  Chest ID: " ..
-          slot.chest_id .. ", Slot ID: " .. slot.slot_id .. ", Count: " .. slot.count .. "/" .. maxCounts[itemName])
+      local name = str.split(itemName, " ")[1]
+      if name ~= nil then
+        local maxCount = maxCounts[name]
+        foundAny = true
+        table.insert(lines, "")
+        table.insert(lines, name .. " (" .. #partialSlots .. " partial stacks):")
+        for _, slot in pairs(partialSlots) do
+          table.insert(lines, "  Chest ID: " ..
+            slot.chest_id .. ", Slot ID: " .. slot.slot_id .. ", Count: " .. slot.count .. "/" .. maxCount)
+        end
       end
     end
   end
