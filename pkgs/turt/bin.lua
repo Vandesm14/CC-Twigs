@@ -74,20 +74,19 @@ end
 local MIN_FUEL = 100
 
 while true do
-  if turtle.getFuelLevel() < MIN_FUEL then
-    print("fueling...")
-  end
-  while turtle.getFuelLevel() < MIN_FUEL do
-    if not turtle.suckUp(1) then
-      break
-    end
-    turtle.refuel()
-  end
   if walker ~= nil then
     if walker:step() then
       walker = nil
     end
   else
+    if turtle.getFuelLevel() < MIN_FUEL then
+      print("fueling.")
+      while turtle.getFuelLevel() < MIN_FUEL do
+        if not turtle.suckUp(1) then
+        end
+        turtle.refuel()
+      end
+    end
     print("idle.")
     parallel.waitForAny(waitForGlobal, waitForSelf)
   end
