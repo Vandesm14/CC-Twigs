@@ -115,6 +115,12 @@ function Walker:pullFromChest()
       end
     end
   end
+
+  local details = turtle.getItemDetail(1)
+  if not (details ~= nil and details.count == self.order.count and details.name == self.order.item) then
+    turtle.up()
+    error("received the wrong item, expected " .. self.order.item .. " " .. self.order.count)
+  end
 end
 
 local function checkFuel()

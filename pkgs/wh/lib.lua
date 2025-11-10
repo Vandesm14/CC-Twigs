@@ -78,13 +78,12 @@ function lib.scanItems(filter, empty)
   return records, maxCounts
 end
 
---- @param maxCounts table<string, number>
+--- @param maxCount number
 --- @param slots Record[]
 --- @param item Record
 --- @return Record|nil
-function lib.findExistingSlot(maxCounts, slots, item)
+function lib.findExistingSlot(maxCount, slots, item)
   for _, record in pairs(slots) do
-    local maxCount = maxCounts[item.name]
     if maxCount ~= nil and record.name == item.name and record.nbt == item.nbt and record.count < maxCount then
       -- print("can use slot " .. record.slot_id .. " of " .. record.chest_id)
       local count = item.count
@@ -95,6 +94,21 @@ function lib.findExistingSlot(maxCounts, slots, item)
         name = item.name,
         nbt = item.nbt,
         count = count,
+        slot_id = record.slot_id,
+        chest_id = record.chest_id,
+      }
+    end
+  end
+
+  return nil
+end
+
+--- @param slots Record[]
+--- @return { slot_id: number, chest_id: number }|nil
+function lib.findEmptySlot(slots)
+  for _, record in pairs(slots) do
+    if record.count == 0 then
+      return {
         slot_id = record.slot_id,
         chest_id = record.chest_id,
       }
@@ -128,21 +142,6 @@ function lib.applyOrder(slots, order)
       end
     end
   end
-end
-
---- @param slots Record[]
---- @return { slot_id: number, chest_id: number }|nil
-function lib.findEmptySlot(slots)
-  for _, record in pairs(slots) do
-    if record.count == 0 then
-      return {
-        slot_id = record.slot_id,
-        chest_id = record.chest_id,
-      }
-    end
-  end
-
-  return nil
 end
 
 return lib

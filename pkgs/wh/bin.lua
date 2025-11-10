@@ -85,34 +85,35 @@ elseif command == "pull" then
   print("Planning movements...")
   for _, item in pairs(input_slots) do
     local maxCount = maxCounts[item.name]
-    if maxCount ~= nil and item.count < maxCount then
-      local result = lib.findExistingSlot(maxCounts, storage_slots, item)
-      if result ~= nil then
-        local remaining = item.count - result.count
-        local order = {
-          item = result.name,
-          count = result.count,
-          from = { chest_id = item.chest_id, slot_id = item.slot_id },
-          to = { chest_id = result.chest_id, slot_id = result.slot_id },
-          actions = Branches.input[item.chest_id] .. Branches.storage[result.chest_id] .. Branches.output["_"],
-          type = "input"
-        }
-        table.insert(orders, order)
-        lib.applyOrder(storage_slots, order)
-
-        local rest = lib.findEmptySlot(storage_slots)
-        if remaining > 0 then
-          if rest ~= nil then
+    while item.count > 0 do
+      if maxCount ~= nil and item.count < maxCount then
+        local result = lib.findExistingSlot(maxCount, storage_slots, item)
+        if result ~= nil then
+          local order = {
+            item = result.name,
+            count = result.count,
+            from = { chest_id = item.chest_id, slot_id = item.slot_id },
+            to = { chest_id = result.chest_id, slot_id = result.slot_id },
+            actions = Branches.input[item.chest_id] .. Branches.storage[result.chest_id] .. Branches.output["_"],
+            type = "input"
+          }
+          table.insert(orders, order)
+          lib.applyOrder(storage_slots, order)
+          item.count = item.count - order.count
+        else
+          local result = lib.findEmptySlot(storage_slots)
+          if result ~= nil then
             local order = {
               item = item.name,
-              count = remaining,
+              count = item.count,
               from = { chest_id = item.chest_id, slot_id = item.slot_id },
-              to = { chest_id = rest.chest_id, slot_id = rest.slot_id },
-              actions = Branches.input[item.chest_id] .. Branches.storage[rest.chest_id] .. Branches.output["_"],
+              to = { chest_id = result.chest_id, slot_id = result.slot_id },
+              actions = Branches.input[item.chest_id] .. Branches.storage[result.chest_id] .. Branches.output["_"],
               type = "input"
             }
             table.insert(orders, order)
             lib.applyOrder(storage_slots, order)
+            item.count = item.count - order.count
           end
         end
       else
@@ -128,29 +129,10 @@ elseif command == "pull" then
           }
           table.insert(orders, order)
           lib.applyOrder(storage_slots, order)
+          item.count = item.count - order.count
         end
       end
-    else
-      local result = lib.findEmptySlot(storage_slots)
-      if result ~= nil then
-        local order = {
-          item = item.name,
-          count = item.count,
-          from = { chest_id = item.chest_id, slot_id = item.slot_id },
-          to = { chest_id = result.chest_id, slot_id = result.slot_id },
-          actions = Branches.input[item.chest_id] .. Branches.storage[result.chest_id] .. Branches.output["_"],
-          type = "input"
-        }
-        table.insert(orders, order)
-        lib.applyOrder(storage_slots, order)
-      end
     end
-  end
-
-  local f = fs.open("out.json", "w")
-  if f ~= nil then
-    f.write(textutils.serialiseJSON(orders))
-    f.close()
   end
 
   print("Queueing orders...")
