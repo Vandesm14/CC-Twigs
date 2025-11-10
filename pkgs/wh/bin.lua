@@ -89,52 +89,60 @@ elseif command == "pull" then
       local result = lib.findExistingSlot(maxCounts, storage_slots, item)
       if result ~= nil then
         local remaining = item.count - result.count
-        table.insert(orders, {
+        local order = {
           item = result.name,
           count = result.count,
           from = { chest_id = item.chest_id, slot_id = item.slot_id },
           to = { chest_id = result.chest_id, slot_id = result.slot_id },
           actions = Branches.input[item.chest_id] .. Branches.storage[result.chest_id] .. Branches.output["_"],
           type = "input"
-        })
+        }
+        table.insert(orders, order)
+        lib.applyOrder(storage_slots, order)
 
         local rest = lib.findEmptySlot(storage_slots)
         if remaining > 0 then
           if rest ~= nil then
-            table.insert(orders, {
+            local order = {
               item = item.name,
               count = remaining,
               from = { chest_id = item.chest_id, slot_id = item.slot_id },
               to = { chest_id = rest.chest_id, slot_id = rest.slot_id },
               actions = Branches.input[item.chest_id] .. Branches.storage[rest.chest_id] .. Branches.output["_"],
               type = "input"
-            })
+            }
+            table.insert(orders, order)
+            lib.applyOrder(storage_slots, order)
           end
         end
       else
         local result = lib.findEmptySlot(storage_slots)
         if result ~= nil then
-          table.insert(orders, {
+          local order = {
             item = item.name,
             count = item.count,
             from = { chest_id = item.chest_id, slot_id = item.slot_id },
             to = { chest_id = result.chest_id, slot_id = result.slot_id },
             actions = Branches.input[item.chest_id] .. Branches.storage[result.chest_id] .. Branches.output["_"],
             type = "input"
-          })
+          }
+          table.insert(orders, order)
+          lib.applyOrder(storage_slots, order)
         end
       end
     else
       local result = lib.findEmptySlot(storage_slots)
       if result ~= nil then
-        table.insert(orders, {
+        local order = {
           item = item.name,
           count = item.count,
           from = { chest_id = item.chest_id, slot_id = item.slot_id },
           to = { chest_id = result.chest_id, slot_id = result.slot_id },
           actions = Branches.input[item.chest_id] .. Branches.storage[result.chest_id] .. Branches.output["_"],
           type = "input"
-        })
+        }
+        table.insert(orders, order)
+        lib.applyOrder(storage_slots, order)
       end
     end
   end

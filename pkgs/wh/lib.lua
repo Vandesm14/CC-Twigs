@@ -105,13 +105,27 @@ function lib.findExistingSlot(maxCounts, slots, item)
 end
 
 --- @param slots Record[]
---- @param location ChestSlot
---- @param count number
-function lib.updateSlot(slots, location, count)
-  for i, record in pairs(slots) do
-    if record.chest_id == location.chest_id and record.slot_id == location.slot_id then
-      slots[i].count = count
-      return
+--- @param order Order
+function lib.applyOrder(slots, order)
+  if order.type == "input" then
+    for i, record in pairs(slots) do
+      if record.chest_id == order.to.chest_id and record.slot_id == order.to.slot_id then
+        local record = slots[i]
+        if record ~= nil then
+          record.count = record.count + order.count
+        end
+        return
+      end
+    end
+  elseif order.type == "output" then
+    for i, record in pairs(slots) do
+      if record.chest_id == order.from.chest_id and record.slot_id == order.from.slot_id then
+        local record = slots[i]
+        if record ~= nil then
+          record.count = record.count - order.count
+        end
+        return
+      end
     end
   end
 end
