@@ -22,10 +22,11 @@ local function countItems(items, table)
   end
 end
 
-local usage = "Usage: " .. arg[0] .. " <order|ls|capacity|export>\n" ..
+local usage = "Usage: " .. arg[0] .. " <order|ls|capacity|export|check>\n" ..
     "  ls [search]           - List items, optionally filter by substring\n" ..
-    "  order <item> [<amt>] - Order items (use short name like 'cobblestone' or full like 'minecraft:cobblestone'). Defaults to 64 if not specified.\n" ..
-    "  export                - Export input, storage, and output slot lists to slots.json"
+    "  order <item> [<amt>]  - Order items (use short name like 'cobblestone' or full like 'minecraft:cobblestone'). Defaults to 64 if not specified.\n" ..
+    "  export                - Export input, storage, and output slot lists to slots.json\n" ..
+    "  check                 - Find items with 2+ partial stacks that can be consolidated"
 local command = arg[1]
 
 rednet.open("back")
@@ -306,5 +307,40 @@ elseif command == "export" then
     print("Exported slots to slots.json")
   else
     printError("Unable to create slots.json file.")
+  end
+elseif command == "check" then
+  print("Scanning storage slots...")
+  local storage_slots, maxCounts = lib.scanItems(tbl.keys(Branches.storage))
+
+  -- Group partial slots by item name
+  --- @type table<string, Record[]>
+  local partialByItem = {}
+
+  for _, slot in pairs(storage_slots) do
+    local maxCount = maxCounts[slot.name]
+    if maxCount ~= nil and slot.count > 0 and slot.count < maxCount then
+      if partialByItem[slot.name] == nil then
+        partialByItem[slot.name] = {}
+      end
+      table.insert(partialByItem[slot.name], slot)
+    end
+  end
+
+  -- Filter to only items with 2+ partial slots
+  local foundAny = false
+  for itemName, partialSlots in pairs(partialByItem) do
+    if #partialSlots >= 2 then
+      foundAny = true
+      print("")
+      print(itemName .. " (" .. #partialSlots .. " partial stacks):")
+      for _, slot in pairs(partialSlots) do
+        print("  Chest ID: " ..
+          slot.chest_id .. ", Slot ID: " .. slot.slot_id .. ", Count: " .. slot.count .. "/" .. maxCounts[itemName])
+      end
+    end
+  end
+
+  if not foundAny then
+    print("No items found with 2+ partial stacks.")
   end
 end
