@@ -34,13 +34,13 @@ rednet.open("back")
 -- Initialize cache if it doesn't exist
 if not fs.exists("slots.json") then
   print("Cache not found. Running initial scan...")
-  print("Scanning input slots...")
+  print("Scanning inputs...")
   local input_slots, input_maxCounts = lib.scanItemsLive({}, tbl.keys(Branches.input), true)
 
-  print("Scanning storage slots...")
+  print("Scanning storage...")
   local storage_slots, storage_maxCounts = lib.scanItemsLive({}, tbl.keys(Branches.storage), true)
 
-  print("Scanning output slots...")
+  print("Scanning outputs...")
   local output_slots, output_maxCounts = lib.scanItemsLive({}, tbl.keys(Branches.output), true)
 
   local maxCounts = tbl.merge(input_maxCounts, tbl.merge(storage_maxCounts, output_maxCounts))
@@ -71,7 +71,7 @@ local function pull()
   --- @type Order[]
   local orders = {}
 
-  print("Planning movements...")
+  print("Calculating orders...")
   for _, item in pairs(input_slots) do
     local maxCount = maxCounts[item.name]
     while item.count > 0 do
@@ -165,7 +165,7 @@ local function order(query, amount)
   --- @type Order[]
   local orders = {}
 
-  print("Calculating orders for " .. name .. " (" .. amount .. ")...")
+  print("Calculating orders...")
   while amountLeft > 0 do
     local output = lib.findEmptySlot(output_slots)
     if output == nil then
@@ -224,9 +224,9 @@ local function order(query, amount)
     end
   end
 
-  if amountLeft > 0 then
-    error("found only: " .. (amount - amountLeft) .. " " .. name .. " (requested: " .. amount .. ")")
-  end
+  -- if amountLeft > 0 then
+  --   error("found only: " .. (amount - amountLeft) .. " " .. name .. " (requested: " .. amount .. ")")
+  -- end
 
   return orders
 end
@@ -335,13 +335,13 @@ elseif command == "capacity" then
 
   print("Capacity: " .. used .. " / " .. capacity .. " slots used (" .. available .. " available)")
 elseif command == "scan" then
-  print("Scanning input slots...")
+  print("Scanning inputs...")
   local input_slots, input_maxCounts = lib.scanItemsLive({}, tbl.keys(Branches.input), true)
 
-  print("Scanning storage slots...")
+  print("Scanning storage...")
   local storage_slots, storage_maxCounts = lib.scanItemsLive({}, tbl.keys(Branches.storage), true)
 
-  print("Scanning output slots...")
+  print("Scanning outputs...")
   local output_slots, output_maxCounts = lib.scanItemsLive({}, tbl.keys(Branches.output), true)
 
   local maxCounts = tbl.merge(input_maxCounts, tbl.merge(storage_maxCounts, output_maxCounts))
