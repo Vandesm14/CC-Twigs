@@ -131,6 +131,58 @@ elseif command == "check" then
 
   print("")
   print("Open check.txt to view full list.")
+elseif command == "head" then
+  local head = 8
+  if arg[2] ~= nil then
+    head = tonumber(arg[2])
+  end
+
+  local csvFile = "transactions.csv"
+
+  if not fs.exists(csvFile) then
+    printError("transactions.csv not found. No transactions recorded yet.")
+    return
+  end
+
+  local file = fs.open(csvFile, "r")
+  if file == nil then
+    printError("Unable to read transactions.csv file.")
+    return
+  end
+
+  -- Read all lines
+  --- @type string[]
+  local lines = {}
+  local line = file.readLine()
+  while line ~= nil do
+    table.insert(lines, line)
+    line = file.readLine()
+  end
+  file.close()
+
+  -- Skip header if present
+  local startIndex = 1
+  if #lines > 0 and lines[1] == "time,label,item,amount,balance" then
+    startIndex = 2
+  end
+
+  -- Get the last transactions
+  local numTransactions = #lines - startIndex + 1
+  local displayCount = math.min(head, numTransactions)
+
+  if displayCount == 0 then
+    print("No transactions found.")
+    return
+  end
+
+  -- Print header
+  print("time,label,item,amount,balance")
+
+  -- Print the last transactions
+  local startLine = #lines - displayCount + 1
+  for i = startLine, #lines do
+    print(lines[i])
+  end
 else
   error("unknown command: " .. command)
 end
