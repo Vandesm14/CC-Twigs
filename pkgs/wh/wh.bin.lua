@@ -64,7 +64,7 @@ elseif command == "order" then
       if amount > count then
         printError("Not enough " .. name .. ", found " .. count)
       else
-        table.insert({ name, amount })
+        table.insert(orders, { name, amount })
       end
     else
       printError("No " .. query .. " found")
