@@ -102,6 +102,9 @@ end
 --- @param maxCounts table<string, number>
 --- @return Order[]
 local function order(query, amount, slots, maxCounts)
+  print("Scanning outputs...")
+  local output_slots, _ = lib.scanItems(tbl.keys(Branches.output), true)
+
   -- Determine if we're doing exact full name match or post-colon match
   local isFullNameQuery = str.contains(query, ":")
 
@@ -130,14 +133,18 @@ local function order(query, amount, slots, maxCounts)
 
   local maxCount = maxCounts[name]
   local amountLeft = amount
-  local output_chest_id = tbl.keys(Branches.output)[1]
-  local output_slot_id = 1
 
   --- @type Order[]
   local orders = {}
 
   print("Calculating orders for " .. name .. " (" .. amount .. ")...")
   while amountLeft > 0 do
+    local output = lib.findEmptySlot(output_slots)
+    if output == nil then
+      print("no more space in output")
+      break
+    end
+
     --- @type Order|nil
     local order = nil
 
@@ -154,8 +161,8 @@ local function order(query, amount, slots, maxCounts)
           item = name,
           count = count,
           from = { chest_id = result.slot.chest_id, slot_id = result.slot.slot_id },
-          to = { chest_id = output_slot_id, slot_id = output_slot_id },
-          actions = Branches.input["_"] .. Branches.storage[result.slot.chest_id] .. Branches.output[output_chest_id],
+          to = { chest_id = output.chest_id, slot_id = output.slot_id },
+          actions = Branches.input["_"] .. Branches.storage[result.slot.chest_id] .. Branches.output[output.chest_id],
           type = "output"
         }
       end
@@ -173,8 +180,8 @@ local function order(query, amount, slots, maxCounts)
           item = name,
           count = count,
           from = { chest_id = result.chest_id, slot_id = result.slot_id },
-          to = { chest_id = output_slot_id, slot_id = output_slot_id },
-          actions = Branches.input["_"] .. Branches.storage[result.chest_id] .. Branches.output[output_chest_id],
+          to = { chest_id = output.chest_id, slot_id = output.slot_id },
+          actions = Branches.input["_"] .. Branches.storage[result.chest_id] .. Branches.output[output.chest_id],
           type = "output"
         }
       end

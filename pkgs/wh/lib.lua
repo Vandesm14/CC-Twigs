@@ -1,4 +1,5 @@
 local tbl = require "lib.table"
+local pretty = require "cc.pretty"
 
 local lib = {}
 
@@ -22,6 +23,14 @@ function lib.chestID(name)
   end
 
   return nil
+end
+
+--- Chest ID = `minecraft:barrel_{id}`
+--- comment
+--- @param id number
+--- @return string
+function lib.expandChestID(id)
+  return "minecraft:barrel_" .. id
 end
 
 --- @param filter number[]|nil Filter chest IDs.
@@ -190,6 +199,22 @@ end
 --- @param slots Record[]
 --- @param order Order
 function lib.applyOrder(slots, order)
+  local chest = peripheral.wrap(lib.expandChestID(order.to.chest_id))
+  if chest ~= nil then
+    local success, _ = pcall(
+      chest.pullItems,
+      lib.expandChestID(order.from.chest_id),
+      order.from.slot_id,
+      order.count,
+      order.to.slot_id
+    )
+    if not success then
+      error("trx failed: " .. pretty.render(pretty.pretty(order)))
+    end
+  else
+    error("failed to find chest: " .. lib.expandChestID(order.to.chest_id))
+  end
+
   if order.type == "input" then
     for i, record in pairs(slots) do
       if record.chest_id == order.to.chest_id and record.slot_id == order.to.slot_id then

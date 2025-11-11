@@ -75,45 +75,8 @@ function Walker:pullFromChest()
 
   --- @cast chest ccTweaked.peripherals.Inventory
   if chest ~= nil then
-    if self.order.from.slot_id == 1 then
-      turtle.select(1)
-      turtle.suckDown(self.order.count)
-    else
-      local purgeFirstSlot = chest.getItemDetail(1) ~= nil
-
-      if purgeFirstSlot then
-        turtle.select(2)
-        turtle.suckDown()
-      end
-
-      -- Move the target item to the first slot of the chest
-      local success, _ = pcall(
-        chest.pullItems,
-        "bottom",
-        self.order.from.slot_id,
-        self.order.count,
-        1
-      )
-
-      if not success then
-        error("failed to pull items")
-      end
-
-      -- Select our first slot
-      turtle.select(1)
-      -- Suck our intented item from the first slot of the chest
-      turtle.suckDown(self.order.count)
-
-      if purgeFirstSlot then
-        -- Select our second slot
-        turtle.select(2)
-        -- Drop the junk item back into the chest
-        turtle.dropDown()
-
-        -- Select our first slot with our item
-        turtle.select(1)
-      end
-    end
+    turtle.select(1)
+    turtle.suckDown(self.order.count)
   end
 
   local details = turtle.getItemDetail(1)
@@ -128,46 +91,15 @@ function Walker:pushToChest()
 
   --- @cast chest ccTweaked.peripherals.Inventory
   if chest ~= nil then
-    if self.order.to.slot_id == 1 then
-      -- Case 1: Target is slot 1, just drop directly
-      turtle.select(1)
-      turtle.dropDown()
-    else
-      -- Case 2/3: Target is not slot 1, need to use slot 1 as staging area
-      local slot1Occupied = chest.getItemDetail(1) ~= nil
+    -- Case 1: Target is slot 1, just drop directly
+    turtle.select(1)
+    turtle.dropDown()
+  end
 
-      if slot1Occupied then
-        -- Case 3: Save slot 1 contents to turtle slot 2
-        turtle.select(2)
-        turtle.suckDown()
-      end
-
-      -- Select our inventory slot 1 with the item to deposit
-      turtle.select(1)
-      -- Drop the item (into slot 1 of chest)
-      turtle.dropDown()
-      -- Move the item from slot 1 to the target slot (enables stacking!)
-      local success, _ = pcall(
-        chest.pushItems,
-        "bottom",
-        1,
-        self.order.count,
-        self.order.to.slot_id
-      )
-
-      if not success then
-        error("failed to push items")
-      end
-
-      if slot1Occupied then
-        -- Case 3: Restore original slot 1 contents from turtle slot 2
-        turtle.select(2)
-        turtle.dropDown()
-      end
-
-      -- Select our inventory slot 1 to maintain state
-      turtle.select(1)
-    end
+  local details = turtle.getItemDetail(1)
+  if details ~= nil then
+    turtle.up()
+    error("failed to drop, still have " .. self.order.item .. " " .. self.order.count)
   end
 end
 
@@ -239,13 +171,15 @@ function Walker:step()
     turtle.dropDown()
     self:assertEmpty("After dropping to destination (action 'o')")
   elseif self.action == "c" then
-    if self.order.type == "input" then
-      self:pushToChest()
-      self:assertEmpty("After dropping to storage (input order, action 'c')")
-    elseif self.order.type == "output" then
-      self:pullFromChest()
-    else
-      error("invalid order type: " .. self.order.type)
+    if self.order.count > 0 then
+      if self.order.type == "input" then
+        self:pushToChest()
+        self:assertEmpty("After dropping to storage (input order, action 'c')")
+      elseif self.order.type == "output" then
+        self:pullFromChest()
+      else
+        error("invalid order type: " .. self.order.type)
+      end
     end
   elseif self.action == "x" then
     checkFuel()
