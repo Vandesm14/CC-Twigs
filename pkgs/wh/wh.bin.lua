@@ -22,23 +22,53 @@ local function countItems(items, table)
   end
 end
 
-local usage = "Usage: " .. arg[0] .. " <order|ls|capacity|export|defrag>\n" ..
+local usage = "Usage: " .. arg[0] .. " <order|ls|capacity|scan|defrag>\n" ..
     "  ls [search]           - List items, optionally filter by substring\n" ..
     "  order <item> <amt> [<item> <amt> ...] - Order items (use short name like 'cobblestone' or full like 'minecraft:cobblestone'). Amount is required.\n" ..
-    "  export                - Export input, storage, and output slot lists to slots.json\n" ..
+    "  scan                  - Scan and update cache (slots.json) for input, storage, and output slots\n" ..
     "  defrag                - Find items with 2+ partial stacks that can be consolidated"
 local command = arg[1]
 
 rednet.open("back")
 
+-- Initialize cache if it doesn't exist
+if not fs.exists("slots.json") then
+  print("Cache not found. Running initial scan...")
+  print("Scanning input slots...")
+  local input_slots, input_maxCounts = lib.scanItemsLive(tbl.keys(Branches.input), true)
+
+  print("Scanning storage slots...")
+  local storage_slots, storage_maxCounts = lib.scanItemsLive(tbl.keys(Branches.storage), true)
+
+  print("Scanning output slots...")
+  local output_slots, output_maxCounts = lib.scanItemsLive(tbl.keys(Branches.output), true)
+
+  local maxCounts = tbl.merge(input_maxCounts, tbl.merge(storage_maxCounts, output_maxCounts))
+
+  local cache = {
+    input = input_slots,
+    storage = storage_slots,
+    output = output_slots,
+    maxCounts = maxCounts
+  }
+  lib.saveCache(cache)
+  print("Initial cache created successfully (slots.json)")
+  print("")
+end
+
+-- Load cache globally
+local cache = lib.loadCache()
+
 --- @return Order[]
 local function pull()
-  print("Scanning storage...")
-  local storage_slots, storage_maxCounts = lib.scanItems(tbl.keys(Branches.storage), true)
+  local storage_slots = cache.storage
+  local maxCounts = cache.maxCounts
 
   print("Scanning inputs...")
-  local input_slots, input_maxCounts = lib.scanItems(tbl.keys(Branches.input))
-  local maxCounts = tbl.merge(storage_maxCounts, input_maxCounts)
+  local input_slots, input_maxCounts = lib.scanItemsLive(tbl.keys(Branches.input))
+  maxCounts = tbl.merge(maxCounts, input_maxCounts)
+  cache.input = input_slots
+  cache.maxCounts = tbl.merge(maxCounts, input_maxCounts)
 
   --- @type Order[]
   local orders = {}
@@ -85,25 +115,25 @@ local function pull()
 
       if order ~= nil then
         table.insert(orders, order)
-        lib.applyOrder(storage_slots, order)
+        lib.applyOrder(cache, order)
         item.count = item.count - order.count
       end
     end
   end
-
-  print("Done.")
 
   return orders
 end
 
 --- @param query string
 --- @param amount number
---- @param slots Record[]
---- @param maxCounts table<string, number>
 --- @return Order[]
-local function order(query, amount, slots, maxCounts)
+local function order(query, amount)
   print("Scanning outputs...")
-  local output_slots, _ = lib.scanItems(tbl.keys(Branches.output), true)
+  local output_slots, _ = lib.scanItemsLive(tbl.keys(Branches.output), true)
+  cache.output = output_slots
+
+  local slots = cache.storage
+  local maxCounts = cache.maxCounts
 
   -- Determine if we're doing exact full name match or post-colon match
   local isFullNameQuery = str.contains(query, ":")
@@ -189,7 +219,7 @@ local function order(query, amount, slots, maxCounts)
 
     if order ~= nil then
       table.insert(orders, order)
-      lib.applyOrder(slots, order)
+      lib.applyOrder(cache, order)
       amountLeft = amountLeft - order.count
     else
       break
@@ -215,9 +245,9 @@ elseif command == "ls" then
   local lines = {}
   local items = {}
 
-  -- Scan each chest for items, until we hit the end-stop
+  -- Load storage from cache
   --- @diagnostic disable-next-line: param-type-mismatch
-  countItems(lib.scanItems(tbl.keys(Branches.storage)), items)
+  countItems(cache.storage, items)
 
   if query ~= nil and type(query) == "string" then
     table.insert(lines, "Items (filtered by '" .. query .. "'):")
@@ -248,10 +278,8 @@ elseif command == "ls" then
 elseif command == "pull" then
   local orders = pull()
 
-  print("Queueing orders...")
-  local queue = Queue:new(orders)
-  queue:run()
-
+  -- Save updated cache
+  lib.saveCache(cache)
   print("Done.")
 elseif command == "order" then
   if arg[2] == nil then
@@ -260,9 +288,6 @@ elseif command == "order" then
     printError("At least one item and amount must be provided")
     return
   end
-
-  print("Scanning storage...")
-  local slots, maxCounts = lib.scanItems(tbl.keys(Branches.storage))
 
   --- @type Order[]
   local allOrders = {}
@@ -285,24 +310,23 @@ elseif command == "order" then
       return
     end
 
-    local orders = order(query, amount, slots, maxCounts)
-    for _, order in pairs(orders) do
-      table.insert(allOrders, order)
+    local orders = order(query, amount)
+    for _, ord in pairs(orders) do
+      table.insert(allOrders, ord)
     end
 
     i = i + 2
   end
 
-  print("Queueing orders...")
-  local queue = Queue:new(allOrders)
-  queue:run()
+  -- Save updated cache
+  lib.saveCache(cache)
   print("Done.")
 elseif command == "capacity" then
   local capacity = 0
   local used = 0
 
   --- @diagnostic disable-next-line: param-type-mismatch
-  for _, slot in pairs(lib.scanItems(tbl.keys(Branches.storage), true)) do
+  for _, slot in pairs(cache.storage) do
     capacity = capacity + 1
     if slot.count > 0 then
       used = used + 1
@@ -312,37 +336,28 @@ elseif command == "capacity" then
   local available = capacity - used
 
   print("Capacity: " .. used .. " / " .. capacity .. " slots used (" .. available .. " available)")
-elseif command == "export" then
+elseif command == "scan" then
   print("Scanning input slots...")
-  local input_slots, input_maxCounts = lib.scanItems(tbl.keys(Branches.input))
+  local input_slots, input_maxCounts = lib.scanItemsLive(tbl.keys(Branches.input), true)
 
   print("Scanning storage slots...")
-  local storage_slots, storage_maxCounts = lib.scanItems(tbl.keys(Branches.storage))
+  local storage_slots, storage_maxCounts = lib.scanItemsLive(tbl.keys(Branches.storage), true)
 
   print("Scanning output slots...")
-  local output_slots, output_maxCounts = lib.scanItems(tbl.keys(Branches.output))
+  local output_slots, output_maxCounts = lib.scanItemsLive(tbl.keys(Branches.output), true)
 
   local maxCounts = tbl.merge(input_maxCounts, tbl.merge(storage_maxCounts, output_maxCounts))
 
-  local slots = {
-    input = input_slots,
-    storage = storage_slots,
-    output = output_slots,
-    maxCounts = maxCounts
-  }
+  cache.input = input_slots
+  cache.storage = storage_slots
+  cache.output = output_slots
+  cache.maxCounts = maxCounts
 
-  local json = textutils.serializeJSON(slots, false)
-  local file = fs.open("slots.json", "w")
-  if file ~= nil then
-    file.write(json)
-    file.close()
-    print("Exported slots to slots.json")
-  else
-    printError("Unable to create slots.json file.")
-  end
+  lib.saveCache(cache)
+  print("Cache updated successfully (slots.json)")
 elseif command == "check" then
-  print("Scanning storage slots...")
-  local storage_slots, maxCounts = lib.scanItems(tbl.keys(Branches.storage))
+  local storage_slots = cache.storage
+  local maxCounts = cache.maxCounts
 
   local file = fs.open("check.txt", "w")
   local lines = {}

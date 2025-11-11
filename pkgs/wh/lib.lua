@@ -4,6 +4,7 @@ local pretty = require "cc.pretty"
 local lib = {}
 
 --- @alias Record { name: string, nbt: string, count: number, chest_id: number, slot_id: number }
+--- @alias Cache { input: Record[], storage: Record[], output: Record[], maxCounts: table<string, number> }
 
 --- @alias StatusMessage { type: `status`, value: { name: string, fuel: number } }
 --- @alias AvailMessage { type: `avail`, value: nil }
@@ -33,10 +34,11 @@ function lib.expandChestID(id)
   return "minecraft:barrel_" .. id
 end
 
+--- Performs live scanning of peripherals
 --- @param filter number[]|nil Filter chest IDs.
 --- @param empty boolean|nil Whether to include empty slots
 --- @return table<number, Record>, table<string, number>
-function lib.scanItems(filter, empty)
+function lib.scanItemsLive(filter, empty)
   --- @type table<number, Record>
   local records = {}
   --- @type table<string, number>
@@ -124,6 +126,46 @@ function lib.scanItems(filter, empty)
   return records, maxCounts
 end
 
+--- Saves cache data to slots.json
+--- @param cache Cache
+function lib.saveCache(cache)
+  local json = textutils.serializeJSON(cache, false)
+  local file = fs.open("slots.json", "w")
+  if file ~= nil then
+    file.write(json)
+    file.close()
+  else
+    error("Unable to create slots.json file.")
+  end
+
+  print("cache saved.")
+end
+
+--- Loads entire cache data from slots.json
+--- @return Cache
+function lib.loadCache()
+  if not fs.exists("slots.json") then
+    error("Cache file slots.json not found. Please run 'wh scan' first.")
+  end
+
+  local file = fs.open("slots.json", "r")
+  if file == nil then
+    error("Unable to read slots.json file.")
+  end
+
+  local content = file.readAll()
+  file.close()
+
+  local cache = textutils.unserializeJSON(content)
+  if cache == nil then
+    error("Invalid slots.json format.")
+  end
+
+  print("cache loaded.")
+
+  return cache
+end
+
 --- @param maxCount number
 --- @param slots Record[]
 --- @param item Record
@@ -196,9 +238,9 @@ function lib.findFullSlot(maxCount, slots, item)
   return nil
 end
 
---- @param slots Record[]
+--- @param cache Cache
 --- @param order Order
-function lib.applyOrder(slots, order)
+function lib.applyOrder(cache, order)
   local chest = peripheral.wrap(lib.expandChestID(order.to.chest_id))
   if chest ~= nil then
     local success, _ = pcall(
@@ -215,26 +257,34 @@ function lib.applyOrder(slots, order)
     error("failed to find chest: " .. lib.expandChestID(order.to.chest_id))
   end
 
+  --- @type Record[]|nil
+  local from = nil
+  --- @type Record[]|nil
+  local to = nil
   if order.type == "input" then
-    for i, record in pairs(slots) do
-      if record.chest_id == order.to.chest_id and record.slot_id == order.to.slot_id then
-        local record = slots[i]
-        if record ~= nil then
-          record.count = record.count + order.count
-          record.name  = order.item
-        end
-        return
+    from = cache.input
+    to = cache.storage
+  elseif order.type == "output" then
+    from = cache.storage
+    to = cache.output
+  end
+
+  if from ~= nil and to ~= nil then
+    for _, record in pairs(from) do
+      if record.chest_id == order.from.chest_id and record.slot_id == order.from.slot_id then
+        print("from: " .. order.from.chest_id .. " " .. order.from.slot_id .. " (" .. -order.count .. ")")
+        record.count = record.count - order.count
+        record.name  = order.item
+        break
       end
     end
-  elseif order.type == "output" then
-    for i, record in pairs(slots) do
-      if record.chest_id == order.from.chest_id and record.slot_id == order.from.slot_id then
-        local record = slots[i]
-        if record ~= nil then
-          record.count = record.count - order.count
-          record.name  = order.item
-        end
-        return
+
+    for _, record in pairs(to) do
+      if record.chest_id == order.to.chest_id and record.slot_id == order.to.slot_id then
+        print("to: " .. order.to.chest_id .. " " .. order.to.slot_id .. " (" .. order.count .. ")")
+        record.count = record.count + order.count
+        record.name  = order.item
+        break
       end
     end
   end
