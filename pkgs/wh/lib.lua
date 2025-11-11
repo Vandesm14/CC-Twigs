@@ -94,7 +94,7 @@ function lib.saveCache(cache)
     error("Unable to create slots.json file.")
   end
 
-  print("cache saved.")
+  print("Cache saved.")
 end
 
 --- Loads entire cache data from slots.json
@@ -122,7 +122,7 @@ function lib.loadCache()
     cache.counts = {}
   end
 
-  print("cache loaded.")
+  print("Cache loaded.")
 
   return cache
 end
