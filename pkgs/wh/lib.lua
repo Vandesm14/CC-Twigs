@@ -349,20 +349,13 @@ end
 
 --- @param cache Cache
 --- @param query string
---- @param amount number
---- @return boolean success
-function lib.order(cache, query, amount)
-  local storage_slots = cache.storage
-  local maxCounts = cache.maxCounts
-
-  local output_slots, _ = lib.scanItems(maxCounts, branches.output)
-  cache.output = output_slots
-
+--- @return string|nil
+function lib.matchQuery(cache, query)
   -- Determine if we're doing exact full name match or post-colon match
   local isFullNameQuery = str.contains(query, ":")
 
   local name = nil
-  for _, key in pairs(tbl.keys(maxCounts)) do
+  for _, key in pairs(tbl.keys(cache.maxCounts)) do
     if name ~= nil then
       break
     end
@@ -380,10 +373,19 @@ function lib.order(cache, query, amount)
     end
   end
 
-  if name == nil then
-    printError("No matches for \"" .. query .. "\"")
-    return false
-  end
+  return name
+end
+
+--- @param cache Cache
+--- @param name string
+--- @param amount number
+--- @return boolean success
+function lib.order(cache, name, amount)
+  local storage_slots = cache.storage
+  local maxCounts = cache.maxCounts
+
+  local output_slots, _ = lib.scanItems(maxCounts, branches.output)
+  cache.output = output_slots
 
   local maxCount = maxCounts[name]
   local amountLeft = amount

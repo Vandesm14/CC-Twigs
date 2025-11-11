@@ -36,6 +36,9 @@ elseif command == "order" then
     return
   end
 
+  --- @type [string, number][]
+  local orders = {}
+
   local i = 2
   while i <= #arg do
     local query = arg[i]
@@ -55,10 +58,27 @@ elseif command == "order" then
       return
     end
 
-    lib.order(cache, query, amount)
+    local name = lib.matchQuery(cache, query)
+    if name ~= nil then
+      local count = lib.countItem(cache, name)
+      if amount > count then
+        printError("Not enough " .. name .. ", found " .. count)
+      else
+        table.insert({ name, amount })
+      end
+    else
+      printError("No " .. query .. " found")
+    end
 
     i = i + 2
   end
+
+  for _, order in pairs(orders) do
+    if not lib.order(cache, order[1], order[2]) then
+      break
+    end
+  end
+
   lib.saveCache(cache)
   print("Done.")
 elseif command == "capacity" then
