@@ -1,7 +1,5 @@
 local pretty = require "cc.pretty"
-local Order = require "wh.order"
 local lib = require "wh.lib"
-local Queue = require "wh.queue"
 local tbl = require "lib.table"
 local str = require "lib.str"
 local Branches = require "wh.branches"
