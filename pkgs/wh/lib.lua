@@ -40,19 +40,6 @@ function lib.scanItems(maxCounts, filter, empty)
   --- @type table<number, Record>
   local records = {}
 
-  -- Load cached maxCounts from file if it exists
-  if fs.exists("maxcount.lua") then
-    local file = fs.open("maxcount.lua", "r")
-    if file ~= nil then
-      local content = file.readAll()
-      file.close()
-      local loaded = textutils.unserialize(content)
-      if loaded ~= nil and type(loaded) == "table" then
-        maxCounts = loaded
-      end
-    end
-  end
-
   local names = peripheral.getNames()
   for _, name in pairs(names) do
     local chest = peripheral.wrap(name)
@@ -110,13 +97,6 @@ function lib.scanItems(maxCounts, filter, empty)
         end
       end
     end
-  end
-
-  -- Save maxCounts to file
-  local file = fs.open("maxcount.lua", "w")
-  if file ~= nil then
-    file.write(textutils.serialize(maxCounts))
-    file.close()
   end
 
   return records, maxCounts
@@ -520,14 +500,16 @@ end
 
 --- @param cache Cache
 function lib.scanAll(cache)
+  local maxCounts = cache.maxCounts
+
   print("Scanning inputs...")
-  local input_slots, input_maxCounts = lib.scanItems({}, branches.input, true)
+  local input_slots, input_maxCounts = lib.scanItems(maxCounts, branches.input, true)
 
   print("Scanning storage...")
-  local storage_slots, storage_maxCounts = lib.scanItems({}, branches.storage, true)
+  local storage_slots, storage_maxCounts = lib.scanItems(maxCounts, branches.storage, true)
 
   print("Scanning outputs...")
-  local output_slots, output_maxCounts = lib.scanItems({}, branches.output, true)
+  local output_slots, output_maxCounts = lib.scanItems(maxCounts, branches.output, true)
 
   local maxCounts = tbl.merge(input_maxCounts, tbl.merge(storage_maxCounts, output_maxCounts))
 
