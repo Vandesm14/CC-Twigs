@@ -72,7 +72,10 @@ function lib.scanItems(maxCounts, filter, empty)
               })
 
               if maxCounts[item.name] == nil then
-                maxCounts[item.name] = chest.getItemLimit(slot_id)
+                local detail = chest.getItemDetail(slot_id)
+                if detail ~= nil then
+                  maxCounts[item.name] = detail.maxCount
+                end
               end
             end
           else
@@ -88,7 +91,10 @@ function lib.scanItems(maxCounts, filter, empty)
                 })
 
                 if maxCounts[item.name] == nil then
-                  maxCounts[item.name] = chest.getItemLimit(slot_id)
+                  local detail = chest.getItemDetail(slot_id)
+                  if detail ~= nil then
+                    maxCounts[item.name] = detail.maxCount
+                  end
                 end
               else
                 table.insert(records, {
