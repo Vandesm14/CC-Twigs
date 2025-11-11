@@ -35,13 +35,13 @@ rednet.open("back")
 if not fs.exists("slots.json") then
   print("Cache not found. Running initial scan...")
   print("Scanning input slots...")
-  local input_slots, input_maxCounts = lib.scanItemsLive(tbl.keys(Branches.input), true)
+  local input_slots, input_maxCounts = lib.scanItemsLive({}, tbl.keys(Branches.input), true)
 
   print("Scanning storage slots...")
-  local storage_slots, storage_maxCounts = lib.scanItemsLive(tbl.keys(Branches.storage), true)
+  local storage_slots, storage_maxCounts = lib.scanItemsLive({}, tbl.keys(Branches.storage), true)
 
   print("Scanning output slots...")
-  local output_slots, output_maxCounts = lib.scanItemsLive(tbl.keys(Branches.output), true)
+  local output_slots, output_maxCounts = lib.scanItemsLive({}, tbl.keys(Branches.output), true)
 
   local maxCounts = tbl.merge(input_maxCounts, tbl.merge(storage_maxCounts, output_maxCounts))
 
@@ -336,13 +336,13 @@ elseif command == "capacity" then
   print("Capacity: " .. used .. " / " .. capacity .. " slots used (" .. available .. " available)")
 elseif command == "scan" then
   print("Scanning input slots...")
-  local input_slots, input_maxCounts = lib.scanItemsLive(tbl.keys(Branches.input), true)
+  local input_slots, input_maxCounts = lib.scanItemsLive({}, tbl.keys(Branches.input), true)
 
   print("Scanning storage slots...")
-  local storage_slots, storage_maxCounts = lib.scanItemsLive(tbl.keys(Branches.storage), true)
+  local storage_slots, storage_maxCounts = lib.scanItemsLive({}, tbl.keys(Branches.storage), true)
 
   print("Scanning output slots...")
-  local output_slots, output_maxCounts = lib.scanItemsLive(tbl.keys(Branches.output), true)
+  local output_slots, output_maxCounts = lib.scanItemsLive({}, tbl.keys(Branches.output), true)
 
   local maxCounts = tbl.merge(input_maxCounts, tbl.merge(storage_maxCounts, output_maxCounts))
 
