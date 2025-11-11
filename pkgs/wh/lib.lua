@@ -340,7 +340,6 @@ function lib.pull(cache)
         if not lib.applyOrder(cache, order) then
           return false
         end
-        item.count = item.count - order.count
       end
     end
   end
