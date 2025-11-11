@@ -581,7 +581,7 @@ function lib.logTransaction(order, cache)
   end
 
   -- Get current time (Unix timestamp)
-  local time = os.time("utc")
+  local time = os.date("%c", os.epoch("utc") / 1000)
 
   -- Get computer label (or ID if no label)
   local label = os.getComputerLabel()
