@@ -4,7 +4,7 @@
 --- @field output number[]
 local branches = {
   input = { 1 },
-  storage = { 0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, },
+  storage = { 0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 23, 24, 25 },
   output = { 18 },
 }
 
