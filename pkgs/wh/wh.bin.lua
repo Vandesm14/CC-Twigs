@@ -33,13 +33,13 @@ rednet.open("back")
 if not fs.exists("slots.json") then
   print("Cache not found. Running initial scan...")
   print("Scanning inputs...")
-  local input_slots, input_maxCounts = lib.scanItems({}, tbl.keys(Branches.input), true)
+  local input_slots, input_maxCounts = lib.scanItems({}, Branches.input, true)
 
   print("Scanning storage...")
-  local storage_slots, storage_maxCounts = lib.scanItems({}, tbl.keys(Branches.storage), true)
+  local storage_slots, storage_maxCounts = lib.scanItems({}, Branches.storage, true)
 
   print("Scanning outputs...")
-  local output_slots, output_maxCounts = lib.scanItems({}, tbl.keys(Branches.output), true)
+  local output_slots, output_maxCounts = lib.scanItems({}, Branches.output, true)
 
   local maxCounts = tbl.merge(input_maxCounts, tbl.merge(storage_maxCounts, output_maxCounts))
 
@@ -63,7 +63,7 @@ local function pull()
   local maxCounts = cache.maxCounts
 
   print("Scanning inputs...")
-  local input_slots, _ = lib.scanItems(maxCounts, tbl.keys(Branches.input))
+  local input_slots, _ = lib.scanItems(maxCounts, Branches.input)
   cache.input = input_slots
 
   --- @type Order[]
@@ -89,7 +89,6 @@ local function pull()
             count = count,
             from = { chest_id = item.chest_id, slot_id = item.slot_id },
             to = { chest_id = result.slot.chest_id, slot_id = result.slot.slot_id },
-            actions = Branches.input[item.chest_id] .. Branches.storage[result.slot.chest_id] .. Branches.output["_"],
             type = "input"
           }
         end
@@ -103,7 +102,6 @@ local function pull()
             count = item.count,
             from = { chest_id = item.chest_id, slot_id = item.slot_id },
             to = { chest_id = result.chest_id, slot_id = result.slot_id },
-            actions = Branches.input[item.chest_id] .. Branches.storage[result.chest_id] .. Branches.output["_"],
             type = "input"
           }
         end
@@ -128,7 +126,7 @@ local function order(query, amount)
   local maxCounts = cache.maxCounts
 
   print("Scanning outputs...")
-  local output_slots, _ = lib.scanItems(maxCounts, tbl.keys(Branches.output), true)
+  local output_slots, _ = lib.scanItems(maxCounts, Branches.output, true)
   cache.output = output_slots
 
   -- Determine if we're doing exact full name match or post-colon match
@@ -188,7 +186,6 @@ local function order(query, amount)
           count = count,
           from = { chest_id = result.slot.chest_id, slot_id = result.slot.slot_id },
           to = { chest_id = output.chest_id, slot_id = output.slot_id },
-          actions = Branches.input["_"] .. Branches.storage[result.slot.chest_id] .. Branches.output[output.chest_id],
           type = "output"
         }
       end
@@ -207,7 +204,6 @@ local function order(query, amount)
           count = count,
           from = { chest_id = result.chest_id, slot_id = result.slot_id },
           to = { chest_id = output.chest_id, slot_id = output.slot_id },
-          actions = Branches.input["_"] .. Branches.storage[result.chest_id] .. Branches.output[output.chest_id],
           type = "output"
         }
       end
@@ -332,13 +328,13 @@ elseif command == "capacity" then
   print("Capacity: " .. used .. " / " .. capacity .. " slots used (" .. available .. " available)")
 elseif command == "scan" or command == nil then
   print("Scanning inputs...")
-  local input_slots, input_maxCounts = lib.scanItems({}, tbl.keys(Branches.input), true)
+  local input_slots, input_maxCounts = lib.scanItems({}, Branches.input, true)
 
   print("Scanning storage...")
-  local storage_slots, storage_maxCounts = lib.scanItems({}, tbl.keys(Branches.storage), true)
+  local storage_slots, storage_maxCounts = lib.scanItems({}, Branches.storage, true)
 
   print("Scanning outputs...")
-  local output_slots, output_maxCounts = lib.scanItems({}, tbl.keys(Branches.output), true)
+  local output_slots, output_maxCounts = lib.scanItems({}, Branches.output, true)
 
   local maxCounts = tbl.merge(input_maxCounts, tbl.merge(storage_maxCounts, output_maxCounts))
 
