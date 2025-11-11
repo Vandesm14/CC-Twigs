@@ -450,4 +450,116 @@ function lib.order(cache, query, amount)
   end
 end
 
+--- @param items Record[]
+--- @param table table
+local function countItems(items, table)
+  -- Run through each item in the chest
+  for _, item in pairs(items) do
+    local name, count = item.name, item.count
+
+    -- Update or set the entry
+    if table[name] ~= nil then
+      table[name] = table[name] + count
+    else
+      table[name] = count
+    end
+  end
+end
+
+--- @param cache Cache
+--- @param query string|nil
+--- @return string[]
+function lib.ls(cache, query)
+  local lines = {}
+  local items = {}
+
+  -- Load storage from cache
+  --- @diagnostic disable-next-line: param-type-mismatch
+  countItems(cache.storage, items)
+
+  if query ~= nil and type(query) == "string" then
+    table.insert(lines, "Items (filtered by '" .. query .. "'):")
+  else
+    table.insert(lines, "Items:")
+  end
+  for name, count in pairs(items) do
+    if query ~= nil and type(query) == "string" then
+      if string.find(name, query) ~= nil then
+        table.insert(lines, name .. ": " .. count)
+      end
+    else
+      table.insert(lines, name .. ": " .. count)
+    end
+  end
+
+  return lines
+end
+
+--- Returns the total and used capacity (total, used).
+--- @return number
+--- @return number
+function lib.capacity(cache)
+  local total = 0
+  local used = 0
+
+  --- @diagnostic disable-next-line: param-type-mismatch
+  for _, slot in pairs(cache.storage) do
+    total = total + 1
+    if slot.count > 0 then
+      used = used + 1
+    end
+  end
+
+  return total, used
+end
+
+--- @param cache Cache
+function lib.scanAll(cache)
+  print("Scanning inputs...")
+  local input_slots, input_maxCounts = lib.scanItems({}, branches.input, true)
+
+  print("Scanning storage...")
+  local storage_slots, storage_maxCounts = lib.scanItems({}, branches.storage, true)
+
+  print("Scanning outputs...")
+  local output_slots, output_maxCounts = lib.scanItems({}, branches.output, true)
+
+  local maxCounts = tbl.merge(input_maxCounts, tbl.merge(storage_maxCounts, output_maxCounts))
+
+  cache.input = input_slots
+  cache.storage = storage_slots
+  cache.output = output_slots
+  cache.maxCounts = maxCounts
+end
+
+--- @return Cache
+function lib.loadOrInitCache()
+  -- Initialize cache if it doesn't exist
+  if not fs.exists("slots.json") then
+    print("Cache not found. Running initial scan...")
+    print("Scanning inputs...")
+    local input_slots, input_maxCounts = lib.scanItems({}, branches.input, true)
+
+    print("Scanning storage...")
+    local storage_slots, storage_maxCounts = lib.scanItems({}, branches.storage, true)
+
+    print("Scanning outputs...")
+    local output_slots, output_maxCounts = lib.scanItems({}, branches.output, true)
+
+    local maxCounts = tbl.merge(input_maxCounts, tbl.merge(storage_maxCounts, output_maxCounts))
+
+    local cache = {
+      input = input_slots,
+      storage = storage_slots,
+      output = output_slots,
+      maxCounts = maxCounts
+    }
+    lib.saveCache(cache)
+    print("Initial cache created successfully (slots.json)")
+    print("")
+  end
+
+  return lib.loadCache()
+end
+
 return lib
