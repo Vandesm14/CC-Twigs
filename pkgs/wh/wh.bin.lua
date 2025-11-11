@@ -231,10 +231,8 @@ local function order(query, amount)
   return orders
 end
 
-if command == nil then
-  printError(usage)
-  printError()
-  printError("Command must be provided.")
+if command == "help" then
+  print(usage)
   return
 elseif command == "ls" then
   local query = arg[2]
@@ -334,7 +332,7 @@ elseif command == "capacity" then
   local available = capacity - used
 
   print("Capacity: " .. used .. " / " .. capacity .. " slots used (" .. available .. " available)")
-elseif command == "scan" then
+elseif command == "scan" or command == nil then
   print("Scanning inputs...")
   local input_slots, input_maxCounts = lib.scanItemsLive({}, tbl.keys(Branches.input), true)
 
