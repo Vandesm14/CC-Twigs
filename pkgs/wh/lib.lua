@@ -292,8 +292,8 @@ function lib.applyOrder(cache, order)
   end
 
   if from ~= nil and to ~= nil then
-    print("from: " .. order.from.chest_id .. " " .. order.from.slot_id .. " (" .. -order.count .. ")")
-    print("to: " .. order.to.chest_id .. " " .. order.to.slot_id .. " (" .. order.count .. ")")
+    -- print("from: " .. order.from.chest_id .. " " .. order.from.slot_id .. " (" .. -order.count .. ")")
+    -- print("to: " .. order.to.chest_id .. " " .. order.to.slot_id .. " (" .. order.count .. ")")
     from.count = from.count - order.count
     to.count = to.count + order.count
     to.name = order.item
