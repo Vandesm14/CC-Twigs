@@ -6,7 +6,7 @@ local str = require "lib.str"
 local lib = {}
 
 --- @alias Record { name: string, nbt: string, count: number, chest_id: number, slot_id: number }
---- @alias Cache { input: Record[], storage: Record[], output: Record[], maxCounts: table<string, number> }
+--- @alias Cache { input: Record[], storage: Record[], output: Record[], maxCounts: table<string, number>, counts: table<string, number> }
 
 --- Chest ID = `minecraft:barrel_{id}`
 --- comment
@@ -135,6 +135,11 @@ function lib.loadCache()
   local cache = textutils.unserializeJSON(content)
   if cache == nil then
     error("Invalid slots.json format.")
+  end
+
+  -- Initialize counts if cache doesn't have them (for backward compatibility)
+  if cache.counts == nil then
+    cache.counts = {}
   end
 
   print("cache loaded.")
@@ -274,8 +279,18 @@ function lib.applyOrder(cache, order)
     to.count = to.count + order.count
     to.name = order.item
 
-    -- Log transaction to CSV (only for transactions involving storage)
+    -- Update counts in cache (only for transactions involving storage)
     if order.type == "input" or order.type == "output" then
+      -- Initialize counts if it doesn't exist
+      if cache.counts == nil then
+        cache.counts = {}
+      end
+
+      -- Update count for the item (keep 0 values to track removals)
+      local currentCount = lib.countItem(cache.storage, order.item)
+      cache.counts[order.item] = currentCount
+
+      -- Log transaction to CSV
       lib.logTransaction(order, cache)
     end
   else
@@ -517,6 +532,23 @@ function lib.scanAll(cache)
   cache.storage = storage_slots
   cache.output = output_slots
   cache.maxCounts = maxCounts
+
+  -- Initialize counts if it doesn't exist
+  if cache.counts == nil then
+    cache.counts = {}
+  end
+
+  -- Count tracking: compare with cached counts and log differences
+  local currentCounts = lib.getAllCounts(cache)
+  local savedCounts = cache.counts
+
+  -- Compare and log differences as "unaccounted" transactions
+  if savedCounts ~= nil and next(savedCounts) ~= nil then
+    lib.logCountDifferences(currentCounts, savedCounts, cache)
+  end
+
+  -- Update cache counts with current counts
+  cache.counts = currentCounts
 end
 
 --- @return Cache
@@ -541,7 +573,13 @@ function lib.loadOrInitCache()
       output = output_slots,
       maxCounts = maxCounts
     }
+
+    -- Count tracking: initialize counts
+    local currentCounts = lib.getAllCounts(cache)
+    cache.counts = currentCounts
+
     lib.saveCache(cache)
+
     print("Initial cache created successfully (slots.json)")
     print("")
   end
@@ -602,6 +640,64 @@ function lib.logTransaction(order, cache)
   file.writeLine(time .. "," .. label .. "," .. order.item .. "," .. amount .. "," .. balance)
 
   file.close()
+end
+
+--- Gets all item counts from storage
+--- @param cache Cache
+--- @return table<string, number>
+function lib.getAllCounts(cache)
+  local items = {}
+  --- @diagnostic disable-next-line: param-type-mismatch
+  countItems(cache.storage, items)
+  return items
+end
+
+--- Compares current counts with saved counts and logs differences as transactions
+--- @param currentCounts table<string, number>
+--- @param savedCounts table<string, number>
+--- @param cache Cache
+function lib.logCountDifferences(currentCounts, savedCounts, cache)
+  local csvFile = "transactions.csv"
+  local fileExists = fs.exists(csvFile)
+
+  local file = fs.open(csvFile, "a")
+  if file == nil then
+    error("Unable to open transactions.csv for writing.")
+  end
+
+  -- Initialize CSV with headers if file doesn't exist
+  if not fileExists then
+    file.writeLine("time,label,item,amount,balance")
+  end
+
+  local time = os.date("%c", os.epoch("utc") / 1000)
+  local label = "unaccounted"
+  local hasChanges = false
+
+  -- Check all items in current counts
+  for item, currentCount in pairs(currentCounts) do
+    local savedCount = savedCounts[item] or 0
+    if currentCount ~= savedCount then
+      hasChanges = true
+      local amount = currentCount - savedCount
+      local balance = currentCount
+      file.writeLine(time .. "," .. label .. "," .. item .. "," .. amount .. "," .. balance)
+    end
+  end
+
+  -- Check items that were in saved counts but are now completely missing (not in current counts)
+  for item, savedCount in pairs(savedCounts) do
+    if currentCounts[item] == nil and savedCount > 0 then
+      hasChanges = true
+      local amount = -savedCount
+      local balance = 0
+      file.writeLine(time .. "," .. label .. "," .. item .. "," .. amount .. "," .. balance)
+    end
+  end
+
+  file.close()
+
+  return hasChanges
 end
 
 return lib
