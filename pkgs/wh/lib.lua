@@ -1,5 +1,7 @@
 local tbl = require "lib.table"
 local pretty = require "cc.pretty"
+local branches = require "wh.branches"
+local str = require "lib.str"
 
 local lib = {}
 
@@ -293,6 +295,158 @@ function lib.applyOrder(cache, order)
     to.name = order.item
   else
     error("transaction failed: " .. pretty.render(pretty.pretty(order)))
+  end
+end
+
+--- @param cache Cache
+function lib.pull(cache)
+  local storage_slots = cache.storage
+  local maxCounts = cache.maxCounts
+
+  print("Scanning inputs...")
+  local input_slots, _ = lib.scanItems(maxCounts, branches.input)
+  cache.input = input_slots
+
+  print("Applying actions...")
+  for _, item in pairs(input_slots) do
+    local maxCount = maxCounts[item.name]
+    while item.count > 0 do
+      --- @type Order|nil
+      local order = nil
+      if maxCount ~= nil and item.count < maxCount then
+        local result = lib.findInputPartialSlot(maxCount, storage_slots, item)
+
+        if result ~= nil then
+          local count = item.count
+          if (result.count + item.count) > maxCount then
+            count = maxCount - result.count
+          end
+
+          order = {
+            item = item.name,
+            count = count,
+            from = { chest_id = item.chest_id, slot_id = item.slot_id },
+            to = { chest_id = result.slot.chest_id, slot_id = result.slot.slot_id },
+            type = "input"
+          }
+        end
+      end
+
+      if order == nil then
+        local result = lib.findEmptySlot(storage_slots)
+        if result ~= nil then
+          order = {
+            item = item.name,
+            count = item.count,
+            from = { chest_id = item.chest_id, slot_id = item.slot_id },
+            to = { chest_id = result.chest_id, slot_id = result.slot_id },
+            type = "input"
+          }
+        end
+      end
+
+      if order ~= nil then
+        lib.applyOrder(cache, order)
+        item.count = item.count - order.count
+      end
+    end
+  end
+end
+
+--- @param cache Cache
+--- @param query string
+--- @param amount number
+function lib.order(cache, query, amount)
+  local storage_slots = cache.storage
+  local maxCounts = cache.maxCounts
+
+  print("Scanning outputs...")
+  local output_slots, _ = lib.scanItems(maxCounts, branches.output, true)
+  cache.output = output_slots
+
+  -- Determine if we're doing exact full name match or post-colon match
+  local isFullNameQuery = str.contains(query, ":")
+
+  local name = nil
+  for _, key in pairs(tbl.keys(maxCounts)) do
+    if name ~= nil then
+      break
+    end
+
+    if isFullNameQuery then
+      -- Match the full name exactly (e.g., "minecraft:cobblestone")
+      if str.equals(key, query) then
+        name = key
+      end
+    else
+      -- Match the post-colon part exactly (e.g., "cobblestone" matches "minecraft:cobblestone")
+      if str.endsWith(key, ":" .. query) then
+        name = key
+      end
+    end
+  end
+
+  if name == nil then
+    error("No matches for \"" .. query .. "\"")
+  end
+
+  local maxCount = maxCounts[name]
+  local amountLeft = amount
+
+  print("Applying actions...")
+  while amountLeft > 0 do
+    local output = lib.findEmptySlot(output_slots)
+    if output == nil then
+      print("no more space in output")
+      break
+    end
+
+    --- @type Order|nil
+    local order = nil
+
+    -- If amountLeft is a multiple of maxCount, skip partial stacks and grab full stacks directly
+    if amountLeft % maxCount ~= 0 then
+      local result = lib.findOutputPartialSlot(maxCount, storage_slots, name)
+      if result ~= nil then
+        local count = amountLeft
+        if result.count < amountLeft then
+          count = result.count
+        end
+
+        order = {
+          item = name,
+          count = count,
+          from = { chest_id = result.slot.chest_id, slot_id = result.slot.slot_id },
+          to = { chest_id = output.chest_id, slot_id = output.slot_id },
+          type = "output"
+        }
+      end
+    end
+
+    if order == nil then
+      local result = lib.findFullSlot(maxCount, storage_slots, name)
+      if result ~= nil then
+        local count = amountLeft
+        if maxCount < amountLeft then
+          count = maxCount
+        end
+
+        order = {
+          item = name,
+          count = count,
+          from = { chest_id = result.chest_id, slot_id = result.slot_id },
+          to = { chest_id = output.chest_id, slot_id = output.slot_id },
+          type = "output"
+        }
+      end
+    end
+
+    if order ~= nil then
+      lib.applyOrder(cache, order)
+      amountLeft = amountLeft - order.count
+    else
+      break
+    end
   end
 end
 
