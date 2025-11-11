@@ -251,42 +251,54 @@ function lib.applyOrder(cache, order)
       order.to.slot_id
     )
     if not success then
-      error("trx failed: " .. pretty.render(pretty.pretty(order)))
+      error("transfer failed: " .. pretty.render(pretty.pretty(order)))
     end
   else
     error("failed to find chest: " .. lib.expandChestID(order.to.chest_id))
   end
 
   --- @type Record[]|nil
-  local from = nil
+  local from_slots = nil
   --- @type Record[]|nil
-  local to = nil
+  local to_slots = nil
   if order.type == "input" then
-    from = cache.input
-    to = cache.storage
+    from_slots = cache.input
+    to_slots = cache.storage
   elseif order.type == "output" then
-    from = cache.storage
-    to = cache.output
+    from_slots = cache.storage
+    to_slots = cache.output
+  end
+
+  --- @type Record|nil
+  local from = nil
+  --- @type Record|nil
+  local to = nil
+  if from_slots ~= nil and to_slots ~= nil then
+    for _, record in pairs(from_slots) do
+      if record.chest_id == order.from.chest_id and record.slot_id == order.from.slot_id then
+        from = record
+        break
+      end
+    end
+
+    for _, record in pairs(to_slots) do
+      if record.chest_id == order.to.chest_id and record.slot_id == order.to.slot_id then
+        to = record
+        break
+      end
+    end
+  else
+    error("unreachable")
   end
 
   if from ~= nil and to ~= nil then
-    for _, record in pairs(from) do
-      if record.chest_id == order.from.chest_id and record.slot_id == order.from.slot_id then
-        print("from: " .. order.from.chest_id .. " " .. order.from.slot_id .. " (" .. -order.count .. ")")
-        record.count = record.count - order.count
-        record.name  = order.item
-        break
-      end
-    end
-
-    for _, record in pairs(to) do
-      if record.chest_id == order.to.chest_id and record.slot_id == order.to.slot_id then
-        print("to: " .. order.to.chest_id .. " " .. order.to.slot_id .. " (" .. order.count .. ")")
-        record.count = record.count + order.count
-        record.name  = order.item
-        break
-      end
-    end
+    print("from: " .. order.from.chest_id .. " " .. order.from.slot_id .. " (" .. -order.count .. ")")
+    print("to: " .. order.to.chest_id .. " " .. order.to.slot_id .. " (" .. order.count .. ")")
+    from.count = from.count - order.count
+    to.count = to.count + order.count
+    to.name = order.item
+  else
+    error("transaction failed: " .. pretty.render(pretty.pretty(order)))
   end
 end
 
