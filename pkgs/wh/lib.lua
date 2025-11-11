@@ -286,9 +286,13 @@ function lib.applyOrder(cache, order)
         cache.counts = {}
       end
 
-      -- Update count for the item (keep 0 values to track removals)
-      local currentCount = lib.countItem(cache.storage, order.item)
-      cache.counts[order.item] = currentCount
+      -- Calculate new count: add for input, subtract for output
+      local currentCount = lib.countItem(cache, order.item)
+      if order.type == "input" then
+        cache.counts[order.item] = currentCount + order.count
+      else -- output
+        cache.counts[order.item] = math.max(0, currentCount - order.count)
+      end
 
       -- Log transaction to CSV
       lib.logTransaction(order, cache)
@@ -587,18 +591,16 @@ function lib.loadOrInitCache()
   return lib.loadCache()
 end
 
+--- Gets the count of an item from the cache
 --- @param cache Cache
 --- @param item string
 --- @return number
 function lib.countItem(cache, item)
-  local count = 0
-  for _, record in pairs(cache) do
-    if record.name == item then
-      count = count + record.count
-    end
+  if cache.counts == nil then
+    return 0
   end
-
-  return count
+  
+  return cache.counts[item] or 0
 end
 
 --- Logs a transaction to transactions.csv
@@ -634,7 +636,7 @@ function lib.logTransaction(order, cache)
   end
 
   -- Get balance using lib.countItem
-  local balance = lib.countItem(cache.storage, order.item)
+  local balance = lib.countItem(cache, order.item)
 
   -- Write transaction line
   file.writeLine(time .. "," .. label .. "," .. order.item .. "," .. amount .. "," .. balance)
