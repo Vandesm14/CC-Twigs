@@ -287,6 +287,11 @@ function lib.applyOrder(cache, order)
     from.count = from.count - order.count
     to.count = to.count + order.count
     to.name = order.item
+
+    -- Log transaction to CSV (only for transactions involving storage)
+    if order.type == "input" or order.type == "output" then
+      lib.logTransaction(order, cache)
+    end
   else
     error("transaction failed: " .. pretty.render(pretty.pretty(order)))
   end
@@ -554,6 +559,61 @@ function lib.loadOrInitCache()
   end
 
   return lib.loadCache()
+end
+
+--- @param cache Cache
+--- @param item string
+--- @return number
+function lib.countItem(cache, item)
+  local count = 0
+  for _, record in pairs(cache) do
+    if record.name == item then
+      count = count + record.count
+    end
+  end
+
+  return count
+end
+
+--- Logs a transaction to transactions.csv
+--- @param order Order
+--- @param cache Cache
+function lib.logTransaction(order, cache)
+  local csvFile = "transactions.csv"
+  local fileExists = fs.exists(csvFile)
+
+  local file = fs.open(csvFile, "a")
+  if file == nil then
+    error("Unable to open transactions.csv for writing.")
+  end
+
+  -- Initialize CSV with headers if file doesn't exist
+  if not fileExists then
+    file.writeLine("time,label,item,amount,balance")
+  end
+
+  -- Get current time (Unix timestamp)
+  local time = os.time("ingame")
+
+  -- Get computer label (or ID if no label)
+  local label = os.getComputerLabel()
+  if label == nil or label == "" then
+    label = "computer_" .. tostring(os.getComputerID())
+  end
+
+  -- Determine amount: positive for input (items added to storage), negative for output (items removed from storage)
+  local amount = order.count
+  if order.type == "output" then
+    amount = -amount
+  end
+
+  -- Get balance using lib.countItem
+  local balance = lib.countItem(cache.storage, order.item)
+
+  -- Write transaction line
+  file.writeLine(time .. "," .. label .. "," .. order.item .. "," .. amount .. "," .. balance)
+
+  file.close()
 end
 
 return lib
