@@ -39,7 +39,7 @@ end
 --- @param filter number[]|nil Filter chest IDs.
 --- @param empty boolean|nil Whether to include empty slots
 --- @return table<number, Record>, table<string, number>
-function lib.scanItemsLive(maxCounts, filter, empty)
+function lib.scanItems(maxCounts, filter, empty)
   --- @type table<number, Record>
   local records = {}
 

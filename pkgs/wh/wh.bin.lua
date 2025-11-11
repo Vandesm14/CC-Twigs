@@ -35,13 +35,13 @@ rednet.open("back")
 if not fs.exists("slots.json") then
   print("Cache not found. Running initial scan...")
   print("Scanning inputs...")
-  local input_slots, input_maxCounts = lib.scanItemsLive({}, tbl.keys(Branches.input), true)
+  local input_slots, input_maxCounts = lib.scanItems({}, tbl.keys(Branches.input), true)
 
   print("Scanning storage...")
-  local storage_slots, storage_maxCounts = lib.scanItemsLive({}, tbl.keys(Branches.storage), true)
+  local storage_slots, storage_maxCounts = lib.scanItems({}, tbl.keys(Branches.storage), true)
 
   print("Scanning outputs...")
-  local output_slots, output_maxCounts = lib.scanItemsLive({}, tbl.keys(Branches.output), true)
+  local output_slots, output_maxCounts = lib.scanItems({}, tbl.keys(Branches.output), true)
 
   local maxCounts = tbl.merge(input_maxCounts, tbl.merge(storage_maxCounts, output_maxCounts))
 
@@ -65,7 +65,7 @@ local function pull()
   local maxCounts = cache.maxCounts
 
   print("Scanning inputs...")
-  local input_slots, _ = lib.scanItemsLive(maxCounts, tbl.keys(Branches.input))
+  local input_slots, _ = lib.scanItems(maxCounts, tbl.keys(Branches.input))
   cache.input = input_slots
 
   --- @type Order[]
@@ -130,7 +130,7 @@ local function order(query, amount)
   local maxCounts = cache.maxCounts
 
   print("Scanning outputs...")
-  local output_slots, _ = lib.scanItemsLive(maxCounts, tbl.keys(Branches.output), true)
+  local output_slots, _ = lib.scanItems(maxCounts, tbl.keys(Branches.output), true)
   cache.output = output_slots
 
   -- Determine if we're doing exact full name match or post-colon match
@@ -334,13 +334,13 @@ elseif command == "capacity" then
   print("Capacity: " .. used .. " / " .. capacity .. " slots used (" .. available .. " available)")
 elseif command == "scan" or command == nil then
   print("Scanning inputs...")
-  local input_slots, input_maxCounts = lib.scanItemsLive({}, tbl.keys(Branches.input), true)
+  local input_slots, input_maxCounts = lib.scanItems({}, tbl.keys(Branches.input), true)
 
   print("Scanning storage...")
-  local storage_slots, storage_maxCounts = lib.scanItemsLive({}, tbl.keys(Branches.storage), true)
+  local storage_slots, storage_maxCounts = lib.scanItems({}, tbl.keys(Branches.storage), true)
 
   print("Scanning outputs...")
-  local output_slots, output_maxCounts = lib.scanItemsLive({}, tbl.keys(Branches.output), true)
+  local output_slots, output_maxCounts = lib.scanItems({}, tbl.keys(Branches.output), true)
 
   local maxCounts = tbl.merge(input_maxCounts, tbl.merge(storage_maxCounts, output_maxCounts))
 
