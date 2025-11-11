@@ -153,6 +153,15 @@ function Walker:step()
       return true
     elseif self.action == "h" then
       print("returning home.")
+      -- Check if we're already on a red tile
+      local isBlock, info = turtle.inspectDown()
+      if isBlock and info then
+        local color = self.getColor(info.tags)
+        if color == "red" then
+          print("already at home (on red tile)")
+          return true
+        end
+      end
     end
   end
 
