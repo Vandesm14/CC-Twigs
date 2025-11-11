@@ -6,11 +6,6 @@ local lib = {}
 --- @alias Record { name: string, nbt: string, count: number, chest_id: number, slot_id: number }
 --- @alias Cache { input: Record[], storage: Record[], output: Record[], maxCounts: table<string, number> }
 
---- @alias StatusMessage { type: `status`, value: { name: string, fuel: number } }
---- @alias AvailMessage { type: `avail`, value: nil }
---- @alias OrderMessage { type: `order`, value: Order }
---- @alias Message StatusMessage|OrderMessage|AvailMessage
-
 --- Chest ID = `minecraft:barrel_{id}`
 --- comment
 --- @param name string
