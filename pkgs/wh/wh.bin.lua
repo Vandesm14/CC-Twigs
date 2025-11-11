@@ -66,9 +66,13 @@ elseif command == "capacity" then
   local available = capacity - used
   print("Capacity: " .. used .. " / " .. capacity .. " slots used (" .. available .. " available)")
 elseif command == "scan" or command == nil then
-  lib.scanAll(cache)
+  local unaccounted = lib.scanAll(cache)
   lib.saveCache(cache)
-  print("Cache updated successfully (slots.json)")
+
+  print("Found " .. #unaccounted .. " unaccounted changes since last scan")
+  for _, trx in pairs(unaccounted) do
+    print(trx)
+  end
 elseif command == "check" then
   local storage_slots = cache.storage
   local maxCounts = cache.maxCounts

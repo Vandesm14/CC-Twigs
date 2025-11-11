@@ -518,6 +518,7 @@ function lib.capacity(cache)
 end
 
 --- @param cache Cache
+--- @return string[] unaccounted
 function lib.scanAll(cache)
   local maxCounts = cache.maxCounts
 
@@ -546,13 +547,17 @@ function lib.scanAll(cache)
   local currentCounts = lib.getAllCounts(cache)
   local savedCounts = cache.counts
 
+  local unaccounted = {}
+
   -- Compare and log differences as "unaccounted" transactions
   if savedCounts ~= nil and next(savedCounts) ~= nil then
-    lib.logCountDifferences(currentCounts, savedCounts, cache)
+    unaccounted = lib.logCountDifferences(currentCounts, savedCounts)
   end
 
   -- Update cache counts with current counts
   cache.counts = currentCounts
+
+  return unaccounted
 end
 
 --- @return Cache
@@ -599,7 +604,7 @@ function lib.countItem(cache, item)
   if cache.counts == nil then
     return 0
   end
-  
+
   return cache.counts[item] or 0
 end
 
@@ -657,8 +662,8 @@ end
 --- Compares current counts with saved counts and logs differences as transactions
 --- @param currentCounts table<string, number>
 --- @param savedCounts table<string, number>
---- @param cache Cache
-function lib.logCountDifferences(currentCounts, savedCounts, cache)
+--- @return string[] unaccounted
+function lib.logCountDifferences(currentCounts, savedCounts)
   local csvFile = "transactions.csv"
   local fileExists = fs.exists(csvFile)
 
@@ -674,32 +679,36 @@ function lib.logCountDifferences(currentCounts, savedCounts, cache)
 
   local time = os.date("%c", os.epoch("utc") / 1000)
   local label = "unaccounted"
-  local hasChanges = false
+
+  --- @type string[]
+  local changes = {}
 
   -- Check all items in current counts
   for item, currentCount in pairs(currentCounts) do
     local savedCount = savedCounts[item] or 0
     if currentCount ~= savedCount then
-      hasChanges = true
       local amount = currentCount - savedCount
       local balance = currentCount
-      file.writeLine(time .. "," .. label .. "," .. item .. "," .. amount .. "," .. balance)
+      local change = time .. "," .. label .. "," .. item .. "," .. amount .. "," .. balance
+      table.insert(changes, change)
+      file.writeLine(change)
     end
   end
 
   -- Check items that were in saved counts but are now completely missing (not in current counts)
   for item, savedCount in pairs(savedCounts) do
     if currentCounts[item] == nil and savedCount > 0 then
-      hasChanges = true
       local amount = -savedCount
       local balance = 0
-      file.writeLine(time .. "," .. label .. "," .. item .. "," .. amount .. "," .. balance)
+      local change = time .. "," .. label .. "," .. item .. "," .. amount .. "," .. balance
+      table.insert(changes, change)
+      file.writeLine(change)
     end
   end
 
   file.close()
 
-  return hasChanges
+  return changes
 end
 
 return lib
