@@ -356,7 +356,7 @@ function lib.order(cache, query, amount)
   local storage_slots = cache.storage
   local maxCounts = cache.maxCounts
 
-  local output_slots, _ = lib.scanItems(maxCounts, branches.output, true)
+  local output_slots, _ = lib.scanItems(maxCounts, branches.output)
   cache.output = output_slots
 
   -- Determine if we're doing exact full name match or post-colon match

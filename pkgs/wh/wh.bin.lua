@@ -134,7 +134,10 @@ elseif command == "check" then
 elseif command == "head" then
   local head = 8
   if arg[2] ~= nil then
-    head = tonumber(arg[2])
+    local n = tonumber(arg[2])
+    if n ~= nil then
+      head = n
+    end
   end
 
   local csvFile = "transactions.csv"
