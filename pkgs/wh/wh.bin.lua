@@ -65,10 +65,8 @@ local function pull()
   local maxCounts = cache.maxCounts
 
   print("Scanning inputs...")
-  local input_slots, input_maxCounts = lib.scanItemsLive(tbl.keys(Branches.input))
-  maxCounts = tbl.merge(maxCounts, input_maxCounts)
+  local input_slots, _ = lib.scanItemsLive(maxCounts, tbl.keys(Branches.input))
   cache.input = input_slots
-  cache.maxCounts = tbl.merge(maxCounts, input_maxCounts)
 
   --- @type Order[]
   local orders = {}
@@ -128,12 +126,12 @@ end
 --- @param amount number
 --- @return Order[]
 local function order(query, amount)
-  print("Scanning outputs...")
-  local output_slots, _ = lib.scanItemsLive(tbl.keys(Branches.output), true)
-  cache.output = output_slots
-
-  local slots = cache.storage
+  local storage_slots = cache.storage
   local maxCounts = cache.maxCounts
+
+  print("Scanning outputs...")
+  local output_slots, _ = lib.scanItemsLive(maxCounts, tbl.keys(Branches.output), true)
+  cache.output = output_slots
 
   -- Determine if we're doing exact full name match or post-colon match
   local isFullNameQuery = str.contains(query, ":")
@@ -180,7 +178,7 @@ local function order(query, amount)
 
     -- If amountLeft is a multiple of maxCount, skip partial stacks and grab full stacks directly
     if amountLeft % maxCount ~= 0 then
-      local result = lib.findOutputPartialSlot(maxCount, slots, name)
+      local result = lib.findOutputPartialSlot(maxCount, storage_slots, name)
       if result ~= nil then
         local count = amountLeft
         if result.count < amountLeft then
@@ -199,7 +197,7 @@ local function order(query, amount)
     end
 
     if order == nil then
-      local result = lib.findFullSlot(maxCount, slots, name)
+      local result = lib.findFullSlot(maxCount, storage_slots, name)
       if result ~= nil then
         local count = amountLeft
         if maxCount < amountLeft then

@@ -35,14 +35,13 @@ function lib.expandChestID(id)
 end
 
 --- Performs live scanning of peripherals
+--- @param maxCounts table<string, number>
 --- @param filter number[]|nil Filter chest IDs.
 --- @param empty boolean|nil Whether to include empty slots
 --- @return table<number, Record>, table<string, number>
-function lib.scanItemsLive(filter, empty)
+function lib.scanItemsLive(maxCounts, filter, empty)
   --- @type table<number, Record>
   local records = {}
-  --- @type table<string, number>
-  local maxCounts = {}
 
   -- Load cached maxCounts from file if it exists
   if fs.exists("maxcount.lua") then
