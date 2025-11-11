@@ -221,6 +221,7 @@ end
 
 --- @param cache Cache
 --- @param order Order
+--- @return boolean success
 function lib.applyOrder(cache, order)
   local chest = peripheral.wrap(lib.expandChestID(order.to.chest_id))
   if chest ~= nil then
@@ -232,10 +233,12 @@ function lib.applyOrder(cache, order)
       order.to.slot_id
     )
     if not success then
-      error("transfer failed: " .. pretty.render(pretty.pretty(order)))
+      printError("transfer failed: " .. pretty.render(pretty.pretty(order)))
+      return false
     end
   else
-    error("failed to find chest: " .. lib.expandChestID(order.to.chest_id))
+    printError("failed to find chest: " .. lib.expandChestID(order.to.chest_id))
+    return false
   end
 
   --- @type Record[]|nil
@@ -269,7 +272,8 @@ function lib.applyOrder(cache, order)
       end
     end
   else
-    error("unreachable")
+    printError("unreachable")
+    return false
   end
 
   if from ~= nil and to ~= nil then
@@ -298,11 +302,15 @@ function lib.applyOrder(cache, order)
       lib.logTransaction(order, cache)
     end
   else
-    error("transaction failed: " .. pretty.render(pretty.pretty(order)))
+    printError("transaction failed: " .. pretty.render(pretty.pretty(order)))
+    return false
   end
+
+  return true
 end
 
 --- @param cache Cache
+--- @return boolean success
 function lib.pull(cache)
   local storage_slots = cache.storage
   local maxCounts = cache.maxCounts
@@ -350,16 +358,21 @@ function lib.pull(cache)
       end
 
       if order ~= nil then
-        lib.applyOrder(cache, order)
+        if not lib.applyOrder(cache, order) then
+          return false
+        end
         item.count = item.count - order.count
       end
     end
   end
+
+  return true
 end
 
 --- @param cache Cache
 --- @param query string
 --- @param amount number
+--- @return boolean success
 function lib.order(cache, query, amount)
   local storage_slots = cache.storage
   local maxCounts = cache.maxCounts
@@ -391,7 +404,8 @@ function lib.order(cache, query, amount)
   end
 
   if name == nil then
-    error("No matches for \"" .. query .. "\"")
+    printError("No matches for \"" .. query .. "\"")
+    return false
   end
 
   local maxCount = maxCounts[name]
@@ -446,12 +460,16 @@ function lib.order(cache, query, amount)
     end
 
     if order ~= nil then
-      lib.applyOrder(cache, order)
+      if not lib.applyOrder(cache, order) then
+        return false
+      end
       amountLeft = amountLeft - order.count
     else
       break
     end
   end
+
+  return true
 end
 
 --- @param items Record[]
