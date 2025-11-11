@@ -34,9 +34,8 @@ end
 --- Performs live scanning of peripherals
 --- @param maxCounts table<string, number>
 --- @param filter number[]|nil Filter chest IDs.
---- @param empty boolean|nil Whether to include empty slots
 --- @return table<number, Record>, table<string, number>
-function lib.scanItems(maxCounts, filter, empty)
+function lib.scanItems(maxCounts, filter)
   --- @type table<number, Record>
   local records = {}
 
@@ -48,8 +47,9 @@ function lib.scanItems(maxCounts, filter, empty)
       if filter == nil or (filter ~= nil and tbl.contains(filter, chest_id)) then
         if chest_id ~= nil then
           local list = chest.list()
-          if not empty then
-            for slot_id, item in pairs(list) do
+          for slot_id = 1, chest.size(), 1 do
+            local item = list[slot_id]
+            if item ~= nil then
               table.insert(records, {
                 name = item.name,
                 nbt = item.nbt,
@@ -64,34 +64,14 @@ function lib.scanItems(maxCounts, filter, empty)
                   maxCounts[item.name] = detail.maxCount
                 end
               end
-            end
-          else
-            for slot_id = 1, chest.size(), 1 do
-              local item = list[slot_id]
-              if item ~= nil then
-                table.insert(records, {
-                  name = item.name,
-                  nbt = item.nbt,
-                  count = item.count,
-                  slot_id = slot_id,
-                  chest_id = chest_id,
-                })
-
-                if maxCounts[item.name] == nil then
-                  local detail = chest.getItemDetail(slot_id)
-                  if detail ~= nil then
-                    maxCounts[item.name] = detail.maxCount
-                  end
-                end
-              else
-                table.insert(records, {
-                  name = "",
-                  nbt = "",
-                  count = 0,
-                  slot_id = slot_id,
-                  chest_id = chest_id,
-                })
-              end
+            else
+              table.insert(records, {
+                name = "",
+                nbt = "",
+                count = 0,
+                slot_id = slot_id,
+                chest_id = chest_id,
+              })
             end
           end
         end
@@ -315,7 +295,6 @@ function lib.pull(cache)
   local storage_slots = cache.storage
   local maxCounts = cache.maxCounts
 
-  print("Scanning inputs...")
   local input_slots, _ = lib.scanItems(maxCounts, branches.input)
   cache.input = input_slots
 
@@ -377,7 +356,6 @@ function lib.order(cache, query, amount)
   local storage_slots = cache.storage
   local maxCounts = cache.maxCounts
 
-  print("Scanning outputs...")
   local output_slots, _ = lib.scanItems(maxCounts, branches.output, true)
   cache.output = output_slots
 
@@ -538,18 +516,65 @@ end
 --- @param cache Cache
 --- @return string[] unaccounted
 function lib.scanAll(cache)
+  print("Scanning...")
+
   local maxCounts = cache.maxCounts
 
-  print("Scanning inputs...")
-  local input_slots, input_maxCounts = lib.scanItems(maxCounts, branches.input, true)
+  --- @type Record[]
+  local input_slots = {}
+  --- @type Record[]
+  local storage_slots = {}
+  --- @type Record[]
+  local output_slots = {}
 
-  print("Scanning storage...")
-  local storage_slots, storage_maxCounts = lib.scanItems(maxCounts, branches.storage, true)
+  local names = peripheral.getNames()
+  for _, name in pairs(names) do
+    local chest = peripheral.wrap(name)
+    if chest ~= nil then
+      local chest_id = lib.chestID(name)
+      if chest_id ~= nil then
+        local target_table = nil
+        if tbl.contains(branches.input, chest_id) then
+          target_table = input_slots
+        elseif tbl.contains(branches.storage, chest_id) then
+          target_table = storage_slots
+        elseif tbl.contains(branches.output, chest_id) then
+          target_table = output_slots
+        end
 
-  print("Scanning outputs...")
-  local output_slots, output_maxCounts = lib.scanItems(maxCounts, branches.output, true)
+        if target_table ~= nil then
+          local list = chest.list()
+          for slot_id = 1, chest.size(), 1 do
+            local item = list[slot_id]
+            if item ~= nil then
+              table.insert(target_table, {
+                name = item.name,
+                nbt = item.nbt,
+                count = item.count,
+                slot_id = slot_id,
+                chest_id = chest_id,
+              })
 
-  local maxCounts = tbl.merge(input_maxCounts, tbl.merge(storage_maxCounts, output_maxCounts))
+              if maxCounts[item.name] == nil then
+                local detail = chest.getItemDetail(slot_id)
+                if detail ~= nil then
+                  maxCounts[item.name] = detail.maxCount
+                end
+              end
+            else
+              table.insert(target_table, {
+                name = "",
+                nbt = "",
+                count = 0,
+                slot_id = slot_id,
+                chest_id = chest_id,
+              })
+            end
+          end
+        end
+      end
+    end
+  end
 
   cache.input = input_slots
   cache.storage = storage_slots
@@ -583,23 +608,12 @@ function lib.loadOrInitCache()
   -- Initialize cache if it doesn't exist
   if not fs.exists("slots.json") then
     print("Cache not found. Running initial scan...")
-    print("Scanning inputs...")
-    local input_slots, input_maxCounts = lib.scanItems({}, branches.input, true)
-
-    print("Scanning storage...")
-    local storage_slots, storage_maxCounts = lib.scanItems({}, branches.storage, true)
-
-    print("Scanning outputs...")
-    local output_slots, output_maxCounts = lib.scanItems({}, branches.output, true)
-
-    local maxCounts = tbl.merge(input_maxCounts, tbl.merge(storage_maxCounts, output_maxCounts))
 
     local cache = {
-      input = input_slots,
-      storage = storage_slots,
-      output = output_slots,
-      maxCounts = maxCounts
+      maxCounts = {}
     }
+
+    lib.scanAll(cache)
 
     -- Count tracking: initialize counts
     local currentCounts = lib.getAllCounts(cache)
