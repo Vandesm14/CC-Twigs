@@ -9,4 +9,5 @@ for i = 1, #arg do
   args[i] = arg[i]
 end
 
-cli.parse(args, "local")
+local success, messages = cli.parse(args, "local")
+-- Messages are already printed by cli.parse in local mode

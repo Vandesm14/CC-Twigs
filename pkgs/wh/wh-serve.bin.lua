@@ -53,13 +53,11 @@ while true do
       table.insert(args, tostring(message))
     end
 
-    -- Execute the command locally
-    local success, err = pcall(function()
-      cli.parse(args, "local")
-    end)
+    -- Execute the command locally and capture output
+    local parseSuccess, adapter = cli.parse(args, "local")
 
-    if not success then
-      printError("Error executing command: " .. tostring(err))
-    end
+    -- Send entire adapter table in one packet
+    rednet.send(senderId, { type = "adapter", adapter = adapter }, "wh-response")
+    rednet.send(senderId, { type = "done" }, "wh-response")
   end
 end

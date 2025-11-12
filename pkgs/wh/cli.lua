@@ -17,10 +17,50 @@ local function openAllModems()
   end
 end
 
+--- Helper to add a message to the adapter table
+--- @param adapter [boolean, string][] Adapter table of [success, message] tuples
+--- @param success boolean Whether this is a success message (true) or error (false)
+--- @param ... any Message parts to concatenate
+local function addMessage(adapter, success, ...)
+  local args = { ... }
+  local message = table.concat(args, " ")
+  table.insert(adapter, { success, message })
+end
+
+--- Temporarily override print functions to capture lib output
+--- @param adapter [boolean, string][] Adapter table
+--- @return function Original print function
+--- @return function Original printError function
+local function captureLibPrints(adapter)
+  local originalPrint = print
+  local originalPrintError = printError
+
+  print = function(...)
+    addMessage(adapter, true, ...)
+    originalPrint(...)
+  end
+
+  printError = function(...)
+    addMessage(adapter, false, ...)
+    originalPrintError(...)
+  end
+
+  return originalPrint, originalPrintError
+end
+
+--- Restore original print functions
+--- @param originalPrint function Original print function
+--- @param originalPrintError function Original printError function
+local function restoreLibPrints(originalPrint, originalPrintError)
+  print = originalPrint
+  printError = originalPrintError
+end
+
 --- Parses and executes warehouse commands
 --- @param args string[] Array of command arguments (e.g., {"ls", "cobblestone"})
 --- @param mode "local"|"remote" Execution mode: "local" executes directly, "remote" broadcasts via rednet
 --- @return boolean success Whether the command executed successfully
+--- @return [boolean, string][] adapter Table of [success, message] tuples
 function cli.parse(args, mode)
   if mode == "remote" then
     -- Open all modems and broadcast the command
@@ -31,11 +71,18 @@ function cli.parse(args, mode)
 
     -- Broadcast the message with "wh" protocol
     rednet.broadcast(message, "wh")
-    return true
+    return true, {}
   elseif mode == "local" then
-    -- Execute commands locally
-    local cache = lib.loadOrInitCache()
+    -- Create adapter table to collect output
+    --- @type [boolean, string][]
+    local adapter = {}
 
+    -- Capture lib prints temporarily for loadOrInitCache and saveCache
+    local originalPrint, originalPrintError = captureLibPrints(adapter)
+    local cache = lib.loadOrInitCache()
+    restoreLibPrints(originalPrint, originalPrintError)
+
+    local success = false
     local command = args[1]
 
     if command == "ls" then
@@ -47,26 +94,64 @@ function cli.parse(args, mode)
       if file ~= nil then
         for _, line in pairs(lines) do
           file.writeLine(line)
-          print(line)
+          addMessage(adapter, true, line)
         end
 
         file.close()
       end
 
-      print("")
-      print("Open list.txt to view full list.")
-      return true
+      addMessage(adapter, true, "")
+      addMessage(adapter, true, "Open list.txt to view full list.")
+
+      -- Print adapter messages if local mode
+      for _, entry in ipairs(adapter) do
+        local success_flag, msg = entry[1], entry[2]
+        if success_flag then
+          print(msg)
+        else
+          printError(msg)
+        end
+      end
+
+      return true, adapter
     elseif command == "pull" then
       lib.pull(cache)
+
+      -- Capture saveCache print
+      originalPrint, originalPrintError = captureLibPrints(adapter)
       lib.saveCache(cache)
-      print("Done.")
-      return true
+      restoreLibPrints(originalPrint, originalPrintError)
+
+      addMessage(adapter, true, "Done.")
+
+      -- Print adapter messages if local mode
+      for _, entry in ipairs(adapter) do
+        local success_flag, msg = entry[1], entry[2]
+        if success_flag then
+          print(msg)
+        else
+          printError(msg)
+        end
+      end
+
+      return true, adapter
     elseif command == "order" then
       if args[2] == nil then
-        printError("Usage: wh order <item> <amt> [<item> <amt> ...]")
-        printError()
-        printError("At least one item and amount must be provided")
-        return false
+        addMessage(adapter, false, "Usage: wh order <item> <amt> [<item> <amt> ...]")
+        addMessage(adapter, false, "")
+        addMessage(adapter, false, "At least one item and amount must be provided")
+
+        -- Print adapter messages
+        for _, entry in ipairs(adapter) do
+          local success_flag, msg = entry[1], entry[2]
+          if success_flag then
+            print(msg)
+          else
+            printError(msg)
+          end
+        end
+
+        return false, adapter
       end
 
       --- @type [string, number][]
@@ -78,29 +163,51 @@ function cli.parse(args, mode)
         local amount = tonumber(args[i + 1])
 
         if query == nil or type(query) ~= "string" then
-          printError("Usage: wh order <item> <amt> [<item> <amt> ...]")
-          printError()
-          printError("Item name expected at position " .. (i - 1))
-          return false
+          addMessage(adapter, false, "Usage: wh order <item> <amt> [<item> <amt> ...]")
+          addMessage(adapter, false, "")
+          addMessage(adapter, false, "Item name expected at position " .. (i - 1))
+
+          -- Print adapter messages
+          for _, entry in ipairs(adapter) do
+            local success_flag, msg = entry[1], entry[2]
+            if success_flag then
+              print(msg)
+            else
+              printError(msg)
+            end
+          end
+
+          return false, adapter
         end
 
         if amount == nil then
-          printError("Usage: wh order <item> <amt> [<item> <amt> ...]")
-          printError()
-          printError("Amount expected after item '" .. query .. "'")
-          return false
+          addMessage(adapter, false, "Usage: wh order <item> <amt> [<item> <amt> ...]")
+          addMessage(adapter, false, "")
+          addMessage(adapter, false, "Amount expected after item '" .. query .. "'")
+
+          -- Print adapter messages
+          for _, entry in ipairs(adapter) do
+            local success_flag, msg = entry[1], entry[2]
+            if success_flag then
+              print(msg)
+            else
+              printError(msg)
+            end
+          end
+
+          return false, adapter
         end
 
         local name = lib.matchQuery(cache, query)
         if name ~= nil then
           local count = lib.countItem(cache, name)
           if amount > count then
-            printError("Not enough " .. name .. ", found " .. count)
+            addMessage(adapter, false, "Not enough " .. name .. ", found " .. count)
           else
             table.insert(orders, { name, amount })
           end
         else
-          printError("No " .. query .. " found")
+          addMessage(adapter, false, "No " .. query .. " found")
         end
 
         i = i + 2
@@ -112,23 +219,65 @@ function cli.parse(args, mode)
         end
       end
 
+      -- Capture saveCache print
+      originalPrint, originalPrintError = captureLibPrints(adapter)
       lib.saveCache(cache)
-      print("Done.")
-      return true
+      restoreLibPrints(originalPrint, originalPrintError)
+
+      addMessage(adapter, true, "Done.")
+
+      -- Print adapter messages if local mode
+      for _, entry in ipairs(adapter) do
+        local success_flag, msg = entry[1], entry[2]
+        if success_flag then
+          print(msg)
+        else
+          printError(msg)
+        end
+      end
+
+      return true, adapter
     elseif command == "capacity" then
       local capacity, used = lib.capacity(cache)
       local available = capacity - used
-      print("Capacity: " .. used .. " / " .. capacity .. " slots used (" .. available .. " available)")
-      return true
+      addMessage(adapter, true,
+        "Capacity: " .. used .. " / " .. capacity .. " slots used (" .. available .. " available)")
+
+      -- Print adapter messages if local mode
+      for _, entry in ipairs(adapter) do
+        local success_flag, msg = entry[1], entry[2]
+        if success_flag then
+          print(msg)
+        else
+          printError(msg)
+        end
+      end
+
+      return true, adapter
     elseif command == "scan" or command == nil then
       local unaccounted = lib.scanAll(cache)
-      lib.saveCache(cache)
 
-      print("Found " .. #unaccounted .. " unaccounted changes since last scan")
+      -- Capture saveCache print
+      originalPrint, originalPrintError = captureLibPrints(adapter)
+      lib.saveCache(cache)
+      restoreLibPrints(originalPrint, originalPrintError)
+
+      addMessage(adapter, true, "Found " .. #unaccounted .. " unaccounted changes since last scan")
       for _, trx in pairs(unaccounted) do
-        print(trx)
+        addMessage(adapter, true, trx)
       end
-      return true
+
+      -- Print adapter messages if local mode
+      for _, entry in ipairs(adapter) do
+        local success_flag, msg = entry[1], entry[2]
+        if success_flag then
+          print(msg)
+        else
+          printError(msg)
+        end
+      end
+
+      return true, adapter
     elseif command == "check" then
       local storage_slots = cache.storage
       local maxCounts = cache.maxCounts
@@ -179,15 +328,26 @@ function cli.parse(args, mode)
       if file ~= nil then
         for _, line in pairs(lines) do
           file.writeLine(line)
-          print(line)
+          addMessage(adapter, true, line)
         end
 
         file.close()
       end
 
-      print("")
-      print("Open check.txt to view full list.")
-      return true
+      addMessage(adapter, true, "")
+      addMessage(adapter, true, "Open check.txt to view full list.")
+
+      -- Print adapter messages if local mode
+      for _, entry in ipairs(adapter) do
+        local success_flag, msg = entry[1], entry[2]
+        if success_flag then
+          print(msg)
+        else
+          printError(msg)
+        end
+      end
+
+      return true, adapter
     elseif command == "head" then
       local head = 8
       if args[2] ~= nil then
@@ -200,14 +360,36 @@ function cli.parse(args, mode)
       local csvFile = "transactions.csv"
 
       if not fs.exists(csvFile) then
-        printError("transactions.csv not found. No transactions recorded yet.")
-        return false
+        addMessage(adapter, false, "transactions.csv not found. No transactions recorded yet.")
+
+        -- Print adapter messages
+        for _, entry in ipairs(adapter) do
+          local success_flag, msg = entry[1], entry[2]
+          if success_flag then
+            print(msg)
+          else
+            printError(msg)
+          end
+        end
+
+        return false, adapter
       end
 
       local file = fs.open(csvFile, "r")
       if file == nil then
-        printError("Unable to read transactions.csv file.")
-        return false
+        addMessage(adapter, false, "Unable to read transactions.csv file.")
+
+        -- Print adapter messages
+        for _, entry in ipairs(adapter) do
+          local success_flag, msg = entry[1], entry[2]
+          if success_flag then
+            print(msg)
+          else
+            printError(msg)
+          end
+        end
+
+        return false, adapter
       end
 
       -- Read all lines
@@ -231,26 +413,59 @@ function cli.parse(args, mode)
       local displayCount = math.min(head, numTransactions)
 
       if displayCount == 0 then
-        print("No transactions found.")
-        return true
+        addMessage(adapter, true, "No transactions found.")
+
+        -- Print adapter messages if local mode
+        for _, entry in ipairs(adapter) do
+          local success_flag, msg = entry[1], entry[2]
+          if success_flag then
+            print(msg)
+          else
+            printError(msg)
+          end
+        end
+
+        return true, adapter
       end
 
-      -- Print header
-      print("time,label,item,amount,balance")
+      -- Add header
+      addMessage(adapter, true, "time,label,item,amount,balance")
 
-      -- Print the last transactions
+      -- Add the last transactions
       local startLine = #lines - displayCount + 1
       for i = startLine, #lines do
-        print(lines[i])
+        addMessage(adapter, true, lines[i])
       end
-      return true
+
+      -- Print adapter messages if local mode
+      for _, entry in ipairs(adapter) do
+        local success_flag, msg = entry[1], entry[2]
+        if success_flag then
+          print(msg)
+        else
+          printError(msg)
+        end
+      end
+
+      return true, adapter
     else
-      printError("unknown command: " .. tostring(command))
-      return false
+      addMessage(adapter, false, "unknown command: " .. tostring(command))
+
+      -- Print adapter messages
+      for _, entry in ipairs(adapter) do
+        local success_flag, msg = entry[1], entry[2]
+        if success_flag then
+          print(msg)
+        else
+          printError(msg)
+        end
+      end
+
+      return false, adapter
     end
   else
     printError("Invalid mode: " .. tostring(mode) .. ". Must be 'local' or 'remote'")
-    return false
+    return false, {}
   end
 end
 
