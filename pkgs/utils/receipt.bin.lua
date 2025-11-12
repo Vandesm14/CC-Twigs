@@ -1,14 +1,18 @@
 --- @type [string, string][]
 local members = {}
 
+print("Receipt of Trade")
+print("----------------")
+
 while true do
-  print("Member:")
+  print("")
+  write("Member: ")
   local member = read()
   if member == "" then
     break
   end
 
-  print("Provides:")
+  write("Provides: ")
   local provides = read()
   if provides == "" then
     provides = "XXXXX"
@@ -33,6 +37,9 @@ if f ~= nil then
   end
   f.writeLine("")
   f.writeLine("Date (utc): " .. receiptTimestamp)
+
+  print("")
+  print("Date (utc): " .. receiptTimestamp)
 
   f.close()
 end
