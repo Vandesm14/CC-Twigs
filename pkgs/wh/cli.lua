@@ -159,8 +159,8 @@ function cli.parse(args, mode)
 
       local i = 2
       while i <= #args do
-        local query = args[i]
-        local amount = tonumber(args[i + 1])
+        local amount = tonumber(args[i])
+        local query = args[i + 1]
 
         if query == nil or type(query) ~= "string" then
           addMessage(adapter, false, "Usage: wh order <item> <amt> [<item> <amt> ...]")
