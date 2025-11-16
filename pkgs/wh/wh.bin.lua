@@ -1,5 +1,5 @@
-local cli = require "wh.cli"
-local str = require "lib.str"
+local cli = require "/pkgs.wh.cli"
+local str = require "/pkgs.lib.str"
 
 -- Open all available modems
 local function openAllModems()
@@ -83,7 +83,7 @@ if #args > 0 then
   --- @type [boolean, string][]|nil
   local receivedAdapter = nil
   local receivedDone = false
-  local timeout = 10 -- seconds
+  local timeout = 10         -- seconds
   local responseSource = nil -- "local" or "remote"
 
   print("Waiting for response (local or remote)...")

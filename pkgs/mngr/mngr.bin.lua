@@ -123,7 +123,7 @@ if args[1] == "upload" then
 
   for _, filePath in ipairs(allFiles) do
     -- Skip files in rom directory
-    if not filePath:match("^mngr/") and not filePath:match("^rom/") then
+    if not filePath:match("^pkgs/") and not filePath:match("^rom/") then
       table.insert(uploadTasks, function()
         local file = fs.open(filePath, "r")
         if file then
@@ -171,7 +171,7 @@ elseif args[1] == "disable" then
   fs.delete("startup/" .. bin .. ".lua")
 elseif not package.loaded["mngr.bin"] then
   -- Download mode (original behavior)
-  local mngrDir = "/mngr"
+  local mngrDir = "/pkgs"
 
   local tempDir = fs.combine("/.temp", mngrDir)
   if not pcall(fs.makeDir, tempDir) then
@@ -278,11 +278,11 @@ elseif not package.loaded["mngr.bin"] then
   print("Setting up package binaries...")
   for _, packageName in ipairs(packageNames) do
     local packageDir = fs.combine(tempDir, packageName)
-    
+
     -- List files in the package directory after they've been written
     if fs.exists(packageDir) then
       local files = fs.list(packageDir)
-      
+
       for _, fileName in ipairs(files) do
         -- Skip directories
         local filePath = fs.combine(packageDir, fileName)
@@ -335,7 +335,7 @@ elseif not package.loaded["mngr.bin"] then
       return
     end
 
-    f.writeLine("shell.setPath(shell.path() .. \":\" .. \"/mngr/bin\")")
+    f.writeLine("shell.setPath(shell.path() .. \":\" .. \"/pkgs/bin\")")
     f.close()
   end
 

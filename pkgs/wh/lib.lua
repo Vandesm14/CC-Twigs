@@ -1,7 +1,7 @@
-local tbl = require "lib.table"
+local tbl = require "/pkgs.lib.table"
 local pretty = require "cc.pretty"
-local branches = require "wh.branches"
-local str = require "lib.str"
+local branches = require "/pkgs.wh.branches"
+local str = require "/pkgs.lib.str"
 
 local lib = {}
 

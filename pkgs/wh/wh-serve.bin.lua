@@ -1,5 +1,5 @@
-local cli = require "wh.cli"
-local str = require "lib.str"
+local cli = require "/pkgs.wh.cli"
+local str = require "/pkgs.lib.str"
 
 -- Open all available modems
 local function openAllModems()
@@ -63,11 +63,11 @@ while true do
     -- OS event: eventData = {"wh", command, param, success, adapter}
     local command = eventData[2]
     local param = eventData[3]
-    
+
     -- Ignore "response" events (those are responses, not commands)
     if command ~= "response" then
       print("Received OS event: wh " .. tostring(command))
-      
+
       -- Convert OS event to args array
       --- @type string[]
       local args = {}
@@ -84,7 +84,7 @@ while true do
           end
         end
       end
-      
+
       processCommand(args, nil, true)
     end
   elseif event == "rednet_message" then
@@ -92,10 +92,10 @@ while true do
     local senderId = eventData[2]
     local message = eventData[3]
     local protocol = eventData[4]
-    
+
     if protocol == "wh" and senderId ~= nil and message ~= nil then
       print("Received command from computer " .. senderId .. ": " .. tostring(message))
-      
+
       -- Split message by spaces to create arguments array
       --- @type string[]
       local args = {}
@@ -110,8 +110,8 @@ while true do
         -- If message is not a string, convert to string and use as single argument
         table.insert(args, tostring(message))
       end
-      
-        processCommand(args, senderId, false)
+
+      processCommand(args, senderId, false)
     end
   end
 end

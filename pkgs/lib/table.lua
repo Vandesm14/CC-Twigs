@@ -34,16 +34,15 @@ function tbl.len(tbl)
   return len
 end
 
-function tbl.merge(tbl1, tbl2)
-  local tbl = {}
-  for key, val in pairs(tbl1) do
-    tbl[key] = val
+--- Mutably merges two tables, updating values on the left table from the right.
+--- If there is a shared key between both, the value from the right table will
+--- be used.
+--- @param left table
+--- @param right table
+function tbl.merge(left, right)
+  for key, val in pairs(right) do
+    left[key] = val
   end
-  for key, val in pairs(tbl2) do
-    tbl[key] = val
-  end
-
-  return tbl
 end
 
 return tbl

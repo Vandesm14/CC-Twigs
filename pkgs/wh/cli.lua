@@ -1,5 +1,5 @@
-local lib = require "wh.lib"
-local str = require "lib.str"
+local lib = require "/pkgs.wh.lib"
+local str = require "/pkgs.lib.str"
 
 local cli = {}
 

@@ -1,4 +1,4 @@
-local shape = require "turt.shape"
+local shape = require "/pkgs.turt.shape"
 
 local function findAndSelectBamboo()
   for i = 1, 16, 1 do

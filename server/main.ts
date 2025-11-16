@@ -180,10 +180,6 @@ async function readPackageFileContent(
     (await fs.exists(dirPath, { isDirectory: true, isReadable: true })) &&
     (await fs.exists(filePath, { isFile: true, isReadable: true }))
   ) {
-    return (
-      (await Deno.readTextFile('server/prepend.lua')) +
-      '\n' +
-      (await Deno.readTextFile(filePath))
-    );
+    return await Deno.readTextFile(filePath);
   }
 }

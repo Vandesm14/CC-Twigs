@@ -1,4 +1,4 @@
-local cli = require "wh.cli"
+local cli = require "/pkgs.wh.cli"
 
 -- Open all available modems for receiving responses
 local function openAllModems()
