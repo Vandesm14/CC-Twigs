@@ -2,8 +2,8 @@ local test = {}
 
 --- @param string string
 --- @param fn fun()
-function test.suite(string, fn)
-  print("suite: " .. string)
+function test.describe(string, fn)
+  print("describe: " .. string)
   fn()
 end
 

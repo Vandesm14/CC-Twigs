@@ -2,3 +2,5 @@
 *.code-workspace
 .deno
 uploads/
+
+test/data

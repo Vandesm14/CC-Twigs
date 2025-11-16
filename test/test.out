@@ -1,0 +1,335 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
+CraftOS                                            CraftOS                                            CraftOS 1.9                                        
+Welcome                                            Welcome                                            Welcome to                                         Welcome to                                         Welcome to CraftOS-PC!                             Welcome to CraftOS-PC!                             Welcome to CraftOS-PC! This                        Welcome to CraftOS-PC! This                        Welcome to CraftOS-PC! This is                     Welcome to CraftOS-PC! This is                     Welcome to CraftOS-PC! This is the                 Welcome to CraftOS-PC! This is the                 Welcome to CraftOS-PC! This is the ComputerCraft   Welcome to CraftOS-PC! This is the ComputerCraft   
+shell                                              shell                                              shell prompt,                                      shell prompt,                                      shell prompt, where                                shell prompt, where                                shell prompt, where you                            shell prompt, where you                            shell prompt, where you can                        shell prompt, where you can                        shell prompt, where you can run                    shell prompt, where you can run                    shell prompt, where you can run programs.          
+*                                                  *                                                  * Type                                             * Type                                             * Type "programs"                                  * Type "programs"                                  * Type "programs" to                               * Type "programs" to                               * Type "programs" to see                           * Type "programs" to see                           * Type "programs" to see the                       * Type "programs" to see the                       * Type "programs" to see the programs              * Type "programs" to see the programs              * Type "programs" to see the programs you          * Type "programs" to see the programs you          * Type "programs" to see the programs you can      * Type "programs" to see the programs you can      * Type "programs" to see the programs you can run. 
+*                                                  *                                                  * Type                                             * Type                                             * Type "help                                       * Type "help                                       * Type "help <program>"                            * Type "help <program>"                            * Type "help <program>" to                         * Type "help <program>" to                         * Type "help <program>" to see                     * Type "help <program>" to see                     * Type "help <program>" to see help                * Type "help <program>" to see help                * Type "help <program>" to see help for            * Type "help <program>" to see help for            * Type "help <program>" to see help for a          * Type "help <program>" to see help for a          * Type "help <program>" to see help for a specific * Type "help <program>" to see help for a specific 
+ 
+program.                                           
+*                                                  *                                                  * Read                                             * Read                                             * Read the                                         * Read the                                         * Read the documentation                           * Read the documentation                           * Read the documentation at                        * Read the documentation at                        
+https://www.craftos-pc.cc/docs/.                   
+*                                                  *                                                  * Report                                           * Report                                           * Report bugs                                      * Report bugs                                      * Report bugs to                                   * Report bugs to                                   
+https://www.craftos-pc.cc/bugreport.               
+
+"motd.enable"                                      "motd.enable"                                      "motd.enable" set                                  "motd.enable" set                                  "motd.enable" set to                               "motd.enable" set to                               "motd.enable" set to false                         
+Running                                            Running                                            Running tests                                      Running tests                                      Running tests from:                                Running tests from:                                
+Scanning                                           Scanning                                           Scanning directories                               Scanning directories                               Scanning directories recursively...                
+Found                                              Found                                              Found 1                                            Found 1                                            Found 1 test                                       Found 1 test                                       Found 1 test file(s)                               
+
+Running                                            Running                                            Running test:                                      Running test:                                      Running test: pkgs/vault/db.test.lua               
+describe:                                          describe:                                          describe: scan                                     describe: scan                                     describe: scan tests                               
+it:                                                it:                                                it: hey                                            
+Welcome to CraftOS-PC! This is the ComputerCraft   
+shell prompt, where you can run programs.          
+* Type "programs" to see the programs you can run. 
+* Type "help <program>" to see help for a specific 
+program.                                           
+* Read the documentation at                        
+https://www.craftos-pc.cc/docs/.                   
+* Report bugs to                                   
+https://www.craftos-pc.cc/bugreport.               
+                                                   
+"motd.enable" set to false                         
+Running tests from:                                
+Scanning directories recursively...                
+Found 1 test file(s)                               
+                                                   
+Running test: pkgs/vault/db.test.lua               
+describe: scan tests                               
+it: hey                                            
+                                                   /pkgs/vault/db.test.lua:6:                         /pkgs/vault/db.test.lua:6:                         /pkgs/vault/db.test.lua:6: should                  /pkgs/vault/db.test.lua:6: should                  /pkgs/vault/db.test.lua:6: should fail             
+shell prompt, where you can run programs.          
+* Type "programs" to see the programs you can run. 
+* Type "help <program>" to see help for a specific 
+program.                                           
+* Read the documentation at                        
+https://www.craftos-pc.cc/docs/.                   
+* Report bugs to                                   
+https://www.craftos-pc.cc/bugreport.               
+                                                   
+"motd.enable" set to false                         
+Running tests from:                                
+Scanning directories recursively...                
+Found 1 test file(s)                               
+                                                   
+Running test: pkgs/vault/db.test.lua               
+describe: scan tests                               
+it: hey                                            
+/pkgs/vault/db.test.lua:6: should fail             
+                                                   •                                                  •Line                                              •Line                                              •Line 6                                            
+* Type "programs" to see the programs you can run. 
+* Type "help <program>" to see help for a specific 
+program.                                           
+* Read the documentation at                        
+https://www.craftos-pc.cc/docs/.                   
+* Report bugs to                                   
+https://www.craftos-pc.cc/bugreport.               
+                                                   
+"motd.enable" set to false                         
+Running tests from:                                
+Scanning directories recursively...                
+Found 1 test file(s)                               
+                                                   
+Running test: pkgs/vault/db.test.lua               
+describe: scan tests                               
+it: hey                                            
+/pkgs/vault/db.test.lua:6: should fail             
+•Line 6                                            
+                                                   •                                                  •                                                  •    assert(false,                                 •    assert(false,                                 •    assert(false, "should                         •    assert(false, "should                         •    assert(false, "should fail")                  
+* Type "help <program>" to see help for a specific 
+program.                                           
+* Read the documentation at                        
+https://www.craftos-pc.cc/docs/.                   
+* Report bugs to                                   
+https://www.craftos-pc.cc/bugreport.               
+                                                   
+"motd.enable" set to false                         
+Running tests from:                                
+Scanning directories recursively...                
+Found 1 test file(s)                               
+                                                   
+Running test: pkgs/vault/db.test.lua               
+describe: scan tests                               
+it: hey                                            
+/pkgs/vault/db.test.lua:6: should fail             
+•Line 6                                            
+•    assert(false, "should fail")                  
+                                                   •                                                  ƒ                                                  
+program.                                           
+* Read the documentation at                        
+https://www.craftos-pc.cc/docs/.                   
+* Report bugs to                                   
+https://www.craftos-pc.cc/bugreport.               
+                                                   
+"motd.enable" set to false                         
+Running tests from:                                
+Scanning directories recursively...                
+Found 1 test file(s)                               
+                                                   
+Running test: pkgs/vault/db.test.lua               
+describe: scan tests                               
+it: hey                                            
+/pkgs/vault/db.test.lua:6: should fail             
+•Line 6                                            
+•    assert(false, "should fail")                  
+ƒ                                                  
+                                                                                                        Test                                               Test                                               Test failed:                                       Test failed:                                       Test failed: pkgs/vault/db.test.lua              
+* Read the documentation at                        
+https://www.craftos-pc.cc/docs/.                   
+* Report bugs to                                   
+https://www.craftos-pc.cc/bugreport.               
+                                                   
+"motd.enable" set to false                         
+Running tests from:                                
+Scanning directories recursively...                
+Found 1 test file(s)                               
+                                                   
+Running test: pkgs/vault/db.test.lua               
+describe: scan tests                               
+it: hey                                            
+/pkgs/vault/db.test.lua:6: should fail             
+•Line 6                                            
+•    assert(false, "should fail")                  
+ƒ                                                  
+  Test failed: pkgs/vault/db.test.lua              
+                                                   
+https://www.craftos-pc.cc/docs/.                   
+* Report bugs to                                   
+https://www.craftos-pc.cc/bugreport.               
+                                                   
+"motd.enable" set to false                         
+Running tests from:                                
+Scanning directories recursively...                
+Found 1 test file(s)                               
+                                                   
+Running test: pkgs/vault/db.test.lua               
+describe: scan tests                               
+it: hey                                            
+/pkgs/vault/db.test.lua:6: should fail             
+•Line 6                                            
+•    assert(false, "should fail")                  
+ƒ                                                  
+  Test failed: pkgs/vault/db.test.lua              
+                                                   
+                                                   ================================================== 
+* Report bugs to                                   
+https://www.craftos-pc.cc/bugreport.               
+                                                   
+"motd.enable" set to false                         
+Running tests from:                                
+Scanning directories recursively...                
+Found 1 test file(s)                               
+                                                   
+Running test: pkgs/vault/db.test.lua               
+describe: scan tests                               
+it: hey                                            
+/pkgs/vault/db.test.lua:6: should fail             
+•Line 6                                            
+•    assert(false, "should fail")                  
+ƒ                                                  
+  Test failed: pkgs/vault/db.test.lua              
+                                                   
+================================================== 
+                                                   Test                                               Test                                               Test Summary:                                      
+https://www.craftos-pc.cc/bugreport.               
+                                                   
+"motd.enable" set to false                         
+Running tests from:                                
+Scanning directories recursively...                
+Found 1 test file(s)                               
+                                                   
+Running test: pkgs/vault/db.test.lua               
+describe: scan tests                               
+it: hey                                            
+/pkgs/vault/db.test.lua:6: should fail             
+•Line 6                                            
+•    assert(false, "should fail")                  
+ƒ                                                  
+  Test failed: pkgs/vault/db.test.lua              
+                                                   
+================================================== 
+Test Summary:                                      
+                                                                                                        Total                                              Total                                              Total tests:                                       Total tests:                                       Total tests: 1                                   
+                                                   
+"motd.enable" set to false                         
+Running tests from:                                
+Scanning directories recursively...                
+Found 1 test file(s)                               
+                                                   
+Running test: pkgs/vault/db.test.lua               
+describe: scan tests                               
+it: hey                                            
+/pkgs/vault/db.test.lua:6: should fail             
+•Line 6                                            
+•    assert(false, "should fail")                  
+ƒ                                                  
+  Test failed: pkgs/vault/db.test.lua              
+                                                   
+================================================== 
+Test Summary:                                      
+  Total tests: 1                                   
+                                                                                                        Passed:                                            Passed:                                            Passed: 0                                        
+"motd.enable" set to false                         
+Running tests from:                                
+Scanning directories recursively...                
+Found 1 test file(s)                               
+                                                   
+Running test: pkgs/vault/db.test.lua               
+describe: scan tests                               
+it: hey                                            
+/pkgs/vault/db.test.lua:6: should fail             
+•Line 6                                            
+•    assert(false, "should fail")                  
+ƒ                                                  
+  Test failed: pkgs/vault/db.test.lua              
+                                                   
+================================================== 
+Test Summary:                                      
+  Total tests: 1                                   
+  Passed: 0                                        
+                                                                                                        Failed:                                            Failed:                                            Failed: 1                                        
+Running tests from:                                
+Scanning directories recursively...                
+Found 1 test file(s)                               
+                                                   
+Running test: pkgs/vault/db.test.lua               
+describe: scan tests                               
+it: hey                                            
+/pkgs/vault/db.test.lua:6: should fail             
+•Line 6                                            
+•    assert(false, "should fail")                  
+ƒ                                                  
+  Test failed: pkgs/vault/db.test.lua              
+                                                   
+================================================== 
+Test Summary:                                      
+  Total tests: 1                                   
+  Passed: 0                                        
+  Failed: 1                                        
+                                                   ================================================== 
+Scanning directories recursively...                
+Found 1 test file(s)                               
+                                                   
+Running test: pkgs/vault/db.test.lua               
+describe: scan tests                               
+it: hey                                            
+/pkgs/vault/db.test.lua:6: should fail             
+•Line 6                                            
+•    assert(false, "should fail")                  
+ƒ                                                  
+  Test failed: pkgs/vault/db.test.lua              
+                                                   
+================================================== 
+Test Summary:                                      
+  Total tests: 1                                   
+  Passed: 0                                        
+  Failed: 1                                        
+================================================== 
+                                                   Goodbye                                            
+Found 1 test file(s)                               
+                                                   
+Running test: pkgs/vault/db.test.lua               
+describe: scan tests                               
+it: hey                                            
+/pkgs/vault/db.test.lua:6: should fail             
+•Line 6                                            
+•    assert(false, "should fail")                  
+ƒ                                                  
+  Test failed: pkgs/vault/db.test.lua              
+                                                   
+================================================== 
+Test Summary:                                      
+  Total tests: 1                                   
+  Passed: 0                                        
+  Failed: 1                                        
+================================================== 
+Goodbye                                            
+                                                   
