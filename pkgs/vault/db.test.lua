@@ -1,7 +1,7 @@
 local test = require "/pkgs.lib.test"
 local db = require "/pkgs.vault.db"
-local file = require "/pkgs.lib.file"
 local tbl = require "/pkgs.lib.table"
+local file = require "/pkgs.lib.file"
 
 periphemu.create("back", "modem", 0)
 periphemu.create("minecraft:chest_0", "chest")

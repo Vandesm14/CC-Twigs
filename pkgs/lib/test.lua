@@ -3,14 +3,14 @@ local test = {}
 --- @param string string
 --- @param fn fun()
 function test.describe(string, fn)
-  print("describe: " .. string)
+  print("  describe: " .. string)
   fn()
 end
 
 --- @param string string
 --- @param fn fun()
 function test.it(string, fn)
-  print("it: " .. string)
+  print("    it: " .. string)
   fn()
 end
 

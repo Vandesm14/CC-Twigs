@@ -58,17 +58,17 @@ local failedTests = 0
 for _, testPath in ipairs(testFiles) do
   local relativePath = string.gsub(testPath, "^" .. currentDir .. "/", "")
   totalTests = totalTests + 1
-  print("Running test: " .. relativePath)
+  print("Running tests: " .. relativePath)
 
   -- Run the test file
   local success = shell.run(testPath)
 
   if success then
     passedTests = passedTests + 1
-    print("  Test passed: " .. relativePath)
+    print("  All passed")
   else
     failedTests = failedTests + 1
-    print("  Test failed: " .. relativePath)
+    print("  Some failed")
   end
   print()
 end
