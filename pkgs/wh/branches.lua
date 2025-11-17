@@ -3,9 +3,9 @@
 --- @field storage number[]
 --- @field output number[]
 local branches = {
-  input = { 1 },
+  input = { 32 },
   storage = { 0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 23, 24, 25, 26, 27, 28, 29, 30, 31 },
-  output = { 18 },
+  output = { 33 },
 }
 
 return branches
