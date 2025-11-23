@@ -3,14 +3,15 @@ local tbl = require "/pkgs.lib.table"
 local db = {}
 
 --- @alias Slot { name: string, nbt: string, count: number }
---- @alias Slots table<string, Slot[]>
---- @alias Database { slots: Slots, maxCounts: table<string, number>, counts: table<string, number> }
+--- @alias Inventories table<string, Slot[]>
+--- @alias Transfer { item: string, count: number, from_chest: string, from_slot: number, to_chest: string, to_slot: number }
+--- @alias Database { inventories: Inventories, maxCounts: table<string, number>, counts: table<string, number> }
 
 --- Create a new Database instance.
 --- @return Database
 function db.new()
   return {
-    slots = {},
+    inventories = {},
     empty = {},
     maxCounts = {},
     counts = {},
@@ -19,17 +20,17 @@ end
 
 --- Scan current slot data into Database.
 --- @param database Database
---- @param filter number[]|nil Filter chest IDs.
-function db.scanSlots(database, filter)
-  --- @type Slots
-  local slots = {}
+--- @param filter string[]|nil Filter chest IDs.
+function db.scanInventories(database, filter)
+  --- @type Inventories
+  local inventories = {}
 
   local names = peripheral.getNames()
   for _, name in pairs(names) do
     local chest = peripheral.wrap(name)
     -- If not nil and is an inventory (has `.list`).
     if chest ~= nil and chest.list ~= nil then
-      local coll = {}
+      local slots = {}
 
       -- If no filter or is within our filter.
       if filter == nil or (filter ~= nil and tbl.contains(filter, name)) then
@@ -37,7 +38,7 @@ function db.scanSlots(database, filter)
         for slot_id = 1, chest.size(), 1 do
           local item = list[slot_id]
           if item ~= nil then
-            table.insert(coll, {
+            table.insert(slots, {
               name = item.name,
               nbt = item.nbt,
               count = item.count,
@@ -50,7 +51,7 @@ function db.scanSlots(database, filter)
               end
             end
           else
-            table.insert(coll, {
+            table.insert(slots, {
               name = "",
               nbt = "",
               count = 0,
@@ -59,11 +60,11 @@ function db.scanSlots(database, filter)
         end
       end
 
-      slots[name] = coll
+      inventories[name] = slots
     end
   end
 
-  tbl.merge(database.slots, slots)
+  tbl.merge(database.inventories, inventories)
 end
 
 ---comment
@@ -72,7 +73,7 @@ end
 ---@param slot_id number
 ---@return Slot|nil
 function db.querySlot(database, chest_id, slot_id)
-  local slot = database.slots[chest_id][slot_id]
+  local slot = database.inventories[chest_id][slot_id]
   if slot and slot.count == 0 then
     return nil
   end
