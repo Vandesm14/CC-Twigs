@@ -5,6 +5,7 @@ local db = {}
 --- @alias Slot { name: string, nbt: string, count: number }
 --- @alias Inventories table<string, Slot[]>
 --- @alias Transfer { item: string, count: number, from_chest: string, from_slot: number, to_chest: string, to_slot: number }
+--- @alias TransferFragment { item: string, count: number, chest_id: string, slot_id: number }
 --- @alias Database { inventories: Inventories, maxCounts: table<string, number>, counts: table<string, number> }
 
 --- Create a new Database instance.
@@ -24,6 +25,8 @@ end
 function db.scanInventories(database, filter)
   --- @type Inventories
   local inventories = {}
+  --- @type table<string, number>
+  local counts = {}
 
   local names = peripheral.getNames()
   for _, name in pairs(names) do
@@ -65,6 +68,7 @@ function db.scanInventories(database, filter)
   end
 
   tbl.merge(database.inventories, inventories)
+  tbl.merge(database.counts, counts)
 end
 
 ---comment
@@ -104,5 +108,58 @@ function db.transfer(count, from_chest, from_slot, to_chest, to_slot)
 
   return false
 end
+
+--- Find stacks of an item in a database.
+--- @param database Database
+--- @param from_chests string[]
+--- @param item string
+--- @param count number The number of stacks to find
+--- @return TransferFragment[]
+function db.findStacks(database, from_chests, item, count)
+  --- @type TransferFragment[]
+  local fragments = {}
+
+  local maxCount = database.maxCounts[item]
+  local counter = count
+  for chest_id, slot in pairs(database.inventories) do
+    if tbl.contains(from_chests, chest_id) then
+      for slot_id, stack in pairs(slot) do
+        if counter == 0 then
+          break
+        end
+
+        if stack.name == item and stack.count == maxCount then
+          table.insert(fragments, {
+            item = item,
+            count = maxCount,
+            chest_id = chest_id,
+            slot_id = slot_id,
+          })
+
+          counter = counter - 1
+        end
+      end
+    end
+  end
+
+  return fragments
+end
+
+-- ---comment
+-- ---@param database Database
+-- ---@param item string
+-- ---@param count number
+-- ---@param from_chests string[]
+-- ---@param to_chest string
+-- function db.calculateTransfers(database, item, count, from_chests, to_chest)
+--   --- @type Transfer[]
+--   local transfers = {}
+
+--   local stackRemainder = count % database.maxCounts[item]
+--   local isLessThanStack = count < database.maxCounts[item]
+--   local requiredStacks = math.floor(count / database.maxCounts[item])
+
+--   if requiredStacks > 0 then
+-- end
 
 return db

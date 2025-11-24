@@ -8,25 +8,47 @@ periphemu.create("minecraft:chest_0", "chest")
 periphemu.create("minecraft:chest_1", "chest")
 periphemu.create("minecraft:chest_2", "chest")
 
---- Clear all items from a chest.
---- @param chest_name string The name/ID of the chest to clear
-local function clearChest(chest_name)
-  local chest = peripheral.wrap(chest_name)
-  if chest == nil then
-    error("Chest not found: " .. chest_name)
+local maxCuonts = {
+  ["minecraft:cobblestone"] = 64
+}
+
+--- Get all inventory names.
+--- @return string[]
+local function getInventoryNames()
+  --- @type string[]
+  local inventory_names = {}
+  for _, name in pairs(peripheral.getNames()) do
+    if peripheral.getType(name) == "inventory" then
+      table.insert(inventory_names, name)
+    end
   end
 
-  local list = chest.list()
+  return inventory_names
+end
+
+--- Clear all items from a inventory.
+--- @param name string The name/ID of the inventory to clear
+local function clearInventory(name)
+  local inventory = peripheral.wrap(name)
+  if inventory == nil then
+    error("Peripheral not found: " .. name)
+  end
+
+  if inventory.list == nil then
+    error("Peripheral is not an inventory: " .. name)
+  end
+
+  local list = inventory.list()
   for slot_id, item in pairs(list) do
-    chest.setItem(slot_id, { name = item.name, count = -item.count })
+    inventory.setItem(slot_id, { name = item.name, count = -item.count })
   end
 end
 
---- Clear all chests.
-local function clearAllChests()
-  local names = peripheral.getNames()
+--- Clear all inventories.
+local function clearAllInventories()
+  local names = getInventoryNames()
   for _, name in pairs(names) do
-    clearChest(name)
+    clearInventory(name)
   end
 end
 
@@ -60,7 +82,7 @@ end)
 
 test.describe("clearChest helper", function()
   test.it("clears all items from chest", function()
-    clearAllChests()
+    clearAllInventories()
 
     local database = db.new()
     local chest = peripheral.wrap("minecraft:chest_2")
@@ -78,7 +100,7 @@ test.describe("clearChest helper", function()
     assert(db.querySlot(database, "minecraft:chest_2", 5) ~= nil)
 
     -- Clear the chest
-    clearChest("minecraft:chest_2")
+    clearInventory("minecraft:chest_2")
 
     -- Verify all slots are empty
     db.scanInventories(database, { "minecraft:chest_2" })
@@ -88,5 +110,64 @@ test.describe("clearChest helper", function()
       local slot = chest_slots[slot_id]
       assert(slot.count == 0, "Slot " .. textutils.serializeJSON(slot) .. " should be empty")
     end
+  end)
+
+  test.it("clears all items but allows reinserting", function()
+    clearAllInventories()
+
+    local database = db.new()
+    local chest = peripheral.wrap("minecraft:chest_2")
+    assert(chest ~= nil, "Chest should exist")
+
+    db.scanInventories(database)
+    assert(db.querySlot(database, "minecraft:chest_2", 1) == nil)
+    assert(db.querySlot(database, "minecraft:chest_2", 2) == nil)
+    assert(db.querySlot(database, "minecraft:chest_2", 5) == nil)
+
+    chest.setItem(1, { name = "minecraft:cobblestone", count = 32 })
+    chest.setItem(2, { name = "minecraft:dirt", count = 16 })
+    chest.setItem(5, { name = "minecraft:stone", count = 64 })
+
+    db.scanInventories(database)
+    assert(db.querySlot(database, "minecraft:chest_2", 1) ~= nil)
+    assert(db.querySlot(database, "minecraft:chest_2", 2) ~= nil)
+    assert(db.querySlot(database, "minecraft:chest_2", 5) ~= nil)
+  end)
+end)
+
+test.describe("findStacks tests", function()
+  test.it("finds stacks of an item", function()
+    clearAllInventories()
+
+    local database = db.new()
+    database.maxCounts = maxCuonts
+
+    local cobblestone = { name = "minecraft:cobblestone", count = 64 }
+    peripheral.wrap("minecraft:chest_0").setItem(1, cobblestone)
+    peripheral.wrap("minecraft:chest_0").setItem(2, cobblestone)
+    peripheral.wrap("minecraft:chest_0").setItem(3, cobblestone)
+
+    db.scanInventories(database)
+    local res = db.findStacks(database, { "minecraft:chest_0" }, "minecraft:cobblestone", 1)
+
+    assert(tbl.deepEqual(res, { {
+      item = "minecraft:cobblestone",
+      count = 64,
+      chest_id = "minecraft:chest_0",
+      slot_id = 1,
+    } }), "one stack")
+
+    local res = db.findStacks(database, { "minecraft:chest_0" }, "minecraft:cobblestone", 2)
+    assert(tbl.deepEqual(res, { {
+      item = "minecraft:cobblestone",
+      count = 64,
+      chest_id = "minecraft:chest_0",
+      slot_id = 1,
+    }, {
+      item = "minecraft:cobblestone",
+      count = 64,
+      chest_id = "minecraft:chest_0",
+      slot_id = 2,
+    } }), "two stacks")
   end)
 end)
