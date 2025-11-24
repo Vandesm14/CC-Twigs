@@ -128,10 +128,46 @@ function db.findStacks(database, from_chests, item, count)
           break
         end
 
-        if stack.name == item and stack.count == maxCount then
+        if stack.count ~= 0 and stack.name == item and stack.count == maxCount then
           table.insert(fragments, {
             item = item,
-            count = maxCount,
+            count = stack.count,
+            chest_id = chest_id,
+            slot_id = slot_id,
+          })
+
+          counter = counter - 1
+        end
+      end
+    end
+  end
+
+  return fragments
+end
+
+--- Find partial stacks of an item in a database.
+--- @param database Database
+--- @param from_chests string[]
+--- @param item string
+--- @param count number The number of partial stacks to find
+--- @return TransferFragment[]
+function db.findPartialStacks(database, from_chests, item, count)
+  --- @type TransferFragment[]
+  local fragments = {}
+
+  local maxCount = database.maxCounts[item]
+  local counter = count
+  for chest_id, slot in pairs(database.inventories) do
+    if tbl.contains(from_chests, chest_id) then
+      for slot_id, stack in pairs(slot) do
+        if counter == 0 then
+          break
+        end
+
+        if stack.count ~= 0 and stack.name == item and stack.count < maxCount then
+          table.insert(fragments, {
+            item = item,
+            count = stack.count,
             chest_id = chest_id,
             slot_id = slot_id,
           })

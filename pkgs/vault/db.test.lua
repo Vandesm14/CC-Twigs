@@ -157,19 +157,21 @@ test.describe("transfer tests", function()
 end)
 
 test.describe("find tests", function()
+  clearAllInventories()
+
+  local database = db.new()
+
+  local cobblestone = { name = "minecraft:cobblestone", count = 64 }
+  peripheral.wrap("minecraft:chest_0").setItem(1, cobblestone)
+  peripheral.wrap("minecraft:chest_0").setItem(2, cobblestone)
+  peripheral.wrap("minecraft:chest_0").setItem(3, cobblestone)
+  peripheral.wrap("minecraft:chest_0").setItem(4, { name = "minecraft:cobblestone", count = 32 })
+  peripheral.wrap("minecraft:chest_0").setItem(5, { name = "minecraft:cobblestone", count = 1 })
+
+  db.scanInventories(database)
+
   test.it("finds stacks of an item", function()
-    clearAllInventories()
-
-    local database = db.new()
-
-    local cobblestone = { name = "minecraft:cobblestone", count = 64 }
-    peripheral.wrap("minecraft:chest_0").setItem(1, cobblestone)
-    peripheral.wrap("minecraft:chest_0").setItem(2, cobblestone)
-    peripheral.wrap("minecraft:chest_0").setItem(3, cobblestone)
-
-    db.scanInventories(database)
     local res = db.findStacks(database, { "minecraft:chest_0" }, "minecraft:cobblestone", 1)
-
     assert(tbl.deepEqual(res, { {
       item = "minecraft:cobblestone",
       count = 64,
@@ -177,7 +179,7 @@ test.describe("find tests", function()
       slot_id = 1,
     } }), "one stack")
 
-    local res = db.findStacks(database, { "minecraft:chest_0" }, "minecraft:cobblestone", 2)
+    res = db.findStacks(database, { "minecraft:chest_0" }, "minecraft:cobblestone", 2)
     assert(tbl.deepEqual(res, { {
       item = "minecraft:cobblestone",
       count = 64,
@@ -189,5 +191,28 @@ test.describe("find tests", function()
       chest_id = "minecraft:chest_0",
       slot_id = 2,
     } }), "two stacks")
+  end)
+
+  test.it("finds partial stacks of an item", function()
+    local res = db.findPartialStacks(database, { "minecraft:chest_0" }, "minecraft:cobblestone", 1)
+    assert(tbl.deepEqual(res, { {
+      item = "minecraft:cobblestone",
+      count = 32,
+      chest_id = "minecraft:chest_0",
+      slot_id = 4,
+    } }), "one partial stack")
+
+    res = db.findPartialStacks(database, { "minecraft:chest_0" }, "minecraft:cobblestone", 2)
+    assert(tbl.deepEqual(res, { {
+      item = "minecraft:cobblestone",
+      count = 32,
+      chest_id = "minecraft:chest_0",
+      slot_id = 4,
+    }, {
+      item = "minecraft:cobblestone",
+      count = 1,
+      chest_id = "minecraft:chest_0",
+      slot_id = 5,
+    } }), "two partial stacks")
   end)
 end)
