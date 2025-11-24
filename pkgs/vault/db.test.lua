@@ -9,8 +9,29 @@ periphemu.create("minecraft:chest_1", "chest")
 periphemu.create("minecraft:chest_2", "chest")
 
 local maxCuonts = {
-  ["minecraft:cobblestone"] = 64
+  ["minecraft:cobblestone"] = 64,
+  ["minecraft:dirt"] = 64,
+  ["minecraft:stone"] = 64,
 }
+
+-- Replace peripheral.wrap to inject mock getItemDetail for inventory peripherals
+local originalPeripheralWrap = peripheral.wrap
+peripheral.wrap = function(name)
+  local wrapped = originalPeripheralWrap(name)
+  if wrapped ~= nil and wrapped.list ~= nil then
+    -- Store original function
+    local originalGetItemDetail = wrapped.getItemDetail
+    -- Replace with mock that adds maxCount
+    wrapped.getItemDetail = function(slot_id)
+      local detail = originalGetItemDetail(slot_id)
+      if detail ~= nil and detail.maxCount == nil then
+        detail.maxCount = maxCuonts[detail.name] or 64
+      end
+      return detail
+    end
+  end
+  return wrapped
+end
 
 --- Get all inventory names.
 --- @return string[]
@@ -59,24 +80,6 @@ test.describe("scan tests", function()
     db.scanInventories(database)
 
     assert(tbl.len(database.inventories))
-  end)
-end)
-
-test.describe("transfer tests", function()
-  test.it("transfer stack", function()
-    local database = db.new()
-    local cobblestone = { name = "minecraft:cobblestone", count = 64 }
-    peripheral.wrap("minecraft:chest_0").setItem(1, cobblestone)
-
-    db.scanInventories(database)
-    assert(tbl.deepEqual(db.querySlot(database, "minecraft:chest_0", 1), cobblestone))
-    assert(db.querySlot(database, "minecraft:chest_1", 1) == nil)
-
-    assert(db.transfer(64, "minecraft:chest_0", 1, "minecraft:chest_1", 1))
-    db.scanInventories(database)
-
-    assert(tbl.deepEqual(db.querySlot(database, "minecraft:chest_0", 110), nil))
-    assert(tbl.deepEqual(db.querySlot(database, "minecraft:chest_1", 1), cobblestone))
   end)
 end)
 
@@ -135,12 +138,29 @@ test.describe("clearChest helper", function()
   end)
 end)
 
-test.describe("findStacks tests", function()
+test.describe("transfer tests", function()
+  test.it("transfer stack", function()
+    local database = db.new()
+    local cobblestone = { name = "minecraft:cobblestone", count = 64 }
+    peripheral.wrap("minecraft:chest_0").setItem(1, cobblestone)
+
+    db.scanInventories(database)
+    assert(tbl.deepEqual(db.querySlot(database, "minecraft:chest_0", 1), cobblestone))
+    assert(db.querySlot(database, "minecraft:chest_1", 1) == nil)
+
+    assert(db.transfer(64, "minecraft:chest_0", 1, "minecraft:chest_1", 1))
+    db.scanInventories(database)
+
+    assert(tbl.deepEqual(db.querySlot(database, "minecraft:chest_0", 110), nil))
+    assert(tbl.deepEqual(db.querySlot(database, "minecraft:chest_1", 1), cobblestone))
+  end)
+end)
+
+test.describe("find tests", function()
   test.it("finds stacks of an item", function()
     clearAllInventories()
 
     local database = db.new()
-    database.maxCounts = maxCuonts
 
     local cobblestone = { name = "minecraft:cobblestone", count = 64 }
     peripheral.wrap("minecraft:chest_0").setItem(1, cobblestone)
