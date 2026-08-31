@@ -372,6 +372,19 @@ function lib.matchQuery(cache, query)
     end
   end
 
+  -- Fall back to substring match (like `wh ls`) if exactly one item matches
+  if name == nil then
+    local matches = {}
+    for _, key in pairs(tbl.keys(cache.maxCounts)) do
+      if string.find(key, query, 1, true) ~= nil then
+        table.insert(matches, key)
+      end
+    end
+    if #matches == 1 then
+      name = matches[1]
+    end
+  end
+
   return name
 end
 

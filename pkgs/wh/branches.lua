@@ -4,14 +4,15 @@
 --- @field output string[]
 local branches = {
   input = {
-    "sophisticatedstorage:chest_0",
+    "minecraft:chest_2",
   },
   storage = {
-    "sophisticatedstorage:chest_2",
-    "sophisticatedstorage:chest_3",
+    "sophisticatedstorage:chest_4",
+    "sophisticatedstorage:chest_5",
+    "sophisticatedstorage:chest_6",
   },
   output = {
-    "sophisticatedstorage:chest_1",
+    "minecraft:chest_3",
   },
 }
 
