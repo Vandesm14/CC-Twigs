@@ -37,12 +37,10 @@ local function captureLibPrints(adapter)
 
   print = function(...)
     addMessage(adapter, true, ...)
-    originalPrint(...)
   end
 
   printError = function(...)
     addMessage(adapter, false, ...)
-    originalPrintError(...)
   end
 
   return originalPrint, originalPrintError
