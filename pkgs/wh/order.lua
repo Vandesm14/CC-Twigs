@@ -1,4 +1,4 @@
---- @alias ChestSlot { chest_id: number, slot_id: number }
+--- @alias ChestSlot { chest_id: string, slot_id: number }
 
 --- @alias orderType "input"|"output"
 

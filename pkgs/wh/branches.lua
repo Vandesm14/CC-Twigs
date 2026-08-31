@@ -1,11 +1,18 @@
 --- @class Branches
---- @field input number[]
---- @field storage number[]
---- @field output number[]
+--- @field input string[]
+--- @field storage string[]
+--- @field output string[]
 local branches = {
-  input = { 32 },
-  storage = { 0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 23, 24, 25, 26, 27, 28, 29, 30, 31, 34, 35, 36, 37, 38, 39 },
-  output = { 33 },
+  input = {
+    "sophisticatedstorage:chest_0",
+  },
+  storage = {
+    "sophisticatedstorage:chest_2",
+    "sophisticatedstorage:chest_3",
+  },
+  output = {
+    "sophisticatedstorage:chest_1",
+  },
 }
 
 return branches

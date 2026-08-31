@@ -40,10 +40,9 @@ function lib.scanItems(maxCounts, filter)
   local records = {}
 
   local names = peripheral.getNames()
-  for _, name in pairs(names) do
-    local chest = peripheral.wrap(name)
+  for _, chest_id in pairs(names) do
+    local chest = peripheral.wrap(chest_id)
     if chest ~= nil then
-      local chest_id = lib.chestID(name)
       if filter == nil or (filter ~= nil and tbl.contains(filter, chest_id)) then
         if chest_id ~= nil then
           local list = chest.list()
@@ -203,11 +202,11 @@ end
 --- @param order Order
 --- @return boolean success
 function lib.applyOrder(cache, order)
-  local chest = peripheral.wrap(lib.expandChestID(order.to.chest_id))
+  local chest = peripheral.wrap(order.to.chest_id)
   if chest ~= nil then
     local success, _ = pcall(
       chest.pullItems,
-      lib.expandChestID(order.from.chest_id),
+      order.from.chest_id,
       order.from.slot_id,
       order.count,
       order.to.slot_id
@@ -217,7 +216,7 @@ function lib.applyOrder(cache, order)
       return false
     end
   else
-    printError("failed to find chest: " .. lib.expandChestID(order.to.chest_id))
+    printError("failed to find chest: " .. order.to.chest_id)
     return false
   end
 
@@ -529,10 +528,9 @@ function lib.scanAll(cache)
   local output_slots = {}
 
   local names = peripheral.getNames()
-  for _, name in pairs(names) do
-    local chest = peripheral.wrap(name)
+  for _, chest_id in pairs(names) do
+    local chest = peripheral.wrap(chest_id)
     if chest ~= nil then
-      local chest_id = lib.chestID(name)
       if chest_id ~= nil then
         local target_table = nil
         if tbl.contains(branches.input, chest_id) then

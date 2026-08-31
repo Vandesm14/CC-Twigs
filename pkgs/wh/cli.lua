@@ -137,7 +137,7 @@ function cli.parse(args, mode)
       return true, adapter
     elseif command == "order" then
       if args[2] == nil then
-        addMessage(adapter, false, "Usage: wh order <item> <amt> [<item> <amt> ...]")
+        addMessage(adapter, false, "Usage: wh order <amt> <item> [<amt> <item> ...]")
         addMessage(adapter, false, "")
         addMessage(adapter, false, "At least one item and amount must be provided")
 
@@ -163,7 +163,7 @@ function cli.parse(args, mode)
         local query = args[i + 1]
 
         if query == nil or type(query) ~= "string" then
-          addMessage(adapter, false, "Usage: wh order <item> <amt> [<item> <amt> ...]")
+          addMessage(adapter, false, "Usage: wh order <amt> <item> [<amt> <item> ...]")
           addMessage(adapter, false, "")
           addMessage(adapter, false, "Item name expected at position " .. (i - 1))
 
