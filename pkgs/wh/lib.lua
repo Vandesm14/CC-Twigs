@@ -121,7 +121,7 @@ function lib.loadCache()
     cache.counts = {}
   end
 
-  print("Cache loaded.")
+  -- print("Cache loaded.")
 
   return cache
 end
