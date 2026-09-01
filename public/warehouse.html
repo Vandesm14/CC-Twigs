@@ -221,6 +221,7 @@
   </section>
   <section>
     <h2>Storage</h2>
+    <div class="chest-header" id="storage-total"></div>
     <div class="chests" id="chests"></div>
   </section>
   <section>
@@ -247,6 +248,7 @@ async function load() {
   }
   data = await res.json();
   renderTotals();
+  renderStorageTotal();
   renderChests();
   renderTransactions();
   updateStats();
@@ -327,6 +329,16 @@ function makeSlot(name, count) {
   }
 
   return el;
+}
+
+function renderStorageTotal() {
+  const used = data.storage.filter((s) => s.name && s.count > 0).length;
+  const total = data.storage.length;
+  document.getElementById('storage-total').innerHTML = `
+    <span class="name">All chests</span>
+    <span class="bar"><div style="width:${(used / total) * 100}%"></div></span>
+    <span class="used">${used}/${total} slots</span>
+  `;
 }
 
 function renderTotals() {
