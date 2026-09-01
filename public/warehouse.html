@@ -105,6 +105,10 @@
     gap: 3px;
   }
 
+  .grid.totals {
+    grid-template-columns: repeat(18, minmax(0, 2.85rem));
+  }
+
   .slot {
     position: relative;
     aspect-ratio: 1;
@@ -212,6 +216,10 @@
 </header>
 <main>
   <section>
+    <h2>Totals</h2>
+    <div class="grid totals" id="totals"></div>
+  </section>
+  <section>
     <h2>Storage</h2>
     <div class="chests" id="chests"></div>
   </section>
@@ -238,6 +246,7 @@ async function load() {
     return;
   }
   data = await res.json();
+  renderTotals();
   renderChests();
   renderTransactions();
   updateStats();
@@ -274,44 +283,65 @@ function renderChests() {
     grid.className = 'grid';
 
     for (const s of used) {
-      const el = document.createElement('div');
-      el.className = 'slot';
-      el.dataset.name = s.name || '';
-
-      if (s.name && s.count > 0) {
-        el.classList.add('filled');
-        el.dataset.tip = `${s.name} × ${s.count}`;
-
-        const [namespace, id] = s.name.split(':');
-        if (namespace && id) {
-          const img = document.createElement('img');
-          img.className = 'icon';
-          img.src = `/api/texture/${namespace}/${id}`;
-          img.loading = 'lazy';
-          img.alt = '';
-          img.onerror = () => img.remove();
-          el.appendChild(img);
-        }
-
-        const count = document.createElement('span');
-        count.className = 'count';
-        count.textContent = s.count;
-        el.appendChild(count);
-
-        const max = data.maxCounts[s.name];
-        if (max) {
-          const fill = document.createElement('div');
-          fill.className = 'fill';
-          fill.style.width = Math.min(100, (s.count / max) * 100) + '%';
-          el.appendChild(fill);
-        }
-      }
-
-      grid.appendChild(el);
+      grid.appendChild(makeSlot(s.name, s.count));
     }
 
     wrap.appendChild(grid);
     root.appendChild(wrap);
+  }
+}
+
+/** Builds a single item slot div (used by both the chest grids and the totals grid). */
+function makeSlot(name, count) {
+  const el = document.createElement('div');
+  el.className = 'slot';
+  el.dataset.name = name || '';
+
+  if (name && count > 0) {
+    el.classList.add('filled');
+    el.dataset.tip = `${name} × ${count}`;
+
+    const [namespace, id] = name.split(':');
+    if (namespace && id) {
+      const img = document.createElement('img');
+      img.className = 'icon';
+      img.src = `/api/texture/${namespace}/${id}`;
+      img.loading = 'lazy';
+      img.alt = '';
+      img.onerror = () => img.remove();
+      el.appendChild(img);
+    }
+
+    const count_ = document.createElement('span');
+    count_.className = 'count';
+    count_.textContent = count;
+    el.appendChild(count_);
+
+    const max = data.maxCounts[name];
+    if (max) {
+      const fill = document.createElement('div');
+      fill.className = 'fill';
+      fill.style.width = Math.min(100, (count / max) * 100) + '%';
+      el.appendChild(fill);
+    }
+  }
+
+  return el;
+}
+
+function renderTotals() {
+  const totals = new Map();
+  for (const s of data.storage) {
+    if (!s.name || s.count <= 0) continue;
+    totals.set(s.name, (totals.get(s.name) || 0) + s.count);
+  }
+
+  const entries = [...totals].sort((a, b) => b[1] - a[1]);
+
+  const grid = document.getElementById('totals');
+  grid.innerHTML = '';
+  for (const [name, count] of entries) {
+    grid.appendChild(makeSlot(name, count));
   }
 }
 

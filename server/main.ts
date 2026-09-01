@@ -20,8 +20,8 @@ const REQUIRE_REGEXP = /(?<=require\(("|')).*(?=("|')\))/g;
 /** Path to the Minecraft instance dir, for pulling item textures out of mod jars. */
 const MC_INSTANCE_DIR = Deno.env.get('MC_INSTANCE_DIR');
 
-/** Cache of namespace -> jar path holding that namespace's assets (null = none found). */
-const namespaceJarCache = new Map<string, string | null>();
+/** Cache of namespace -> all jar paths holding that namespace's assets. */
+const namespaceJarsCache = new Map<string, string[]>();
 /** Cache of loaded jars, keyed by jar path. */
 const jarCache = new Map<string, JSZip>();
 /** Cache of extracted texture bytes, keyed by `namespace/item` (null = not found). */
@@ -255,49 +255,109 @@ async function findTexture(
     return textureCache.get(cacheKey) ?? undefined;
   }
 
-  const jarPath = await findNamespaceJar(namespace);
+  const jarPaths = await findNamespaceJars(namespace);
 
-  if (typeof jarPath === 'undefined') {
-    textureCache.set(cacheKey, null);
-    return;
+  for (const jarPath of jarPaths) {
+    const zip = await loadJar(jarPath);
+    const entry =
+      zip.file(`assets/${namespace}/textures/item/${item}.png`) ??
+      zip.file(`assets/${namespace}/textures/block/${item}.png`);
+
+    if (entry) {
+      const png = await entry.async('uint8array');
+      textureCache.set(cacheKey, png);
+      return png;
+    }
   }
 
-  const zip = await loadJar(jarPath);
-  const entry =
-    zip.file(`assets/${namespace}/textures/item/${item}.png`) ??
-    zip.file(`assets/${namespace}/textures/block/${item}.png`);
+  // Many blocks/items (e.g. multi-texture blocks) have no texture at the
+  // guessed path directly; resolve it through the item/block model chain
+  // instead (item model -> parent block model -> its "particle" texture).
+  const resolved = await resolveModelTexture(namespace, `item/${item}`);
 
-  const png = entry
-    ? await entry.async('uint8array')
-    : null;
+  if (resolved) {
+    const resolvedJars = await findNamespaceJars(resolved.namespace);
 
-  textureCache.set(cacheKey, png);
-  return png ?? undefined;
+    for (const jarPath of resolvedJars) {
+      const zip = await loadJar(jarPath);
+      const entry = zip.file(
+        `assets/${resolved.namespace}/textures/${resolved.path}.png`
+      );
+
+      if (entry) {
+        const png = await entry.async('uint8array');
+        textureCache.set(cacheKey, png);
+        return png;
+      }
+    }
+  }
+
+  textureCache.set(cacheKey, null);
 }
 
-/** Finds and caches which jar (mod jar, or the vanilla client jar) holds a namespace's assets. */
-async function findNamespaceJar(namespace: string): Promise<string | undefined> {
-  if (namespaceJarCache.has(namespace)) {
-    return namespaceJarCache.get(namespace) ?? undefined;
+/** Resolves a model's representative texture by walking its `parent` chain. */
+async function resolveModelTexture(
+  namespace: string,
+  modelPath: string,
+  depth = 0
+): Promise<{ namespace: string; path: string } | undefined> {
+  if (depth > 8) return undefined;
+
+  const jarPaths = await findNamespaceJars(namespace);
+  let model: { textures?: Record<string, string>; parent?: string } | undefined;
+
+  for (const jarPath of jarPaths) {
+    const zip = await loadJar(jarPath);
+    const entry = zip.file(`assets/${namespace}/models/${modelPath}.json`);
+
+    if (entry) {
+      model = JSON.parse(await entry.async('text'));
+      break;
+    }
   }
 
-  const jarPath =
+  if (!model) return undefined;
+
+  const ref =
+    model.textures?.layer0 ??
+    model.textures?.particle ??
+    Object.values(model.textures ?? {})[0];
+
+  if (ref) {
+    const [ns, path] = ref.includes(':') ? ref.split(':') : [namespace, ref];
+    return { namespace: ns, path };
+  }
+
+  if (model.parent) {
+    const [ns, path] = model.parent.includes(':')
+      ? model.parent.split(':')
+      : [namespace, model.parent];
+    return await resolveModelTexture(ns, path, depth + 1);
+  }
+}
+
+/** Finds and caches every jar (mod jars, or the vanilla client jar) that holds a namespace's assets. */
+async function findNamespaceJars(namespace: string): Promise<string[]> {
+  const cached = namespaceJarsCache.get(namespace);
+  if (cached) return cached;
+
+  const jarPaths =
     namespace === 'minecraft'
-      ? await findVanillaClientJar()
-      : await findModJarForNamespace(namespace);
+      ? await findVanillaClientJars()
+      : await findModJarsForNamespace(namespace);
 
-  namespaceJarCache.set(namespace, jarPath ?? null);
-  return jarPath;
+  namespaceJarsCache.set(namespace, jarPaths);
+  return jarPaths;
 }
 
-/** Searches `mods/*.jar` in the instance dir for one containing `assets/<namespace>/`. */
-async function findModJarForNamespace(
-  namespace: string
-): Promise<string | undefined> {
-  if (typeof MC_INSTANCE_DIR === 'undefined') return;
+/** Searches `mods/*.jar` in the instance dir for every jar containing `assets/<namespace>/`. */
+async function findModJarsForNamespace(namespace: string): Promise<string[]> {
+  if (typeof MC_INSTANCE_DIR === 'undefined') return [];
 
   const modsDir = path.join(MC_INSTANCE_DIR, 'mods');
-  if (!(await fs.exists(modsDir, { isDirectory: true }))) return;
+  if (!(await fs.exists(modsDir, { isDirectory: true }))) return [];
+
+  const matches: string[] = [];
 
   for await (const entry of fs.walk(modsDir, {
     maxDepth: 1,
@@ -306,14 +366,16 @@ async function findModJarForNamespace(
   })) {
     const zip = await loadJar(entry.path);
     if (Object.keys(zip.files).some((f) => f.startsWith(`assets/${namespace}/`))) {
-      return entry.path;
+      matches.push(entry.path);
     }
   }
+
+  return matches;
 }
 
-/** Finds the vanilla client jar bundled alongside the PrismLauncher instance. */
-async function findVanillaClientJar(): Promise<string | undefined> {
-  if (typeof MC_INSTANCE_DIR === 'undefined') return;
+/** Finds the vanilla client jar(s) bundled alongside the PrismLauncher instance. */
+async function findVanillaClientJars(): Promise<string[]> {
+  if (typeof MC_INSTANCE_DIR === 'undefined') return [];
 
   // MC_INSTANCE_DIR = <PrismLauncher root>/instances/<instance>/minecraft
   const prismRoot = path.resolve(MC_INSTANCE_DIR, '../../..');
@@ -322,15 +384,19 @@ async function findVanillaClientJar(): Promise<string | undefined> {
     'libraries/com/mojang/minecraft'
   );
 
-  if (!(await fs.exists(librariesDir, { isDirectory: true }))) return;
+  if (!(await fs.exists(librariesDir, { isDirectory: true }))) return [];
+
+  const matches: string[] = [];
 
   for await (const entry of fs.walk(librariesDir, {
     maxDepth: 2,
     includeDirs: false,
     match: [/-client\.jar$/],
   })) {
-    return entry.path;
+    matches.push(entry.path);
   }
+
+  return matches;
 }
 
 /** Loads and caches a jar's contents. */
