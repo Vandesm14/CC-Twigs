@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Warehouse</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --bg: #14161a;
+    --panel: #1c1f26;
+    --border: #2c3038;
+    --text: #e4e6eb;
+    --muted: #8b909c;
+    --accent: #5b8def;
+    --match: #3d7a3d;
+    --slot-empty: #202329;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.4 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+
+  header h1 {
+    font-size: 1rem;
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  #search {
+    flex: 1;
+    max-width: 24rem;
+    padding: 0.45rem 0.7rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 0.9rem;
+  }
+
+  #search:focus { outline: 1px solid var(--accent); }
+
+  #stats { color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
+
+  main { padding: 1rem; max-width: 1400px; margin: 0 auto; }
+
+  section { margin-bottom: 1.5rem; }
+
+  section > h2 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    margin: 0 0 0.5rem;
+  }
+
+  .chests { display: flex; flex-direction: column; gap: 1.25rem; }
+
+  .chest-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  .chest-header .name { white-space: nowrap; }
+
+  .chest-header .bar {
+    flex: 1;
+    height: 6px;
+    background: var(--slot-empty);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .chest-header .bar > div {
+    height: 100%;
+    background: var(--accent);
+  }
+
+  .chest-header .used { white-space: nowrap; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(9, minmax(0, 2.85rem));
+    gap: 3px;
+  }
+
+  .slot {
+    position: relative;
+    aspect-ratio: 1;
+    min-width: 0;
+    background: var(--slot-empty);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    padding: 2px;
+    font-size: 0.65rem;
+    color: var(--text);
+    cursor: default;
+    transition: opacity 0.1s, border-color 0.1s;
+  }
+
+  .slot.filled { background: #24272f; }
+
+  .slot.dim { opacity: 0.18; }
+
+  .slot.match {
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+
+  .slot .icon {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 60%;
+    height: 60%;
+    image-rendering: pixelated;
+  }
+
+  .slot .count {
+    position: relative;
+    z-index: 1;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 3px;
+    padding: 0 3px;
+  }
+
+  .slot .fill {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 6px;
+    background: var(--muted);
+    border-radius: 0 0 0 3px;
+  }
+
+  .slot:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    margin-bottom: 4px;
+    background: #000;
+    border: 1px solid var(--border);
+    padding: 3px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 5;
+    font-size: 0.7rem;
+    pointer-events: none;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+
+  thead th {
+    text-align: left;
+    position: sticky;
+    top: 0;
+    background: var(--panel);
+    padding: 0.5rem 0.6rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  tbody td {
+    padding: 0.4rem 0.6rem;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  tbody tr:hover { background: var(--panel); }
+
+  .amount-pos { color: #7bc47f; }
+  .amount-neg { color: #e07a7a; }
+
+  #tx-wrap { max-height: 480px; overflow: auto; border: 1px solid var(--border); border-radius: 6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Warehouse</h1>
+  <input id="search" type="text" placeholder="Filter items…" autocomplete="off" />
+  <span id="stats"></span>
+</header>
+<main>
+  <section>
+    <h2>Storage</h2>
+    <div class="chests" id="chests"></div>
+  </section>
+  <section>
+    <h2>Transactions</h2>
+    <div id="tx-wrap">
+      <table id="tx-table">
+        <thead>
+          <tr><th>Time</th><th>Label</th><th>Item</th><th>Amount</th><th>Balance</th></tr>
+        </thead>
+        <tbody id="tx-body"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+let data = null;
+
+async function load() {
+  const res = await fetch('/api/warehouse');
+  if (!res.ok) {
+    document.getElementById('chests').textContent = 'No data: ' + (await res.text());
+    return;
+  }
+  data = await res.json();
+  renderChests();
+  renderTransactions();
+  updateStats();
+}
+
+function renderChests() {
+  const byChest = new Map();
+  for (const s of data.storage) {
+    if (!byChest.has(s.chest_id)) byChest.set(s.chest_id, []);
+    byChest.get(s.chest_id).push(s);
+  }
+
+  const root = document.getElementById('chests');
+  root.innerHTML = '';
+
+  const entries = [...byChest].sort((a, b) => a[0].localeCompare(b[0]));
+
+  for (const [chestId, slots] of entries) {
+    slots.sort((a, b) => a.slot_id - b.slot_id);
+    const used = slots.filter((s) => s.name && s.count > 0);
+
+    const wrap = document.createElement('div');
+
+    const header = document.createElement('div');
+    header.className = 'chest-header';
+    header.innerHTML = `
+      <span class="name">${chestId}</span>
+      <span class="bar"><div style="width:${(used.length / slots.length) * 100}%"></div></span>
+      <span class="used">${used.length}/${slots.length} slots</span>
+    `;
+    wrap.appendChild(header);
+
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+
+    for (const s of used) {
+      const el = document.createElement('div');
+      el.className = 'slot';
+      el.dataset.name = s.name || '';
+
+      if (s.name && s.count > 0) {
+        el.classList.add('filled');
+        el.dataset.tip = `${s.name} × ${s.count}`;
+
+        const [namespace, id] = s.name.split(':');
+        if (namespace && id) {
+          const img = document.createElement('img');
+          img.className = 'icon';
+          img.src = `/api/texture/${namespace}/${id}`;
+          img.loading = 'lazy';
+          img.alt = '';
+          img.onerror = () => img.remove();
+          el.appendChild(img);
+        }
+
+        const count = document.createElement('span');
+        count.className = 'count';
+        count.textContent = s.count;
+        el.appendChild(count);
+
+        const max = data.maxCounts[s.name];
+        if (max) {
+          const fill = document.createElement('div');
+          fill.className = 'fill';
+          fill.style.width = Math.min(100, (s.count / max) * 100) + '%';
+          el.appendChild(fill);
+        }
+      }
+
+      grid.appendChild(el);
+    }
+
+    wrap.appendChild(grid);
+    root.appendChild(wrap);
+  }
+}
+
+function renderTransactions() {
+  const body = document.getElementById('tx-body');
+  body.innerHTML = '';
+  const rows = [...data.transactions].sort(
+    (a, b) => new Date(b.time) - new Date(a.time)
+  );
+
+  for (const t of rows) {
+    const tr = document.createElement('tr');
+    const amount = Number(t.amount);
+    const amountClass = amount > 0 ? 'amount-pos' : amount < 0 ? 'amount-neg' : '';
+    tr.innerHTML = `
+      <td>${t.time ?? ''}</td>
+      <td>${t.label ?? ''}</td>
+      <td>${t.item ?? ''}</td>
+      <td class="${amountClass}">${amount > 0 ? '+' : ''}${t.amount ?? ''}</td>
+      <td>${t.balance ?? ''}</td>
+    `;
+    body.appendChild(tr);
+  }
+}
+
+function updateStats() {
+  const filled = data.storage.filter((s) => s.name && s.count > 0).length;
+  document.getElementById('stats').textContent =
+    `${filled}/${data.storage.length} slots used · ${data.transactions.length} transactions`;
+}
+
+document.getElementById('search').addEventListener('input', (e) => {
+  const q = e.target.value.trim().toLowerCase();
+  const slots = document.querySelectorAll('.slot');
+
+  for (const el of slots) {
+    if (!q) {
+      el.classList.remove('dim', 'match');
+      continue;
+    }
+    const isMatch = el.dataset.name.toLowerCase().includes(q);
+    el.classList.toggle('match', isMatch);
+    el.classList.toggle('dim', !isMatch);
+  }
+});
+
+load();
+</script>
+</body>
+</html>

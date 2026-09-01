@@ -1,6 +1,6 @@
 {
   "tasks": {
-    "serve": "deno run --allow-read --allow-write --allow-net --allow-sys server/main.ts"
+    "serve": "deno run --env-file --allow-read --allow-write --allow-net --allow-sys --allow-env server/main.ts"
   },
   "fmt": {
     "exclude": [".luarc", "pkgs"],
@@ -11,6 +11,7 @@
     "@oak/oak": "jsr:@oak/oak@^17.1.0",
     "@std/cli": "jsr:@std/cli@^1.0.6",
     "@std/fs": "jsr:@std/fs@^1.0.4",
-    "@std/path": "jsr:@std/path@^1.0.6"
+    "@std/path": "jsr:@std/path@^1.0.6",
+    "jszip": "npm:jszip@^3.10.1"
   }
 }

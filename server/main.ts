@@ -8,6 +8,7 @@ import * as fs from '@std/fs';
 import * as path from '@std/path';
 import * as cli from '@std/cli';
 import * as oak from '@oak/oak';
+import JSZip from 'jszip';
 
 /** The root dir path that contains the packages. */
 const ROOT_PACKAGES_DIR_PATH = 'pkgs/';
@@ -16,6 +17,16 @@ const PACKAGE_FILE_EXTS = ['.lua'];
 /** A RegExp that matches `require("...")`. */
 const REQUIRE_REGEXP = /(?<=require\(("|')).*(?=("|')\))/g;
 
+/** Path to the Minecraft instance dir, for pulling item textures out of mod jars. */
+const MC_INSTANCE_DIR = Deno.env.get('MC_INSTANCE_DIR');
+
+/** Cache of namespace -> jar path holding that namespace's assets (null = none found). */
+const namespaceJarCache = new Map<string, string | null>();
+/** Cache of loaded jars, keyed by jar path. */
+const jarCache = new Map<string, JSZip>();
+/** Cache of extracted texture bytes, keyed by `namespace/item` (null = not found). */
+const textureCache = new Map<string, Uint8Array | null>();
+
 const args = cli.parseArgs(Deno.args);
 const port = typeof args.port === 'number' ? args.port : 3000;
 const host = typeof args.host === 'string' ? args.host : 'localhost';
@@ -23,6 +34,49 @@ const host = typeof args.host === 'string' ? args.host : 'localhost';
 const router = new oak.Router();
 
 router
+  /// Serve the warehouse viewer page.
+  .get('/warehouse', async (context) => {
+    context.response.type = 'text/html';
+    context.response.body = await Deno.readTextFile('public/warehouse.html');
+  })
+  /// Respond with the first uploads/*/slots.json found, plus its transactions.csv.
+  .get('/api/warehouse', async (context) => {
+    const dir = await findFirstUploadDir();
+
+    if (typeof dir === 'undefined') {
+      context.response.status = oak.Status.NotFound;
+      context.response.body = 'No uploads found';
+      return;
+    }
+
+    const slots = JSON.parse(
+      await Deno.readTextFile(path.join(dir, 'slots.json'))
+    );
+
+    let transactions: Record<string, string>[] = [];
+    const txPath = path.join(dir, 'transactions.csv');
+
+    if (await fs.exists(txPath, { isFile: true, isReadable: true })) {
+      transactions = parseCsv(await Deno.readTextFile(txPath));
+    }
+
+    context.response.type = 'application/json';
+    context.response.body = { ...slots, transactions };
+  })
+  /// Respond with the PNG texture for an item, pulled from the Minecraft instance's jars.
+  .get('/api/texture/:namespace/:item', async (context) => {
+    const { namespace, item } = context.params;
+    const png = await findTexture(namespace, item);
+
+    if (typeof png === 'undefined') {
+      context.response.status = oak.Status.NotFound;
+      return;
+    }
+
+    context.response.type = 'image/png';
+    context.response.headers.set('Cache-Control', 'public, max-age=86400');
+    context.response.body = png;
+  })
   /// Respond with newline-separated package names.
   .get('/', async (context) => {
     const names = await getPackages();
@@ -166,6 +220,128 @@ async function getPackageFiles(
 
     return names;
   }
+}
+
+/** Finds the dir of the first `uploads/*\/slots.json` found. */
+async function findFirstUploadDir(): Promise<string | undefined> {
+  for await (const entry of fs.walk('uploads', {
+    maxDepth: 2,
+    includeDirs: false,
+    match: [/slots\.json$/],
+  })) {
+    return path.dirname(entry.path);
+  }
+}
+
+/** Parses a CSV with a header row into an array of row objects. */
+function parseCsv(text: string): Record<string, string>[] {
+  const lines = text.trim().split('\n');
+  const header = lines.shift()?.split(',') ?? [];
+
+  return lines.map((line) => {
+    const cells = line.split(',');
+    return Object.fromEntries(header.map((h, i) => [h, cells[i] ?? '']));
+  });
+}
+
+/** Finds and caches the PNG bytes for an item's texture, searching mod jars for its namespace. */
+async function findTexture(
+  namespace: string,
+  item: string
+): Promise<Uint8Array | undefined> {
+  const cacheKey = `${namespace}/${item}`;
+
+  if (textureCache.has(cacheKey)) {
+    return textureCache.get(cacheKey) ?? undefined;
+  }
+
+  const jarPath = await findNamespaceJar(namespace);
+
+  if (typeof jarPath === 'undefined') {
+    textureCache.set(cacheKey, null);
+    return;
+  }
+
+  const zip = await loadJar(jarPath);
+  const entry =
+    zip.file(`assets/${namespace}/textures/item/${item}.png`) ??
+    zip.file(`assets/${namespace}/textures/block/${item}.png`);
+
+  const png = entry
+    ? await entry.async('uint8array')
+    : null;
+
+  textureCache.set(cacheKey, png);
+  return png ?? undefined;
+}
+
+/** Finds and caches which jar (mod jar, or the vanilla client jar) holds a namespace's assets. */
+async function findNamespaceJar(namespace: string): Promise<string | undefined> {
+  if (namespaceJarCache.has(namespace)) {
+    return namespaceJarCache.get(namespace) ?? undefined;
+  }
+
+  const jarPath =
+    namespace === 'minecraft'
+      ? await findVanillaClientJar()
+      : await findModJarForNamespace(namespace);
+
+  namespaceJarCache.set(namespace, jarPath ?? null);
+  return jarPath;
+}
+
+/** Searches `mods/*.jar` in the instance dir for one containing `assets/<namespace>/`. */
+async function findModJarForNamespace(
+  namespace: string
+): Promise<string | undefined> {
+  if (typeof MC_INSTANCE_DIR === 'undefined') return;
+
+  const modsDir = path.join(MC_INSTANCE_DIR, 'mods');
+  if (!(await fs.exists(modsDir, { isDirectory: true }))) return;
+
+  for await (const entry of fs.walk(modsDir, {
+    maxDepth: 1,
+    includeDirs: false,
+    exts: ['.jar'],
+  })) {
+    const zip = await loadJar(entry.path);
+    if (Object.keys(zip.files).some((f) => f.startsWith(`assets/${namespace}/`))) {
+      return entry.path;
+    }
+  }
+}
+
+/** Finds the vanilla client jar bundled alongside the PrismLauncher instance. */
+async function findVanillaClientJar(): Promise<string | undefined> {
+  if (typeof MC_INSTANCE_DIR === 'undefined') return;
+
+  // MC_INSTANCE_DIR = <PrismLauncher root>/instances/<instance>/minecraft
+  const prismRoot = path.resolve(MC_INSTANCE_DIR, '../../..');
+  const librariesDir = path.join(
+    prismRoot,
+    'libraries/com/mojang/minecraft'
+  );
+
+  if (!(await fs.exists(librariesDir, { isDirectory: true }))) return;
+
+  for await (const entry of fs.walk(librariesDir, {
+    maxDepth: 2,
+    includeDirs: false,
+    match: [/-client\.jar$/],
+  })) {
+    return entry.path;
+  }
+}
+
+/** Loads and caches a jar's contents. */
+async function loadJar(jarPath: string): Promise<JSZip> {
+  const cached = jarCache.get(jarPath);
+  if (cached) return cached;
+
+  const bytes = await Deno.readFile(jarPath);
+  const zip = await JSZip.loadAsync(bytes);
+  jarCache.set(jarPath, zip);
+  return zip;
 }
 
 async function readPackageFileContent(
