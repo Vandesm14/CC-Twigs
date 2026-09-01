@@ -10,6 +10,7 @@ local branches = {
     "sophisticatedstorage:chest_4",
     "sophisticatedstorage:chest_5",
     "sophisticatedstorage:chest_6",
+    "sophisticatedstorage:chest_7",
   },
   output = {
     "minecraft:chest_3",
