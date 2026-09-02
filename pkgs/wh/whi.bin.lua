@@ -113,6 +113,7 @@ while true do
     term.clear()
     term.setCursorPos(1, 1)
     lib.pull(cache)
+    lib.saveCache(cache)
     print("")
     print("Press any key to start over.")
     waitAnyKey()
