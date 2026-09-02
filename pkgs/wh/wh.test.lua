@@ -1,5 +1,6 @@
 local test = require "/pkgs.lib.test"
 local cli = require "/pkgs.wh.cli"
+local lib = require "/pkgs.wh.lib"
 local branches = require "/pkgs.wh.branches"
 
 local maxCounts = {
@@ -138,6 +139,38 @@ test.describe("wh order", function()
     end
     assert(rejected, "adapter should report insufficient stock")
     assert(countInChest(output, "minecraft:cobblestone") == before, "output should be unchanged after a rejected order")
+  end)
+end)
+
+test.describe("wh order with a stale cache", function()
+  clearAllChests()
+  resetWhState()
+
+  local storageChest = branches.storage[1]
+  peripheral.wrap(storageChest).setItem(1, { name = "minecraft:cobblestone", count = 64 })
+  cli.parse({ "scan" }, "local")
+
+  -- Items leave the chest without wh knowing (taken by hand, hopper, ...), so
+  -- the cache still claims they're there and every transfer moves 0 items.
+  peripheral.wrap(storageChest).setItem(1, { name = "minecraft:cobblestone", count = -64 })
+
+  test.it("gives up instead of looping forever", function()
+    local cache = lib.loadCache()
+    assert(lib.order(cache, "minecraft:cobblestone", 5) == false, "order should fail on a zero-item move")
+  end)
+end)
+
+test.describe("wh pull with no room in storage", function()
+  clearAllChests()
+  resetWhState()
+
+  peripheral.wrap(branches.input[1]).setItem(1, { name = "minecraft:cobblestone", count = 32 })
+
+  test.it("gives up instead of looping forever", function()
+    -- No storage slots at all stands in for "storage is full": either way
+    -- there is nowhere to put the incoming stack.
+    local cache = { maxCounts = maxCounts, counts = {}, input = {}, storage = {}, output = {} }
+    assert(lib.pull(cache) == false, "pull should fail when storage has no room")
   end)
 end)
 

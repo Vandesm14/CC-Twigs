@@ -267,6 +267,14 @@ function lib.applyOrder(cache, order)
     return false
   end
 
+  -- A zero-item move means the cache disagrees with the real chest (items
+  -- taken out by hand, destination full). Callers loop until the requested
+  -- count is satisfied, so returning success here spins forever.
+  if moved == 0 then
+    printError("moved nothing, cache is stale: " .. pretty.render(pretty.pretty(order)))
+    return false
+  end
+
   -- Trust what pullItems actually moved, not what was requested
   order.count = moved
 
@@ -348,10 +356,13 @@ function lib.pull(cache)
         end
       end
 
-      if order ~= nil then
-        if not lib.applyOrder(cache, order) then
-          return false
-        end
+      if order == nil then
+        printError("no room in storage for " .. item.name)
+        return false
+      end
+
+      if not lib.applyOrder(cache, order) then
+        return false
       end
     end
   end
