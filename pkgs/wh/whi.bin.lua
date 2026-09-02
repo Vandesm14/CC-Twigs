@@ -109,26 +109,35 @@ local cart = {}
 while true do
   local cache = lib.loadOrInitCache()
   local buffer = readQuery(cache, cart)
-  local query, amount = parseBuffer(buffer)
-
-  if query == "" and amount == nil then
-    -- blank enter: process the cart if there's anything in it
-    if #cart > 0 then
-      for _, entry in ipairs(cart) do
-        lib.order(cache, entry.name, entry.amount)
-      end
-      lib.saveCache(cache)
-      showReceipt(cart)
-      waitAnyKey()
-      cart = {}
-    end
+  if buffer == "pull" then
+    term.clear()
+    term.setCursorPos(1, 1)
+    lib.pull(cache)
+    print("")
+    print("Press any key to start over.")
+    waitAnyKey()
   else
-    local name = lib.matchQuery(cache, query)
-    local available = name ~= nil and lib.countItem(cache, name) or 0
+    local query, amount = parseBuffer(buffer)
 
-    if name ~= nil and amount ~= nil and amount > 0 and amount <= available then
-      table.insert(cart, { name = name, amount = amount })
+    if query == "" and amount == nil then
+      -- blank enter: process the cart if there's anything in it
+      if #cart > 0 then
+        for _, entry in ipairs(cart) do
+          lib.order(cache, entry.name, entry.amount)
+        end
+        lib.saveCache(cache)
+        showReceipt(cart)
+        waitAnyKey()
+        cart = {}
+      end
+    else
+      local name = lib.matchQuery(cache, query)
+      local available = name ~= nil and lib.countItem(cache, name) or 0
+
+      if name ~= nil and amount ~= nil and amount > 0 and amount <= available then
+        table.insert(cart, { name = name, amount = amount })
+      end
+      -- no valid match/amount: loop back and let them keep typing
     end
-    -- no valid match/amount: loop back and let them keep typing
   end
 end
