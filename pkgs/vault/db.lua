@@ -92,10 +92,11 @@ end
 --- @param to_chest string the name of the inventory to transfer to
 --- @param to_slot number the slot of the inventory to transfer to
 --- @return boolean success
+--- @return number quantity
 function db.transfer(count, from_chest, from_slot, to_chest, to_slot)
   local destination = peripheral.wrap(to_chest)
   if destination ~= nil then
-    local success, _ = pcall(
+    local success, quantity = pcall(
       destination.pullItems,
       from_chest,
       from_slot,
@@ -103,10 +104,10 @@ function db.transfer(count, from_chest, from_slot, to_chest, to_slot)
       to_slot
     )
 
-    return success
+    return success, quantity
   end
 
-  return false
+  return false, 0
 end
 
 --- Find stacks of an item in a database.
