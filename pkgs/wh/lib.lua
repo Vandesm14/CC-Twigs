@@ -484,10 +484,12 @@ local function countItems(items, table)
     local name, count = item.name, item.count
 
     -- Update or set the entry
-    if table[name] ~= nil then
-      table[name] = table[name] + count
-    else
-      table[name] = count
+    if name ~= nil and name ~= "" then
+      if table[name] ~= nil then
+        table[name] = table[name] + count
+      else
+        table[name] = count
+      end
     end
   end
 end
