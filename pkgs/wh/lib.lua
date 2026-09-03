@@ -93,7 +93,7 @@ function lib.saveCache(cache)
     error("Unable to create slots.json file.")
   end
 
-  print("Cache saved.")
+  -- print("Cache saved.")
 end
 
 --- Loads entire cache data from slots.json
@@ -299,6 +299,7 @@ function lib.applyOrder(cache, order)
 
     -- Log transaction to CSV
     lib.logTransaction(order, cache)
+    lib.saveCache(cache)
   end
 
   return true
