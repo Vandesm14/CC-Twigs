@@ -8,6 +8,7 @@ import * as fs from '@std/fs';
 import * as path from '@std/path';
 import * as cli from '@std/cli';
 import * as oak from '@oak/oak';
+import { encodeBase64 } from '@std/encoding/base64';
 import JSZip from 'jszip';
 
 /** The root dir path that contains the packages. */
@@ -20,12 +21,15 @@ const REQUIRE_REGEXP = /(?<=require\(("|')).*(?=("|')\))/g;
 /** Path to the Minecraft instance dir, for pulling item textures out of mod jars. */
 const MC_INSTANCE_DIR = Deno.env.get('MC_INSTANCE_DIR');
 
-/** Cache of namespace -> all jar paths holding that namespace's assets. */
-const namespaceJarsCache = new Map<string, string[]>();
-/** Cache of loaded jars, keyed by jar path. */
-const jarCache = new Map<string, JSZip>();
-/** Cache of extracted texture bytes, keyed by `namespace/item` (null = not found). */
-const textureCache = new Map<string, Uint8Array | null>();
+/** Dir for the on-disk texture cache, so extracted PNGs survive server restarts. */
+const TEXTURE_DISK_CACHE_DIR = 'temp/textures';
+
+/** Cache of namespace -> all jar paths holding that namespace's assets. Stores in-flight promises to dedupe concurrent lookups for the same namespace. */
+const namespaceJarsCache = new Map<string, Promise<string[]>>();
+/** Cache of loaded jars, keyed by jar path. Stores in-flight promises to dedupe concurrent loads of the same jar. */
+const jarCache = new Map<string, Promise<JSZip>>();
+/** Cache of extracted texture bytes, keyed by `namespace/item` (undefined = not found). Stores in-flight promises to dedupe concurrent lookups for the same texture. */
+const textureCache = new Map<string, Promise<Uint8Array | undefined>>();
 
 const args = cli.parseArgs(Deno.args);
 const port = typeof args.port === 'number' ? args.port : 3000;
@@ -76,6 +80,34 @@ router
     context.response.type = 'image/png';
     context.response.headers.set('Cache-Control', 'public, max-age=86400');
     context.response.body = png;
+  })
+  /// Batch-fetch textures as data URIs, keyed by `namespace:item` name, in one request.
+  .post('/api/textures', async (context) => {
+    const { names } = await context.request.body.json();
+
+    if (!Array.isArray(names)) {
+      context.response.status = oak.Status.BadRequest;
+      context.response.body = 'Expected { names: string[] }';
+      return;
+    }
+
+    const unique = [...new Set(names)] as string[];
+    const result: Record<string, string> = {};
+
+    await Promise.all(
+      unique.map(async (name) => {
+        const [namespace, item] = name.split(':');
+        if (!namespace || !item) return;
+
+        const png = await findTexture(namespace, item);
+        if (png) {
+          result[name] = `data:image/png;base64,${encodeBase64(png)}`;
+        }
+      })
+    );
+
+    context.response.type = 'application/json';
+    context.response.body = result;
   })
   /// Respond with newline-separated package names.
   .get('/', async (context) => {
@@ -245,14 +277,29 @@ function parseCsv(text: string): Record<string, string>[] {
 }
 
 /** Finds and caches the PNG bytes for an item's texture, searching mod jars for its namespace. */
-async function findTexture(
+function findTexture(
   namespace: string,
   item: string
 ): Promise<Uint8Array | undefined> {
   const cacheKey = `${namespace}/${item}`;
 
-  if (textureCache.has(cacheKey)) {
-    return textureCache.get(cacheKey) ?? undefined;
+  const cached = textureCache.get(cacheKey);
+  if (cached) return cached;
+
+  const promise = findTextureUncached(namespace, item);
+  textureCache.set(cacheKey, promise);
+  return promise;
+}
+
+/** Does the actual work of {@link findTexture}, including the on-disk cache. */
+async function findTextureUncached(
+  namespace: string,
+  item: string
+): Promise<Uint8Array | undefined> {
+  const diskPath = path.join(TEXTURE_DISK_CACHE_DIR, namespace, `${item}.png`);
+
+  if (await fs.exists(diskPath, { isFile: true, isReadable: true })) {
+    return await Deno.readFile(diskPath);
   }
 
   const jarPaths = await findNamespaceJars(namespace);
@@ -265,7 +312,7 @@ async function findTexture(
 
     if (entry) {
       const png = await entry.async('uint8array');
-      textureCache.set(cacheKey, png);
+      await cacheTextureToDisk(diskPath, png);
       return png;
     }
   }
@@ -286,13 +333,20 @@ async function findTexture(
 
       if (entry) {
         const png = await entry.async('uint8array');
-        textureCache.set(cacheKey, png);
+        await cacheTextureToDisk(diskPath, png);
         return png;
       }
     }
   }
+}
 
-  textureCache.set(cacheKey, null);
+/** Writes an extracted texture to the on-disk cache. */
+async function cacheTextureToDisk(
+  diskPath: string,
+  png: Uint8Array
+): Promise<void> {
+  await fs.ensureDir(path.dirname(diskPath));
+  await Deno.writeFile(diskPath, png);
 }
 
 /** Resolves a model's representative texture by walking its `parent` chain. */
@@ -337,17 +391,17 @@ async function resolveModelTexture(
 }
 
 /** Finds and caches every jar (mod jars, or the vanilla client jar) that holds a namespace's assets. */
-async function findNamespaceJars(namespace: string): Promise<string[]> {
+function findNamespaceJars(namespace: string): Promise<string[]> {
   const cached = namespaceJarsCache.get(namespace);
   if (cached) return cached;
 
-  const jarPaths =
+  const promise =
     namespace === 'minecraft'
-      ? await findVanillaClientJars()
-      : await findModJarsForNamespace(namespace);
+      ? findVanillaClientJars()
+      : findModJarsForNamespace(namespace);
 
-  namespaceJarsCache.set(namespace, jarPaths);
-  return jarPaths;
+  namespaceJarsCache.set(namespace, promise);
+  return promise;
 }
 
 /** Searches `mods/*.jar` in the instance dir for every jar containing `assets/<namespace>/`. */
@@ -400,14 +454,13 @@ async function findVanillaClientJars(): Promise<string[]> {
 }
 
 /** Loads and caches a jar's contents. */
-async function loadJar(jarPath: string): Promise<JSZip> {
+function loadJar(jarPath: string): Promise<JSZip> {
   const cached = jarCache.get(jarPath);
   if (cached) return cached;
 
-  const bytes = await Deno.readFile(jarPath);
-  const zip = await JSZip.loadAsync(bytes);
-  jarCache.set(jarPath, zip);
-  return zip;
+  const promise = Deno.readFile(jarPath).then((bytes) => JSZip.loadAsync(bytes));
+  jarCache.set(jarPath, promise);
+  return promise;
 }
 
 async function readPackageFileContent(

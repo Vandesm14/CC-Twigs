@@ -141,6 +141,8 @@
     left: 2px;
     width: 60%;
     height: 60%;
+    background-size: contain;
+    background-repeat: no-repeat;
     image-rendering: pixelated;
   }
 
@@ -239,6 +241,7 @@
 
 <script>
 let data = null;
+let icons = {};
 
 async function load() {
   const res = await fetch('/api/warehouse');
@@ -247,6 +250,15 @@ async function load() {
     return;
   }
   data = await res.json();
+
+  const names = [...new Set(data.storage.filter((s) => s.name && s.count > 0).map((s) => s.name))];
+  const texRes = await fetch('/api/textures', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ names }),
+  });
+  if (texRes.ok) icons = await texRes.json();
+
   renderTotals();
   renderStorageTotal();
   renderChests();
@@ -303,15 +315,12 @@ function makeSlot(name, count) {
     el.classList.add('filled');
     el.dataset.tip = `${name} × ${count}`;
 
-    const [namespace, id] = name.split(':');
-    if (namespace && id) {
-      const img = document.createElement('img');
-      img.className = 'icon';
-      img.src = `/api/texture/${namespace}/${id}`;
-      img.loading = 'lazy';
-      img.alt = '';
-      img.onerror = () => img.remove();
-      el.appendChild(img);
+    const dataUri = icons[name];
+    if (dataUri) {
+      const icon = document.createElement('div');
+      icon.className = 'icon';
+      icon.style.backgroundImage = `url(${dataUri})`;
+      el.appendChild(icon);
     }
 
     const count_ = document.createElement('span');
