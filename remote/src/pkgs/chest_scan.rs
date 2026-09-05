@@ -6,13 +6,13 @@ use std::collections::HashMap;
 
 use serde_json::{Value, json};
 
-use crate::registry::{CallError, Computer};
+use crate::{
+  api::peripheral,
+  registry::{CallError, Computer},
+};
 
 pub async fn run(computer: &Computer) -> Result<String, CallError> {
-  let names: Vec<String> = serde_json::from_value(
-    computer.call("peripheral.getNames", json!([])).await?,
-  )
-  .unwrap_or_default();
+  let names = peripheral::get_names(computer).await.unwrap_or_default();
 
   let mut chest_names = Vec::new();
   let mut totals: HashMap<String, i64> = HashMap::new();

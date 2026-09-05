@@ -5,6 +5,7 @@
 //! See `pkgs/rpc/rpc.bin.lua` for the matching client, and the README for
 //! the wire format and how to point a computer at this server.
 
+pub mod api;
 mod pkgs;
 mod protocol;
 mod registry;
