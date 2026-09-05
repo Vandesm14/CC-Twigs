@@ -19,6 +19,7 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
+use clap::Parser;
 use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
 use serde_json::Value;
@@ -32,8 +33,17 @@ struct AppState {
   registry: Registry,
 }
 
+#[derive(Parser)]
+struct Args {
+  /// Address to listen on
+  #[arg(short, long, default_value = "0.0.0.0:8080")]
+  address: String,
+}
+
 #[tokio::main]
 async fn main() {
+  let args = Args::parse();
+
   let state = AppState {
     registry: Arc::new(RwLock::new(HashMap::new())),
   };
@@ -46,9 +56,8 @@ async fn main() {
     .route("/run/{computer}/{program}", post(run_program))
     .with_state(state);
 
-  let addr = "0.0.0.0:8080";
-  let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-  println!("rpc server listening on {addr}");
+  let listener = tokio::net::TcpListener::bind(&args.address).await.unwrap();
+  println!("rpc server listening on {}", args.address);
   axum::serve(listener, app).await.unwrap();
 }
 
